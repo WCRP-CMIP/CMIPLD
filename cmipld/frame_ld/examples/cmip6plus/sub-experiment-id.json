@@ -1,0 +1,7 @@
+{
+    "@type": [
+        "mip:sub-experiment-id"
+    ],
+    "sub-experiment-id:sub-experiment-id": {},
+    "sub-experiment-id:description": {}
+}

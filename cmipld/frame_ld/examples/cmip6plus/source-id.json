@@ -1,0 +1,24 @@
+{
+    "@type": [
+        "mip:source-id"
+    ],
+    "source-id:activity-participation": [
+        {
+            "activity-id:name": "",
+            "@explicit": true
+        }
+    ],
+    "source-id:model-component": [
+        {
+            "model-component:name": "",
+            "model-component:realm": {
+                "realm:name": "",
+                "@explicit": true
+            },
+            "source-id:license": {
+                "kind": {}
+            },
+            "@explicit": true
+        }
+    ]
+}

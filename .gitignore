@@ -2,6 +2,13 @@
 __pycache__/
 *.py[cod]
 *$py.class
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.DSStore
 
 # C extensions
 *.so

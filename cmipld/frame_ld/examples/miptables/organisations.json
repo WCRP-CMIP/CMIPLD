@@ -1,0 +1,12 @@
+{
+    "@type": [
+        "mip:institution",
+        "mip:consortium"
+    ],
+    "@explicit": true,
+    "consortium:cmip_acronym": "",
+    "institution:cmip_acronym": "",
+    "consortium:description": "",
+    "institution:name": "",
+    "institution:ror": ""
+}
