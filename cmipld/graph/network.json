@@ -1,0 +1,448 @@
+{
+  "nodes": [
+    {
+      "id": "mip-cmor-tables:auxillary/frequency",
+      "type": "mip:frequency",
+      "origin": "mip-cmor-tables",
+      "weight": 16
+    },
+    {
+      "id": "mip-cmor-tables:auxillary/mip-era",
+      "type": "mip:mip-era",
+      "origin": "mip-cmor-tables",
+      "weight": 4
+    },
+    {
+      "id": "mip-cmor-tables:auxillary/native-nominal-resolution",
+      "type": "mip:mip:native-nominal-resolution",
+      "origin": "mip-cmor-tables",
+      "weight": 6
+    },
+    {
+      "id": "mip-cmor-tables",
+      "type": "directory",
+      "origin": "mip-cmor-tables",
+      "weight": 78
+    },
+    {
+      "id": "auxillary",
+      "type": "directory",
+      "origin": "mip-cmor-tables",
+      "weight": 6
+    },
+    {
+      "id": "native-nominal-resolution",
+      "type": "directory-path",
+      "origin": "mip-cmor-tables",
+      "weight": 6
+    },
+    {
+      "id": "mip-cmor-tables:auxillary/product",
+      "type": "mip:product",
+      "origin": "mip-cmor-tables",
+      "weight": 4
+    },
+    {
+      "id": "mip-cmor-tables:auxillary/realm",
+      "type": "mip:realm",
+      "origin": "mip-cmor-tables",
+      "weight": 6
+    },
+    {
+      "id": "mip-cmor-tables:auxillary/source-type",
+      "type": "mip:source-type",
+      "origin": "mip-cmor-tables",
+      "weight": 10
+    },
+    {
+      "id": "mip-cmor-tables:grid/label",
+      "type": "mip:grid-label",
+      "origin": "mip-cmor-tables",
+      "weight": 45
+    },
+    {
+      "id": "mip-cmor-tables:license",
+      "type": "mip:license",
+      "origin": "mip-cmor-tables",
+      "weight": 4
+    },
+    {
+      "id": "mip-cmor-tables:organisations/consortia",
+      "type": "mip:consortium",
+      "origin": "mip-cmor-tables",
+      "weight": 3
+    },
+    {
+      "id": "mip-cmor-tables:organisations/institutions",
+      "type": "mip:institution",
+      "origin": "mip-cmor-tables",
+      "weight": 72
+    },
+    {
+      "id": "organisations",
+      "type": "directory",
+      "origin": "mip-cmor-tables",
+      "weight": 72
+    },
+    {
+      "id": "institutions",
+      "type": "directory-path",
+      "origin": "mip-cmor-tables",
+      "weight": 72
+    },
+    {
+      "id": "mip-cmor-tables:organisations/institutions/location",
+      "type": "institution:location",
+      "origin": "mip-cmor-tables",
+      "weight": 71
+    },
+    {
+      "id": "cmip6plus:activity",
+      "type": "mip:activity-id",
+      "origin": "cmip6plus",
+      "weight": 2
+    },
+    {
+      "id": "cmip6plus:core",
+      "type": "mip:index",
+      "origin": "cmip6plus",
+      "weight": 3
+    },
+    {
+      "id": "cmip6plus",
+      "type": "directory",
+      "origin": "cmip6plus",
+      "weight": 172
+    },
+    {
+      "id": "core",
+      "type": "directory-path",
+      "origin": "cmip6plus",
+      "weight": 4
+    },
+    {
+      "id": "cmip6plus:experiment/id",
+      "type": "mip:experiment-id",
+      "origin": "cmip6plus",
+      "weight": 28
+    },
+    {
+      "id": "experiment",
+      "type": "directory",
+      "origin": "cmip6plus",
+      "weight": 56
+    },
+    {
+      "id": "id",
+      "type": "directory-path",
+      "origin": "cmip6plus",
+      "weight": 110
+    },
+    {
+      "id": "cmip6plus:experiment/sub-id",
+      "type": "mip:sub-experiment-id",
+      "origin": "cmip6plus",
+      "weight": 2
+    },
+    {
+      "id": "cmip6plus:model/component",
+      "type": "mip:model-component",
+      "origin": "cmip6plus",
+      "weight": 29
+    },
+    {
+      "id": "model",
+      "type": "directory",
+      "origin": "cmip6plus",
+      "weight": 58
+    },
+    {
+      "id": "component",
+      "type": "directory-path",
+      "origin": "cmip6plus",
+      "weight": 58
+    },
+    {
+      "id": "cmip6plus:source/id",
+      "type": "mip:source-id",
+      "origin": "cmip6plus",
+      "weight": 6
+    },
+    {
+      "id": "source",
+      "type": "directory",
+      "origin": "cmip6plus",
+      "weight": 54
+    }
+  ],
+  "links": [
+    {
+      "source": "mip-cmor-tables:auxillary/native-nominal-resolution",
+      "target": "",
+      "predicate": "model-native-nominal-resolution:cf:unit",
+      "weight": 6
+    },
+    {
+      "source": "mip-cmor-tables",
+      "target": "auxillary",
+      "predicate": "_",
+      "weight": 6
+    },
+    {
+      "source": "auxillary",
+      "target": "native-nominal-resolution",
+      "predicate": "_",
+      "weight": 6
+    },
+    {
+      "source": "native-nominal-resolution",
+      "target": "mip-cmor-tables:auxillary/native-nominal-resolution",
+      "predicate": "_",
+      "weight": 6
+    },
+    {
+      "source": "mip-cmor-tables:organisations/institutions",
+      "target": "mip-cmor-tables:organisations/institutions/location",
+      "predicate": "institution:location",
+      "weight": 72
+    },
+    {
+      "source": "mip-cmor-tables",
+      "target": "organisations",
+      "predicate": "_",
+      "weight": 72
+    },
+    {
+      "source": "organisations",
+      "target": "institutions",
+      "predicate": "_",
+      "weight": 72
+    },
+    {
+      "source": "institutions",
+      "target": "mip-cmor-tables:organisations/institutions",
+      "predicate": "_",
+      "weight": 72
+    },
+    {
+      "source": "cmip6plus:core",
+      "target": "cmip6plus:core",
+      "predicate": "core:drs",
+      "weight": 2
+    },
+    {
+      "source": "cmip6plus",
+      "target": "core",
+      "predicate": "_",
+      "weight": 4
+    },
+    {
+      "source": "core",
+      "target": "cmip6plus:core",
+      "predicate": "_",
+      "weight": 4
+    },
+    {
+      "source": "cmip6plus:core",
+      "target": "cmip6plus:core",
+      "predicate": "core:index",
+      "weight": 2
+    },
+    {
+      "source": "cmip6plus:core",
+      "target": "mip-cmor-tables:auxillary/mip-era",
+      "predicate": "core:mip-era",
+      "weight": 1
+    },
+    {
+      "source": "cmip6plus:core",
+      "target": "mip-cmor-tables:auxillary/product",
+      "predicate": "core:product",
+      "weight": 1
+    },
+    {
+      "source": "cmip6plus:experiment/id",
+      "target": "cmip6plus:activity",
+      "predicate": "experiment-id:activity-id",
+      "weight": 28
+    },
+    {
+      "source": "cmip6plus",
+      "target": "experiment",
+      "predicate": "_",
+      "weight": 56
+    },
+    {
+      "source": "experiment",
+      "target": "id",
+      "predicate": "_",
+      "weight": 56
+    },
+    {
+      "source": "id",
+      "target": "cmip6plus:experiment/id",
+      "predicate": "_",
+      "weight": 56
+    },
+    {
+      "source": "cmip6plus:experiment/id",
+      "target": "cmip6plus:experiment/sub-id",
+      "predicate": "experiment-id:sub-experiment-id",
+      "weight": 28
+    },
+    {
+      "source": "cmip6plus:model/component",
+      "target": "mip-cmor-tables:auxillary/native-nominal-resolution",
+      "predicate": "model-component:nominal-resolution",
+      "weight": 29
+    },
+    {
+      "source": "cmip6plus",
+      "target": "model",
+      "predicate": "_",
+      "weight": 58
+    },
+    {
+      "source": "model",
+      "target": "component",
+      "predicate": "_",
+      "weight": 58
+    },
+    {
+      "source": "component",
+      "target": "cmip6plus:model/component",
+      "predicate": "_",
+      "weight": 58
+    },
+    {
+      "source": "cmip6plus:model/component",
+      "target": "mip-cmor-tables:auxillary/realm",
+      "predicate": "model-component:realm",
+      "weight": 29
+    },
+    {
+      "source": "cmip6plus:source/id",
+      "target": "cmip6plus:activity",
+      "predicate": "source-id:activity-participation",
+      "weight": 12
+    },
+    {
+      "source": "cmip6plus",
+      "target": "source",
+      "predicate": "_",
+      "weight": 54
+    },
+    {
+      "source": "source",
+      "target": "id",
+      "predicate": "_",
+      "weight": 54
+    },
+    {
+      "source": "id",
+      "target": "cmip6plus:source/id",
+      "predicate": "_",
+      "weight": 54
+    },
+    {
+      "source": "cmip6plus:source/id",
+      "target": "cmip6plus:model/component",
+      "predicate": "source-id:model-component",
+      "weight": 36
+    },
+    {
+      "source": "cmip6plus:source/id",
+      "target": "mip-cmor-tables:organisations/institutions",
+      "predicate": "source-id:organisation-id",
+      "weight": 4
+    },
+    {
+      "source": "cmip6plus:source/id",
+      "target": "mip-cmor-tables:organisations/consortia",
+      "predicate": "source-id:organisation-id",
+      "weight": 2
+    }
+  ],
+  "types": {
+    "frequency:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/auxillary",
+    "mip:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/auxillary",
+    "product:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/auxillary",
+    "realm:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/auxillary",
+    "source-type:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/auxillary",
+    "grid-label:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/grid",
+    "license:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD",
+    "consortium:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/organisations",
+    "institution:graph": "https://github.com/PCMDI/mip-cmor-tables/JSONLD/organisations",
+    "activity-id:graph": "https://github.com/WCRP-CMIP/CMIP6Plus_CVs/https://github.com/WCRP-CMIP/CMIP6Plus_CVs/JSONLD",
+    "mip:frequency": "mip-cmor-tables:auxillary/frequency",
+    "mip:mip-era": "mip-cmor-tables:auxillary/mip-era",
+    "mip:mip:native-nominal-resolution": "mip-cmor-tables:auxillary/native-nominal-resolution",
+    "mip:product": "mip-cmor-tables:auxillary/product",
+    "mip:realm": "mip-cmor-tables:auxillary/realm",
+    "mip:source-type": "mip-cmor-tables:auxillary/source-type",
+    "mip:grid-label": "mip-cmor-tables:grid/label",
+    "mip:license": "mip-cmor-tables:license",
+    "mip:consortium": "mip-cmor-tables:organisations/consortia",
+    "mip:institution": "mip-cmor-tables:organisations/institutions",
+    "institution:location": "mip-cmor-tables:organisations/institutions/location",
+    "mip:activity-id": "cmip6plus:activity",
+    "mip:core-descriptors": "cmip6plus:core",
+    "mip:drs": "cmip6plus:core",
+    "mip:index": "cmip6plus:core",
+    "mip:experiment-id": "cmip6plus:experiment/id",
+    "mip:sub-experiment-id": "cmip6plus:experiment/sub-id",
+    "mip:model-component": "cmip6plus:model/component",
+    "mip:source-id": "cmip6plus:source/id"
+  },
+  "vocab": {
+    "mip-cmor-tables:auxillary/frequency": "frequency",
+    "mip-cmor-tables:auxillary/mip-era": "mip-era",
+    "mip-cmor-tables:auxillary/native-nominal-resolution": "native-nominal-resolution",
+    "mip-cmor-tables:auxillary/product": "product",
+    "mip-cmor-tables:auxillary/realm": "realm",
+    "mip-cmor-tables:auxillary/source-type": "source-type",
+    "mip-cmor-tables:grid/label": "grid-label",
+    "mip-cmor-tables:license": "license",
+    "mip-cmor-tables:organisations/consortia": "consortium",
+    "mip-cmor-tables:organisations/institutions": "institution",
+    "mip-cmor-tables:organisations/institutions/location": "institution:location",
+    "cmip6plus:activity": "activity-id",
+    "cmip6plus:core": "index",
+    "cmip6plus:experiment/id": "experiment-id",
+    "cmip6plus:experiment/sub-id": "sub-experiment-id",
+    "cmip6plus:model/component": "model-component",
+    "cmip6plus:source/id": "source-id"
+  },
+  "missing": [
+    "cmip6:experiment/id/hist-totalo3",
+    "mip-cmor-tables:organisations/institutions/uni",
+    "cmip6:experiment/id/hist-volc",
+    "mip-cmor-tables:auxillary/native-nominal-resolution/none",
+    "mip-cmor-tables:auxillary/realm/ocnbgchem",
+    "cmip6:experiment/id/picontrol-spinup",
+    "cmip6:experiment/id/picontrol",
+    "mip-cmor-tables:organisations/institutions/geomar",
+    "cmip6:experiment/id/hist-aer",
+    "cmip6:experiment/id/esm-picontrol",
+    "mip-cmor-tables:organisations/institutions/noresm",
+    "cmip6:experiment/id/hist-sol",
+    "cmip6:experiment/id/no parent",
+    "mip-cmor-tables:organisations/institutions/nersc",
+    "mip-cmor-tables:organisations/institutions/gsfc",
+    "mip-cmor-tables:auxillary/realm/landice",
+    "mip-cmor-tables:organisations/institutions/met-norway",
+    "mip-cmor-tables:organisations/institutions/jamstec",
+    "cmip6:experiment/id/esm-picontrol-spinup",
+    "mip-cmor-tables:organisations/institutions/nies",
+    "mip-cmor-tables:organisations/institutions/r-ccs",
+    "mip-cmor-tables:organisations/institutions/iaa-csic",
+    "cmip6:experiment/id/hist-ghg",
+    "mip-cmor-tables:organisations/institutions/aori",
+    "mip-cmor-tables:organisations/institutions/nilu",
+    "mip-cmor-tables:organisations/institutions/uib",
+    "mip-cmor-tables:organisations/institutions/lasp",
+    "si:km",
+    "mip-cmor-tables:organisations/institutions/uio",
+    "cmip6plus:activity/no parent"
+  ]
+}

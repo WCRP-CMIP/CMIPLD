@@ -2,8 +2,17 @@
 import json
 from pyld import jsonld
 import jmespath
-import re
+import re,os
 
+
+
+def get_frame(base,file):
+    '''Get frame from saved collections'''
+    # sanitise path
+    path = os.path.normpath(f'{base}/{file}.json')
+    with open(__file__.replace('__init__.py','examples/')+path,'r') as f:
+        return json.load(f)
+    
 
 def direct(func):
     def wrapper(*args, **kwargs):
@@ -23,7 +32,7 @@ def direct(func):
 
 
 class Frame:
-    def __init__(self,source,frame):
+    def __init__(self,source,frame,nograph=True):
         
         # if isinstance(source, list):
         #     source = {"@context":{},"@graph":source}
@@ -33,7 +42,13 @@ class Frame:
         self.source = source
         self.frame = frame
         
-        self.data = self.graph_only(jsonld.frame(source, frame))
+        # if "@embed" not in frame: # make sure each instance is embedded. 
+        #     self.frame["@embed"] = "@always"
+        
+        if nograph: # usually used if framing an id directly
+            self.data = self.graph_only(jsonld.frame(source, frame))
+        else:
+            self.data = jsonld.frame(source, frame)
         
     def __str__(self):
         return json.dumps(self.data, indent=2)
@@ -61,6 +76,11 @@ class Frame:
             self.__getattribute__(function)
         
         self.end
+        return self
+    
+    @property
+    def clean_cv(self):
+        return self.clean(['rmld','missing','untag','lower','flatten'])
         
     # @staticmethod
     @property
@@ -94,6 +114,18 @@ class Frame:
     @direct
     def flatten(self):
         self.json_string = re.sub(r'{\s*"([^"]*?)":\s*"(.+)"\s*}', r'"\2"', self.json_string)
+        return self
+
+    @property 
+    @direct
+    def lower(self):
+        self.json_string = re.sub(r'(?<=")([^"]*?)-(.*?)(?=":)', lambda m: m.group(0).replace('-', '_') , self.json_string)
+        return self
+
+    @property 
+    @direct
+    def missing(self):
+        self.json_string = re.sub(r'\{\s*"@id"\s*:\s*"([^"]+)"\s*\}', r'"Missing Link: \1"' , self.json_string)
         return self
 
     @staticmethod

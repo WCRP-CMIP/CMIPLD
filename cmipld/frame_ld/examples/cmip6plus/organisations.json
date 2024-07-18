@@ -1,4 +1,12 @@
 {
+    "@context": {
+    "@vocab": "source-id:",
+    "institution:location": {
+        "@context": {
+            "@extend": true
+        } 
+    }
+  },
     "@type": [
         "mip:source-id"
     ],
@@ -8,15 +16,15 @@
             "mip:consortium"
         ],
         "@explicit": true,
-        "consortium:cmip_acronym": "",
-        "institution:cmip_acronym": "",
-        "consortium:description": "",
+        "consortium:cmip-acronym": "",
+        "institution:cmip-acronym": "",
+        "consortium:name": "",
         "institution:name": "",
         "institution:ror": "",
         "consortium:members": {
             "institution:institution": {
                 "debugid": {},
-                "@explicit": false
+                "@explicit": true
             },
             "@explicit": true
         }

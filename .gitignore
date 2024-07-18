@@ -8,7 +8,7 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
-.DSStore
+.DS_Store
 
 # C extensions
 *.so
