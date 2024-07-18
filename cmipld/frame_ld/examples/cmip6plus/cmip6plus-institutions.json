@@ -1,0 +1,25 @@
+{
+    "@type": [
+        "mip:source-id"
+    ],
+    "source-id:organisation-id": {
+        "@type": [
+            "mip:institution",
+            "mip:consortium"
+        ],
+        "@explicit": true,
+        "consortium:cmip_acronym": "",
+        "institution:cmip_acronym": "",
+        "consortium:description": "",
+        "institution:name": "",
+        "institution:ror": "",
+        "consortium:members": {
+            "institution:institution": {
+                "debugid": {},
+                "@explicit": false
+            },
+            "@explicit": true
+        }
+    },
+    "@explicit": true
+}

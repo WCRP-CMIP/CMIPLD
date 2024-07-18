@@ -1,0 +1,14 @@
+{
+    "@type": [
+        "mip:core-descriptors"
+    ],
+    "core:mip-era": {
+        "mip:name": {},
+        "@explicit": true
+    },
+    "core:product": {
+        "product:kind": {},
+        "@explicit": true
+    },
+    "core:drs": {}
+}

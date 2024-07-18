@@ -1,0 +1,17 @@
+{
+    "@type": "mip:experiment-id",
+    "experiment-id:activity-id": {
+        "activity-id:name": {},
+        "@explicit": true
+    },
+    "experiment-id:model-components": {
+        "experiment-id:additional-allowed": {
+            "source-type:name": "",
+            "@explicit": true
+        },
+        "experiment-id:required": {
+            "source-type:name": "",
+            "@explicit": true
+        }
+    }
+}
