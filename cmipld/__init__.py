@@ -1,5 +1,5 @@
 from .file_io import CMIPFileUtils,LatestFiles
-from .frame_ld import Frame
+from .frame_ld import Frame,get_frame
 
 
 

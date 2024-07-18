@@ -1,7 +1,11 @@
 {
+    "@context":{
+        "@vocab":"experiment-sub-id:"
+    },
     "@type": [
         "mip:sub-experiment-id"
     ],
-    "sub-experiment-id:sub-experiment-id": {},
-    "sub-experiment-id:description": {}
+    "name": {},
+    "description": {},
+    "@explicit": true
 }

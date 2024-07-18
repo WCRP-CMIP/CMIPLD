@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3 Force Directed Graph with Annotations</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="d3-annotation.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        text {
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-optical-sizing: auto;
+            /* font-weight: 200; */
+            /* font-style: bold; */
+            font-size: 8px;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* .annotation-note-label {
+            font-size: 10px;
+        }
+
+        .annotation-note-title {
+            font-size: 12px;
+            font-weight: bold;
+        } */
+
+        :root {
+            --annotation-color: rgba(245, 245, 245, 0.766);
+
+            /* #e91e56; */
+        }
+
+        svg,
+        body {
+            background-color: #020b13;
+            /* whitesmoke; */
+        }
+
+        svg {
+            /* background-color: white; */
+            /* font-family: 'Lato'; */
+            overflow: visible;
+        }
+
+        line {
+            stroke: whitesmoke;
+        }
+
+        /* .editable .annotation-subject,
+        .editable .annotation-textbox {
+            cursor: move;
+        } */
+
+        /* .line {
+            fill: none;
+            stroke: black;
+            stroke-width: 1px;
+        } */
+
+        .annotation path {
+            stroke: var(--annotation-color);
+            fill: rgba(0, 0, 0, 0);
+        }
+
+        .annotation path.connector-arrow {
+            fill: var(--annotation-color);
+        }
+
+        .annotation text {
+            fill: var(--annotation-color);
+        }
+
+        .annotation-title {
+            font-weight: bold;
+        }
+
+        .annotation .annotation-subject circle.handle {
+            display: none;
+        }
+
+        .annotation-note-bg {
+            fill: rgba(255, 255, 255, 0);
+        }
+
+        circle.handle {
+            stroke-dasharray: 5;
+            stroke: grey;
+            fill: rgba(255, 255, 255, 0);
+            cursor: move;
+
+            stroke-opacity: .4;
+        }
+
+        circle.handle.highlight {
+            stroke-opacity: 1;
+        }
+
+        .annotation.major {
+            font-weight: 900;
+            font-size: 1em;
+        }
+
+        .annotation-note-label tspan {
+            text-anchor: middle;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="chart"></div>
+
+    <!-- <script type="module" src="utils.js"></script> -->
+
+    <script>
+        setTimeout(() => {
+            // window.location.reload();
+        }, 10000);
+
+        const tetrad = '#5215fc #fc154b #bffc15'.split(' ')
+        // Get the dimensions of the screen
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // Specify the color scale.
+        const color = d3.scaleOrdinal(tetrad)
+        // d3.schemeCategory10);
+
+        function radius(weight) {
+            return 1 + Math.sqrt(weight) ** .8;
+        }
+        let dragging = false;
+
+        // Sample data (replace with your actual data)
+        d3.json("network.json").then(data => {
+
+            data.nodes = data.nodes.filter(d => d.id)
+            data.links = data.links.filter(d => d.source && d.target)
+
+            console.log(data);
+
+            let nwidth = 10;
+            // The force simulation mutates links and nodes, so create a copy
+            const links = data.links.map(d => ({ ...d }));
+            const nodes = data.nodes.map(d => ({ ...d }));
+
+            // Create a simulation with several forces.
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id))
+                .force("charge", d3.forceManyBody().strength(-100))
+                .force("x", d3.forceX(d => {
+                    if (d.id === "cmip6plus") return width / 4;
+                    if (d.id === "mip-cmor-tables") return -width / 4;
+                    return 0;
+                }).strength(d => {
+                    if (d.id === "cmip6plus") return 0.1;
+                    if (d.id === "mip-cmor-tables") return 0.1;
+                    return 0.2;
+                }))
+                .force("y", d3.forceY());
+
+            // Create the SVG container.
+            const svg = d3.select("#chart").append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("preserveAspectRatio", "xMidYMid meet");
+
+            // Create a group for the graph content
+            const g = svg.append("g");
+
+            // Add a line for each link
+            const link = g.append("g")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+
+                .style('mix-blend-mode', 'lighten')
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .style("stroke-width", d => 0.6 + d.weight ** .1)
+                .style("stroke", d => color(d.source.origin))
+                .join("line")
+                .style("stroke-width", d => 0.5 + d.weight ** .1)
+                .style("stroke", d => color(d.source.origin))
+
+
+
+            // Add a group for each node
+            const node = g.append("g")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
+                .selectAll("g")
+                .data(nodes)
+                .join("g")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended)
+                )
+
+
+
+
+            // Add a circle to each node group
+            node.append("circle")
+                .attr("r", d => radius(d.weight))
+                .attr("fill", d => color(d.origin));
+
+            node.append("title").text(d => d.id);
+
+            // Add text labels for links
+            const linkLabels = g.append("g")
+                .attr("class", "link-labels")
+                .selectAll("text")
+                .data(links)
+                .style("fill", "#666");
+            // .join("text")
+            // .text(d => d.value)
+            // .attr("font-size", "8px")
+
+            function annotation_labels(labelnodes) {
+
+                d3.select(".annotation-group").remove()
+
+                let annomap = labelnodes.map(node => {
+                    // console.log(node); 
+                    return ({
+                        note: {
+                            label: `${node.id.split(":")[0].replace(/ /g, "").toLowerCase()} (${node.type.replace(/mip:/g, "").replace(/ /g, "").toLowerCase()})`,
+                            // title: node.type.replace(/mip:/g, "").replace(/ /g, "").toUpperCase()
+                            align: "middle"
+                        },
+                        subject: {
+                            radius: radius(node.weight) + 0.2 + (node.weight ** .3)
+                        },
+                        id: node.id,
+                        x: 0,
+                        y: 10,
+                        dx: node.x,
+                        dy: node.y / 2,
+                        // dx: node.x,
+                        nx: Math.sign(node.x) * (nwidth / 2 + 100),
+                        group: node.type
+                    })
+                })
+
+
+                // Set up annotations
+                const makeAnnotations = d3.annotation()
+                    // .type(d3.annotationLabel)
+                    .type(d3.annotationCalloutCircle)
+                    .editMode(false)
+                    .notePadding(2)
+                    .annotations(annomap);
+
+                let annotation = g.append("g")
+                    .attr("class", "annotation-group")
+                    .call(makeAnnotations);
+
+            }
+
+            // Set the position attributes of links and nodes each time the simulation ticks.
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+
+                linkLabels
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+
+                const bounds = g.node().getBBox();
+                const padding = 50; // Add some padding around the graph
+                const xpad = 200
+                svg.attr("viewBox", `${bounds.x - padding - xpad} ${bounds.y - padding} ${bounds.width + 2 * padding + xpad * 2} ${bounds.height + 2 * padding}`);
+                nwidth = bounds.width / 2;
+
+
+                if (simulation.alpha() < 0.1) {
+
+                    node
+                        .on('mouseover', (event, d) => {
+                            if (dragging) return;
+                            simulation.stop()
+                            console.log(d)
+                            annotation_labels([d])
+                            d3.select(".annotation-group")
+                                .selectAll(".annotation")
+                                .attr("transform", `translate(${d.x},${d.y})`);
+
+                        })
+                        .on('mouseout', (event, d) => {
+                            if (dragging) return;
+                            d3.select(".annotation-group").remove()
+                            simulation.alpha(0.1).restart();
+                        })
+                        
+
+                }
+
+                d3.select(".annotation-group")
+                    .selectAll(".annotation")
+                    .attr("transform", (d, i) => `translate(${nodes[i].x},${nodes[i].y})`);
+            });
+
+            // Reheat the simulation when drag starts, and fix the subject position.
+            function dragstarted(event) {
+                dragging = true;
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+
+            // Update the subject (dragged node) position during drag.
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+
+            // Restore the target alpha so the simulation cools after dragging ends.
+            // Unfix the subject position now that it's no longer being dragged.
+            function dragended(event) {
+                dragging = false;
+                if (!event.active) {
+                    simulation.alpha(0.1).restart();
+                    simulation.alphaTarget(0.01);
+                }
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+
+            // Adjust graph on window resize
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+
+                    if (simulation.alpha() < simulation.alphaMin()) {
+
+                        width = window.innerWidth;
+                        height = window.innerHeight;
+                        svg.attr("width", width).attr("height", height);
+                        simulation.force("x", d3.forceX(d => {
+                            if (d.id === "cmip6plus") return width / 4;
+                            if (d.id === "mip-cmor-tables") return -width / 4;
+                            return 0;
+                        }));
+                        simulation.alpha(1).restart();
+
+
+
+                    }
+                }, 250);  // Wait for 250ms after the last resize event
+            });
+
+        });
+    </script>
+</body>
+
+</html>

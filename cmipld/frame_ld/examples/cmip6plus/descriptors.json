@@ -1,8 +1,18 @@
 {
-    "@type": [
-        "mip:core-descriptors"
-    ],
+    "@id": "cmip6plus:core/descriptors",
+    "@context": {
+        "@extend": true,
+    
+        "core:mip-era": {
+            "@context": {  
+                "@vocab": "mip:"
+            }
+        }
+    },
+    "@type": "mip:core-descriptors",
     "core:mip-era": {
+        
+        "@vocab": "mip:",
         "mip:name": {},
         "@explicit": true
     },
@@ -10,5 +20,6 @@
         "product:kind": {},
         "@explicit": true
     },
-    "core:drs": {}
+    "core:drs": {},
+    "core:index": {}
 }

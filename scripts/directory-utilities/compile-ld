@@ -1,0 +1,6 @@
+#! /bin/bash 
+#make this a script to read args of both! 
+updateld $@;
+
+mkdir compiled
+combine-graphs compiled/graph_data . graph ./scripts 

@@ -3,6 +3,7 @@ import requests
 import json
 import base64
 import asyncio
+import sys,os
 
 
 '''
@@ -90,8 +91,6 @@ class CMIPFileUtils:
         
         return sum([await self.gh_read_file(*f) for f in latest],[])
         
-            
-        
         
 
     @staticmethod
@@ -102,3 +101,20 @@ class CMIPFileUtils:
             print(f"JSON data has been written to {file}")
         except Exception as e:
             print(f"Error writing to file: {e}")
+            
+            
+    @staticmethod
+    async def load(lddata:list):
+        read = []
+        for f in lddata:
+            if 'http' in f:
+                read.append(await CMIPFileUtils.read_file_url(f))
+            elif f in LatestFiles.entries:
+                read.append(await CMIPFileUtils.gh_read_file(*LatestFiles.entries[f]))
+            elif os.path.exists(f):
+                read.append(await CMIPFileUtils.read_file_fs(f))
+            else:
+                sys.exit(f"File {f} not found")
+                
+                
+        return sum(read,[])
