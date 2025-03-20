@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMIP-LD Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsonld/1.8.0/jsonld.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-jsonview/1.2.3/jquery.jsonview.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-jsonview/1.2.3/jquery.jsonview.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin: 10px 0;
+    }
+    #json-output {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>JSON-LD Viewer</h1>
+  <form id="jsonld-form">
+    <label for="uri">Enter URI:</label><br>
+    <input type="text" id="uri" name="uri" style="width: 100%;" required><br><br>
+    <label for="frame">Enter Framing Code (optional):</label><br>
+    <textarea id="frame" name="frame" placeholder="{}"></textarea><br>
+  </form>
+  <div id="json-output">
+    <h2>Result:</h2>
+    <div id="json-viewer"></div>
+  </div>
+
+  <script>
+    const PREFIXES = {
+      'wcrp-universe': 'https://wcrp-cmip.github.io/WCRP-universe/',
+      'mip-variables': 'https://wcrp-cmip.github.io/MIPvariables/',
+      'cmip6plus': 'https://wcrp-cmip.github.io/CMIP6Plus_CVs/',
+      'cmip7': 'https://wcrp-cmip.github.io/CMIP7_CVs/',
+      'cf': 'https://wcrp-cmip.github.io/WCRP-CMIP/CF/',
+    };
+
+    function substitutePrefix(uri) {
+      const [prefix, ...rest] = uri.split(':');
+      if (PREFIXES[prefix]) {
+        return PREFIXES[prefix] + rest.join(':');
+      }
+      return uri;
+    }
+
+    async function fetchJsonLd(uri) {
+      const response = await fetch(uri);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch JSON-LD from ${uri}`);
+      }
+      return response.json();
+    }
+
+    async function processJsonLd(uri, frame) {
+      uri = substitutePrefix(uri);
+      const data = await fetchJsonLd(uri);
+
+      if (frame) {
+        return await jsonld.frame(data, JSON.parse(frame));
+      }
+
+      return data;
+    }
+
+    async function updateJsonView() {
+      const uri = $('#uri').val().trim();
+      const frame = $('#frame').val().trim();
+
+      $('#json-viewer').empty();
+
+      if (!uri) {
+        $('#json-viewer').text('Enter a valid URI to fetch JSON-LD.');
+        return;
+      }
+
+      try {
+        const result = await processJsonLd(uri, frame || null);
+        $('#json-viewer').JSONView(result, { collapsed: true });
+      } catch (err) {
+        $('#json-viewer').text(`Error: ${err.message}`);
+      }
+    }
+
+    // Update the results whenever the URI or frame changes
+    $('#uri, #frame').on('input', updateJsonView);
+
+    // Initial render if fields are pre-filled
+    $(document).ready(updateJsonView);
+  </script>
+</body>
+</html>

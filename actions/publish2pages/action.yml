@@ -1,0 +1,164 @@
+name: publish_to_pages
+on:
+  workflow_call:
+    inputs:
+      api_key:
+        description: 'API key for authentication'
+        required: true
+        type: string
+      github_token:
+        description: 'GitHub token for authentication'
+        required: true
+        type: string
+      branch_name:
+        description: 'Branch to deploy from'
+        required: true
+        type: string
+runs:
+    using: 'composite'
+    
+
+    steps:
+
+
+
+      - name: Get a list of directories with updated files
+        id: install-cmipld
+        uses: WCRP-CMIP/CMIP-LD/actions/cmipld@main
+
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch the complete commit history
+          
+      - name: Set up Git
+        run: |
+          git config user.email "daniel.ellis@ext.esa.int"
+          git config user.name "Daniel Ellis"
+          git config credential.helper store
+          git config --global user.email "daniel.ellis@ext.esa.int"
+          git config --global user.name "Daniel Ellis"
+          git config --global push.default current
+          echo "GH_TOKEN=${{ inputs.GITHUB_TOKEN }}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: create symbolic link without extension 
+        id: push_to_production
+        env:
+          BRANCH: ${{ inputs.branch_name }}
+        run: |
+
+          # Check if production branch exists; if not, create an empty branch
+          if ! git show-ref --verify --quiet refs/heads/production; then
+              # Create an empty orphan branch named production
+              git checkout --orphan production
+              git rm -rf .  
+              
+
+              # curl command here
+              # echo "curl command here"
+              git checkout "${BRANCH}" -- 404.html
+              touch 404.html
+              git add 404.html
+
+              # Create a .nojekyll file to prevent GitHub Pages from processing with Jekyll
+              touch .nojekyll
+              git add .nojekyll
+              # .nojekyll
+              git commit -m "Add .nojekyll to production branch"
+
+              # # Make sure the publish workflow exists 
+              # mkdir -p .github/workflows
+              
+              # Check out the static.yml file from the source branch to the production branch
+              git checkout "${BRANCH}" -- .github/workflows/static.yml
+
+          else
+              git checkout production
+              rm -rf src-data
+              
+          fi
+
+          git add -A 
+          git commit -m 'cleaning up'
+
+          # Checkout the specified branch's src-data directory into production
+          git checkout "${BRANCH}" -- src-data
+          # mv src-data docs
+
+          # copy the 404 code. 
+          cp 404.html src-data/404.html
+          cp .nojekyll src-data/.nojekyll
+
+
+          # Find all .json files and create symbolic links without the .json extension
+          # return to copys as artifacts do not handle symlinks
+          find . -type f -name "*.jsonld" -exec sh -c 'cp "$0" "${0%.jsonld}"' {} \;
+          find . -type f -name "*.json" -exec sh -c 'cp "$0" "${0%.json}"' {} \;
+
+          echo "Files copied"
+
+          # identify broken files. 
+          find . -type f -name "graph.jsonld" -exec sh -c 'jq empty "{}" || echo "Broken JSON :{}"' \;
+
+          # Find all graph.jsonld files and merge them into a single JSON list
+          find . -type f -name "graph.jsonld" -exec jq -s '[.[][]]' {} + > src-data/graph.jsonld
+
+          echo "Files copied"
+
+
+          # group all graphs
+          find src-data -type f -name "graph.jsonld" -exec jq -s '[.[]]' {} + > src-data/graph.jsonld
+          cp src-data/graph.jsonld src-data/graph
+        shell: bash
+    
+      - name: Update ctx
+        id: update-ctx
+        shell: bash
+        run: |
+          update_ctx
+        continue-on-error: true
+
+      # - name: Allow downstream workflows to trigger
+      #   run: |
+      #     echo "Enabling downstream workflow triggers"
+      #   env:
+      #     ACTIONS_ALLOW_UNSECURE_DOWNSTREAM: "true"
+      #   shell: bash
+
+      - name: Commit changes
+        id: commit
+        run: |
+          # Stage all changes, commit, and push to production branch
+          git add -A
+          git commit -m "production push"
+          git push --force origin production
+        shell: bash
+
+      # Trigger the second workflow using the GitHub Actions API
+      - name: Trigger Production Workflow
+        if: ${{ success() }}  # Only trigger if previous steps were successful
+        env:
+          API_KEY: ${{ inputs.API_KEY }}
+          GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch_name }}
+        run: |
+          gh workflow run static.yml --ref production
+        shell: bash
+
+
+
+
+
+          # curl -X POST -H "Accept: application/vnd.github+json" \
+          # -H "Authorization: Bearer $GITHUB_TOKEN" \
+          # https://api.github.com/repos/${{ github.repository }}/actions/workflows/static.yml/dispatches \
+          # -d '{"ref":"production"}'
+
+
+          # - name: Publish
+          # uses: WCRP-CMIP/CMIP-LD/actions/publish2pages@main
+          # with:
+          #   api_key: ${{ secrets.API_KEY }}
+          #   github_token: ${{ secrets.GITHUB_TOKEN }}
+          #   branch_name: ${{ github.ref_name }}

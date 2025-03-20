@@ -1,0 +1,29 @@
+
+# Directory containing JSON files (you can modify this)
+INPUT_DIR="."
+
+# Find all files named '_context_' (no extension) recursively in the specified directory
+find "$INPUT_DIR" -type f -name "_context_" | while read -r file; do
+  # Check if the file exists and is a regular file
+  if [[ -f "$file" ]]; then
+    # Create a backup of the original file
+    cp "$file" "$file.bak"
+
+    # Use jq to modify the @container value in the file
+    jq 'walk( if type == "object" and .["@container"] == "@id" then .["@container"] = "@set" else . end )' "$file" > "$file.tmp"
+
+    # Overwrite the original file with the modified content
+    mv "$file.tmp" "$file"
+
+        # Use jq to modify the @container value in the file
+    # jq 'walk( if type == "object" and .["@container"] = ["@index","@set"]" then .["@container"] = ["@set"] else . end )' "$file" > "$file.tmp"
+
+    # # Overwrite the original file with the modified content
+    # mv "$file.tmp" "$file"
+
+
+    echo "Processed: $file"
+  fi
+done
+
+echo "All '_context_' files processed."

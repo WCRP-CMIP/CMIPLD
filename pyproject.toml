@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmip-ld"
+dynamic = ["version"]  # Let setuptools_scm handle versioning
+authors = [
+  { name="Daniel Ellis" }
+]
+description = "A tool for managing CMIP Linked Data"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "pyld",
+    "jmespath",
+    "pydantic",
+    "p_tqdm"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/WCRP-CMIP/CMIP-LD"
+Issues = "https://github.com/WCRP-CMIP/CMIP-LD/issues"
+Documentation = "https://wiki.mipcvs.dev"
+Notebooks = 'tbc'
+
+[project.scripts]
+cmipld = "cmipld.browse.__main__:main"
+update_ctx = "cmipld.generate.update_ctx:main"
+update_all = "cmipld.generate.update_all:main"
+update_schema = "cmipld.schema.update_schema:main"
+update_issues = "cmipld.schema.issue_template:main"
+rewrite_type = "cmipld.generate.rewritetype:main"
+new_issue = "cmipld.generate.new_issue:main"
+generate_summary = "cmipld.generate.generate_summary:main"
+
+[tool.setuptools]
+packages = ["cmipld"]
+include-package-data = true
+
+
+[tool.setuptools.package-data]
+cmipld = ["scripts/*/*"
+          ]
+
+[tool.setuptools.data-files]
+"bin" = [
+    "scripts/directory-utilities/dev",
+    "scripts/directory-utilities/validjsonld",
+    "scripts/directory-utilities/ld2graph",
+    "scripts/jsonld-util/rmbak",
+    "scripts/jsonld-util/rmgraph"
+  ]
+
+[tool.setuptools_scm]
+write_to = "cmipld/version.py"

@@ -1,0 +1,24 @@
+name: artifact load
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        required: false
+        type: string
+        default: .
+      name:
+        required: false
+        type: string
+        default: repo
+
+jobs:
+  load-artifact:
+    # runs-on: ubuntu-latest
+    steps:
+
+    - name: Load artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{inputs.name}}
+        path: ${{inputs.path}}

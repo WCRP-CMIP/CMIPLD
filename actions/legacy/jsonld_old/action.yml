@@ -1,0 +1,85 @@
+name: 'Update JSONLD Files'
+description: 'A collection of actions to update the JSONLD files'
+
+inputs:
+  dirs:
+    description: 'directories to update'
+    required: true
+  frames:
+    description: 'frame locations to update'
+    required: false
+    default: '$PWD/compiled/graph_data.json'
+  frame_update:
+    description: 'set to "" if you do not want to update the frames'
+    required: false
+    default: '--frame-update'
+   
+
+runs:
+  using: 'composite'
+  steps:
+
+
+    - name: display inputs
+      id: display-inputs
+      shell: bash
+      run: |
+        echo "### JSONLD Inputs" >> $GITHUB_STEP_SUMMARY
+        echo "Directories: ${{ inputs.dirs }}" >> $GITHUB_STEP_SUMMARY
+        echo "Frames: ${{ inputs.frames }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: check for updates in LD directories
+      id: update-ld
+      shell: bash
+      run: |
+
+        echo "### Computing the new JSONLD information." >> $GITHUB_STEP_SUMMARY
+
+        echo "```" >> $GITHUB_STEP_SUMMARY
+        
+        OUTPUT=$( updateld --updated ${{inputs.dirs}})
+        
+        echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
+
+        echo "```" >> $GITHUB_STEP_SUMMARY
+
+      continue-on-error: false
+
+    - name: collect all the JSONLD @graphs into one
+      id: group-ld
+      shell: bash
+      if: env.needs_update != '0'
+      run: |
+
+        echo "Files needing update: ${{env.needs_update}}" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Collecting all JSONLD graphs in compiled folder" >> $GITHUB_STEP_SUMMARY
+        
+        mkdir -p compiled
+        combine-graphs compiled/graph_data . graph ./scripts 
+
+
+    - name: generate network and update frames
+      id: graph-gen-ld
+      shell: bash
+      if: env.needs_update != '0'
+      run: |
+        echo "### Calculating the Network and Framing options." >> $GITHUB_STEP_SUMMARY
+
+        OUTPUT=$(reframe --graph ./compiled/network.json --frame ./compiled/frames.json ${{inputs.frame_update}} ${{inputs.frames}})
+
+        echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
+
+
+# maybe we wan commits at the end of the process
+# or just the push 
+
+
+    - name: Commit All
+      id: cmt
+      uses: WCRP-CMIP/CMIP-LD/actions/commit-all@main
+      with:
+        message: "Automated update of JSONLD files, network and frames"
+
+      # artifact on new version release required. 
+      # if artifact, then release

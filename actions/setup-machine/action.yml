@@ -1,0 +1,38 @@
+name: Setup Machine
+description: checkout the latest branch of current repo
+
+inputs:
+  depth:
+    required: false
+    type: string
+    default: 1
+  repository:
+    required: true
+    type: string
+    # default ${{ github.repository }}
+
+jobs:
+  setup-machine:
+    steps:
+    - name: Checkout last two commits
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repository }}
+        fetch-depth: ${{ inputs.depth }}  
+        # 2 -> Fetch only the last two commits
+
+    - name: commits
+      run: |
+
+        git config user.email "actions@wcrp-cmip.org"
+        
+        git config user.name "CMIP-IPO: Automated GitHub Action"
+      continue-on-error: true
+
+    # - name: test
+    #   run: | 
+    #     echo ${{ inputs.depth }}
+
+
+
+    

@@ -1,0 +1,14 @@
+{
+  "name": "d3-visualization",
+  "version": "1.0.0",
+  "description": "D3 Visualization with Live Reload",
+  "scripts": {
+    "start": "nodemon --watch index.html --watch visualization.js --watch data.json --watch links.json --exec 'browser-sync start --server --files \"index.html, visualization.js, data.json, links.json\" --no-open'"
+  },
+  "devDependencies": {
+    "browser-sync": "^2.29.3"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

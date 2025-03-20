@@ -1,0 +1,47 @@
+runs:
+  using: "composite"
+  steps:
+    - name: updated directories
+      id: updir
+      shell: bash
+      env:
+        FILTER_DIR: ${{ inputs.filter_dir }}
+      run: |
+        git fetch --depth=2
+        PREV_COMMIT=$(git log -2 --pretty=format:"%H" | tail -n1)
+        UPDATED_FILES=$(git diff --name-only $PREV_COMMIT HEAD)
+
+        if [ -z "$UPDATED_FILES" ]; then
+          echo "No updated files found."
+          exit 0
+        fi
+
+        UPDATED_DIRS=$(for file in $UPDATED_FILES; do
+          dir=$(dirname "$file")
+          max_depth=10  # Limit directory depth to prevent infinite loops
+          while [ "$dir" != "." ] && [ $max_depth -gt 0 ]; do
+            echo "$dir"
+            dir=$(dirname "$dir")
+            max_depth=$((max_depth - 1))
+          done
+        done | sort -u)
+
+        echo "### Updated dirs: $UPDATED_DIRS"
+
+        if [ -n "$FILTER_DIR" ]; then
+          # Remove the supplied filter directory from the list
+          FILTERED_DIRS=$(echo "$UPDATED_DIRS" | grep -v "^$FILTER_DIR$")
+          echo "Filtered dirs: $FILTERED_DIRS"
+        else
+          FILTERED_DIRS="$UPDATED_DIRS"
+        fi
+
+        UPDATED_DIRS_LIST=$(echo "$FILTERED_DIRS" | tr '\n' ' ')
+        
+        echo "updated_dirs=$UPDATED_DIRS_LIST" >> $GITHUB_ENV
+        
+        echo "### Updated Directories:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        for dir in $UPDATED_DIRS_LIST; do
+          echo "- $dir" >> $GITHUB_STEP_SUMMARY
+        done
