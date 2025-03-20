@@ -1,0 +1,18 @@
+name: 'action output'
+description: 'Writes content to the GitHub Actions summary'
+
+inputs:
+  content:
+    description: 'Content to write to the summary'
+    required: true
+    
+runs:
+  using: "composite"
+  steps:
+    - name: Write to summary
+      shell: bash
+      run: |
+        # Write Markdown to the GitHub Actions summary
+        echo "${{inputs.content}}" >> $GITHUB_STEP_SUMMARY
+
+        

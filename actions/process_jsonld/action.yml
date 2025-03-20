@@ -1,0 +1,60 @@
+name: 'Update JSONLD Files'
+description: 'A collection of actions to update the JSONLD files'
+
+inputs:
+  dirs:
+    description: 'directories to update'
+    required: true
+
+
+runs:
+  using: 'composite'
+  steps:
+
+
+    - name: display inputs
+      id: display-inputs
+      shell: bash
+      run: |
+        echo "### JSONLD Inputs" >> $GITHUB_STEP_SUMMARY
+        echo "Directories: ${{ inputs.dirs }}" >> $GITHUB_STEP_SUMMARY
+        echo "Frames: ${{ inputs.frames }}" >> $GITHUB_STEP_SUMMARY
+
+
+    - name: Gathering graphs
+      id: gathering-graphs
+      shell: bash
+      run: |
+      
+        for dir in  ${{ env.updated_dirs }}; do
+            # Check if '_context' file exists in the directory
+            if [[ -f "$dir/_context_" ]]; then
+                # If '_context' exists, run ld2graph
+                ld2graph "$dir"
+                # Add the directory to the GitHub summary
+                echo "- $dir" >> $GITHUB_STEP_SUMMARY
+
+                # format the json
+                jq . $dir/graph.jsonld > tmp.$$.json && mv tmp.$$.json $dir/graph.jsonld
+
+                # minify 
+                jq -c . $dir/graph.jsonld > $dir/graph.min.jsonld
+
+            else
+                echo "Skipping $dir as '_context_' file is not present."
+            fi
+        done
+
+
+# maybe we wan commits at the end of the process
+# or just the push 
+
+
+    - name: Commit All
+      id: cmt
+      uses: WCRP-CMIP/CMIP-LD/actions/commit-all@main
+      with:
+          message: "Automated update of JSONLD files, DO NOT EDIT."
+
+      # artifact on new version release required. 
+      # if artifact, then release

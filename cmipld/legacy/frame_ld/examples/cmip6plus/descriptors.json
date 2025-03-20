@@ -1,0 +1,23 @@
+{
+    "@id": "cmip6plus:core/descriptors",
+    "@context": {
+        "@extend": true,
+    
+        "core:mip-era": {
+            "@context": {  
+                "@vocab": "mip:"
+            }
+        }
+    },
+    "@type": "mip:core-descriptors",
+    "core:mip-era": {
+        "mip-era:name": {},
+        "@explicit": false
+    },
+    "core:product": {
+        "product:kind": {},
+        "@explicit": true
+    },
+    "core:drs": {},
+    "core:index": {}
+}

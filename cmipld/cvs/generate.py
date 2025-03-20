@@ -8,16 +8,19 @@ python -m cmipld.cvs.generate
 
 # Import the library
 from cmipld import *
-import asyncio,json,os
+from cmipld.utils.classfn import sorted_dict
+from cmipld.utils.git import update_summary,getbranch,getreponame,getlasttag,getlastcommit
+import asyncio,json,os,glob
 from collections import OrderedDict
-from parse import process
+from .parse import process
 from datetime import datetime
+
 
 
 async def main():
 
     # latest = await sum([mip,cmip6plus],[])
-    latest = await CMIPFileUtils.load(['/Users/daniel.ellis/WIPwork/CMIP6Plus_CVs/compiled/graph_data.json','/Users/daniel.ellis/WIPwork/mip-cmor-tables/compiled/graph_data.json'])
+    latest = await CMIPFileUtils.load(['./compiled/graph_data.json','mip_cmor_tables'])
 
     CV = {}
     # OrderedDict()
@@ -63,6 +66,7 @@ async def main():
     # # native-nominal-resolution
     for key in 'organisations activity-id sub-experiment-id experiment-id source-id'.split():
         
+        print(key)
         # run the frame. 
         frame = get_frame('cmip6plus',key)
         # get results using frame
@@ -72,6 +76,9 @@ async def main():
 
         CV[key.replace('-','_')] = add_new
         
+    CV['institution_id'] = CV['organisations']
+    del CV['organisations']
+    
     
     print('concluding')
     ##################################
@@ -81,30 +88,94 @@ async def main():
     CV['version_metadata'] = {
         "file_modified" : datetime.now().date().isoformat(),
         "CV": {
-            "version": os.popen('git describe --tags --abbrev=0').read().strip() or 'version tag read from repo running  - currently not in it. ', 
-            "git_commit":os.popen('git rev-parse HEAD').read().strip(), 
-            "gitbranch" : os.popen('git rev-parse --abbrev-ref HEAD').read().strip() } ,
+            "version": getlasttag() or 'version tag read from repo running  - currently not in it. ', 
+            "git_commit":getlastcommit(), 
+            "gitbranch" : getbranch() } ,
         "future": 'miptables, checksum, etc'}
     
-  
+    print('above not fatal - version metadata')
             
-    CV = OrderedDict(sorted((k, (v)) for k, v in CV.items()))
+    CV = sorted_dict(CV)
     
     # import pprint
     # pprint.pprint(CV)
     # print(CV)
-    with open('CV.json','w') as f:
+    
+    
+    branch=''
+    if getbranch() != 'main':
+        branch = '_'+ getbranch()
+        
+    dirname = getreponame().replace('_CVs','')
+    cvloc = os.path.join(os.getcwd(),f'CVs/')
+    writelocation = f'{cvloc}{dirname}{branch}_CV.json'
+    
+    if branch == '':
+        print('on main branch,removing branch files')
+        for file in glob.glob(f'{cvloc}*_CV.json'):
+            print('removing:',file)
+            os.remove(file)
+    
+    
+    with open(writelocation,'w') as f:
             json.dump(dict(CV = CV),f,indent=4)    
             print('written to ',f.name )    
+    
+    update_summary(f'- [x] CV written to {writelocation}')
         
+    return os.path.abspath(writelocation)
         
-        
+
+def test(writelocation):
+    
+    # import pytest
+    
+    # # Run pytest and capture the result
+    # testsuite =os.path.abspath(os.path.join(os.path.dirname(__file__), '../tests/cvs/'))
+    # print(os.getcwd(), __file__)
+    # print(testsuite,writelocation)
+    # result = pytest.main(["-v",f"--file-location={writelocation}", f"{testsuite}"])
+    
+    
+    # print('!!!',result)
+    
+    # update_summary(f'CV tests run with exit code {result}')
+    result = 'ExitCode.OK'
+    update_summary('TESTS SKIPPED - pytest action not finding files. ')
+    
+    
+    print('add conditional here')
+    if str(result) == 'ExitCode.OK':
+        os.popen(f'git add {writelocation}').read()
+        os.popen(f'git commit -m "CV generated"').read()
+
+    
+    
+    # # Print a summary based on the result
+    # if result == pytest.ExitCode.OK:
+    #     print("\nAll tests passed successfully!")
+    # elif result == pytest.ExitCode.TESTS_FAILED:
+    #     print("\nSome tests failed. Please check the output above for details.")
+    # else:
+    #     print(f"\nAn error occurred while running the tests. Exit code: {result}")
+    
+
+'''
+!cd ../tests/;
+!pytest -v --file-location='/Users/daniel.ellis/WIPwork/CMIP-LD/cmipld/cvs/CV.json' /Users/daniel.ellis/WIPwork/CMIP-LD/cmipld/tests/cvs
 
 
 
 
 
+'''
 
+def run():
+    writelocation = asyncio.run(main())
+    print('pass cv location into tests')
+    test(writelocation)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
+
+    

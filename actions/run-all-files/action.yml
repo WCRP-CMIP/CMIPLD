@@ -1,0 +1,78 @@
+name: 'Run all files in a directory'
+description: 'Run all [a-Z] beginning files with an ext in a directory using a script'
+
+inputs:
+  directory:
+    description: 'the directory to search for files'
+    required: true
+    default: '.'
+  script:
+    description: 'the script to run'
+    required: true
+    default: 'python'
+  script_ext:
+    description: 'the script extension, this can be ""'
+    required: false
+    default: '.py'
+
+
+runs:
+  using: 'composite'
+  steps:
+
+
+    - name: run all files
+      id: run-all-files
+      shell: bash
+      run: |
+      
+        DIRECTORY=${{ inputs.directory }}
+        SCRIPT=${{ inputs.script }}
+        SCRIP_EXT=${{ inputs.script_ext }}
+
+        # Check if the script variable is set
+        if [ -z "$SCRIPT" ]; then
+          echo "Error: SCRIPT_ENV_VAR is not set."
+          echo "Please set the SCRIPT_ENV_VAR environment variable to the script you want to run." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        # Check if the directory exists
+        if [ ! -d "$DIRECTORY" ]; then
+          echo "Error: Directory '$DIRECTORY' does not exist."
+          echo "Please set the DIRECTORY environment variable to the directory you want to search." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        echo "### Running all files in $DIRECTORY with $SCRIPT" >> $GITHUB_STEP_SUMMARY
+
+        # Loop through files starting with a-z or A-Z
+        for file in "$DIRECTORY"/[a-zA-Z]*"$SCRIP_EXT"; do
+          # Check if the file exists
+          if [ -e "$file" ]; then
+            echo "Running $SCRIPT on $file"
+            echo "- Running $SCRIPT on $file" >> $GITHUB_STEP_SUMMARY
+
+                # Run the script and capture stdout and stderr
+          
+            $SCRIPT "$file"
+
+            OUTPUT=$($SCRIPT "$file" 2>&1)
+            echo $OUTPUT;
+            EXIT_CODE=$?
+
+            # If the script fails, print output in red
+            if [ $EXIT_CODE -ne 0 ]; then
+              echo -e "\033[0;31mError occurred while running $SCRIPT on $file:\033[0m"
+              echo -e "\033[0;31m$OUTPUT\033[0m"
+              echo ">> Error occurred while running $SCRIPT on $file:" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "$OUTPUT"
+            fi
+
+          else
+            echo "No files found in $DIRECTORY that match the pattern."
+          fi
+        done
+
+

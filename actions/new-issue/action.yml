@@ -1,0 +1,42 @@
+name: Read Issue Content and Labels
+description: Acton to process a new issue
+# the main calling action must have the following permissions as well. 
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: write  # Allows creating branches, pushing changes to repositories
+
+runs:
+    using: 'composite'
+    steps:
+
+      - name: cmip-ld library
+        id: install-cmipld
+        uses: WCRP-CMIP/CMIP-LD/actions/cmipld@main
+      
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Python script
+        id: run_python
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: |
+              ${{ github.event.issue.body }}
+          # pipe should preseve newline properties for multilines
+          ISSUE_SUBMITTER: ${{ github.event.issue.user.login }}
+          # ${{ github.actor }} 
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }} # We need this to update the issue
+
+        run: |
+          new_issue
+
+        shell: bash
+        continue-on-error: false
+
+          

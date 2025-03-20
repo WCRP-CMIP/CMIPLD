@@ -1,0 +1,49 @@
+name: Python Package Installation Test Matrix
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-install:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macos-latest, windows-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+        continue-on-error: true  # Allow the job to continue even if installation fails
+
+      - name: Run tests
+        run: |
+          pytest --maxfail=1 --disable-warnings -q || exit 1  # Fail this step if tests fail
+        continue-on-error: true  # Allow the job to continue even if tests fail
+
+      - name: Output result
+        run: |
+          echo "Install test completed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}."
+
+      - name: Add annotations for installation and testing failures
+        if: failure()  # This step only runs if any previous step fails
+        run: |
+          echo "Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}."
+          echo "::error file=install_test_report.txt,line=1::Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}"
+

@@ -1,0 +1,21 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  /* background-color: #f0f0f0; */
+}
+
+#chart-container {
+  width: 100%;
+  max-width: 1200px;
+  height: 100vh;
+  overflow: auto;
+}
+
+svg {
+  max-width: 100%;
+  height: auto;
+}

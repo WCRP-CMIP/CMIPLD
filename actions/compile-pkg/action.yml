@@ -1,0 +1,75 @@
+# File: .github/actions/build-conda/action.yml
+
+name: 'Build Conda Package'
+description: 'Builds, tests, and optionally uploads a Python package for Anaconda using Conda.'
+author: 'Daniel Ellis (CMIP IPO)'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: true
+    default: '3.8'
+  upload-to-anaconda:
+    description: 'Flag to upload the package to Anaconda'
+    required: false
+    default: 'false'
+  anaconda-username:
+    description: 'Anaconda username'
+    required: false
+  anaconda-password:
+    description: 'Anaconda password'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: ${{ inputs.python-version }}
+        activate-environment: build-env
+        auto-update-conda: true
+        miniconda-version: "latest"
+        channels: bioconda, conda-forge, defaults
+        use-only-tar-bz2: true  # IMPORTANT: This needs to be set for caching to work properly!
+        auto-activate-base: true
+
+    - name: Create and activate environment
+      shell: bash
+      run: |
+        conda init
+        bash
+        source /home/runner/.bashrc
+        conda activate build-env
+        # conda env create -f environment.yml
+        # conda activate build-env
+        # conda update -n build-env -c defaults conda
+        echo " - Compiling Python package for ${{inputs.python-version}}" >> $GITHUB_STEP_SUMMARY
+
+    # - name: Install dependencies
+    #   shell: bash
+    #   run: conda install --file requirements.txt
+
+    - name: Build the package
+      shell: bash
+      run: python setup.py sdist bdist_wheel
+
+    - name: Test the package
+      shell: bash
+      run: |
+        # python -m unittest discover tests
+        # use pytest
+
+    - name: Upload package to Anaconda
+      if: ${{ inputs.upload-to-anaconda == 'true' }}
+      shell: bash
+      run: |
+        echo "Uploading package to Anaconda" 
+        
+        conda install -y anaconda::anaconda-client
+        echo " - Uploading package to Anaconda" >> $GITHUB_STEP_SUMMARY
+        # pip install anaconda-client
+        anaconda login --username ${{ inputs.anaconda-username }} --password ${{ inputs.anaconda-password }}
+        anaconda upload dist/*.tar.bz2

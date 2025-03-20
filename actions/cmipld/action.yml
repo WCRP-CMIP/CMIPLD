@@ -1,0 +1,24 @@
+name: 'Install CMIP-LD Library'
+description: 'Installs the CMIP-LD Python library from a GitHub repository'
+
+inputs:
+  branch:
+    description: 'Branch of the repository. Can also be a tag or commit hash'
+    required: false
+    default: 'main'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout the library repository
+      uses: actions/checkout@v4
+      with:
+        repository: WCRP-CMIP/CMIP-LD
+        ref: ${{ inputs.branch }}
+
+    - name: Install library
+      shell: bash
+      run: |
+        pip install git+https://github.com/WCRP-CMIP/CMIP-LD.git@${{ inputs.branch }}
+
+        echo "- [x] Installed CMIP-LD library from branch ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY
