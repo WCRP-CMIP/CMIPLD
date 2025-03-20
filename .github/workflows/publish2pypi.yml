@@ -24,7 +24,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install pypa/build
-        run: python -m pip install --upgrade build
+        run: python -m pip install --upgrade build twine
 
       - name: Set version from tag
         run: |
