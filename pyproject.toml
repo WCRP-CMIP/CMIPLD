@@ -60,3 +60,4 @@ cmipld = ["scripts/*/*"
 
 [tool.setuptools_scm]
 write_to = "cmipld/version.py"
+local_scheme = "no-local-version"
