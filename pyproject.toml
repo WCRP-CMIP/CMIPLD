@@ -28,7 +28,7 @@ classifiers = [
 Homepage = "https://github.com/WCRP-CMIP/CMIP-LD"
 Issues = "https://github.com/WCRP-CMIP/CMIP-LD/issues"
 Documentation = "https://wiki.mipcvs.dev"
-Notebooks = 'tbc'
+Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb'
 
 [project.scripts]
 cmipld = "cmipld.browse.__main__:main"
