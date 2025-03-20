@@ -41,9 +41,9 @@ jobs:
         run: |
           echo "Install test completed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}."
 
-      - name: Add annotations for installation and testing failures
-        if: failure()  # This step only runs if any previous step fails
-        run: |
-          echo "Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}."
-          echo "::error file=install_test_report.txt,line=1::Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}"
+      # - name: Add annotations for installation and testing failures
+      #   if: failure()  # This step only runs if any previous step fails
+      #   run: |
+      #     echo "Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}."
+      #     echo "::error file=install_test_report.txt,line=1::Installation or test failed for Python ${{ matrix.python-version }} on OS ${{ matrix.os }}"
 
