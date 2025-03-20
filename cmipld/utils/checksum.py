@@ -6,7 +6,7 @@ import hashlib
 import json
 import datetime
 from collections import OrderedDict
-from .git import getbranch,getreponame,getrepoowner,getlastcommit,getlasttag,url,url2io
+from .git import getbranch, getreponame, getrepoowner, getlastcommit, getlasttag, url, url2io
 from ..locations import reverse_mapping
 
 # def calculate_checksum(dictionary, overwrite=True, checksum_location='version_metadata'):
@@ -68,30 +68,31 @@ def validate_checksum(dictionary, checksum_location='version_metadata'):
 
 def _checksum(obj):
     obj_str = json.dumps(obj, sort_keys=True)
-    checksum_hex = hashlib.md5(obj_str.encode('utf8')).hexdigest().split('.')[0]
+    checksum_hex = hashlib.md5(obj_str.encode(
+        'utf8')).hexdigest().split('.')[0]
     return 'md5: {}'.format(checksum_hex)
 
 
-def version(data,name,location='./',repo=None):
+def version(data, name, location='./', repo=None):
     rmap = reverse_mapping()
-    
+
     writefile = f'{location}'
     output = OrderedDict()
-    
+
     header = OrderedDict()
     header['file'] = writefile
     header['file_creation_date'] = datetime.datetime.now().isoformat()
     # header['branch'] = getbranch()
     header['version'] = getlasttag()
     header['checksum'] = _checksum(data)
-    
+
     if repo:
         header['repo_url'] = repo[0]
         header['repo_prefix'] = repo[1]
     else:
         header['repo_url'] = url()
         header['repo_prefix'] = rmap[url2io(header['repo_url'])]
-        
+
     header['last_commit'] = getlastcommit()
     header['comment'] = 'This is an automatically generated file. Do not edit.'
 

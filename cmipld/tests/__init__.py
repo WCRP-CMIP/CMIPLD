@@ -1,1 +1,1 @@
-from .jsonld import * 
+from .jsonld import *

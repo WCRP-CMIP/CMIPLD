@@ -2,11 +2,16 @@ from collections import Counter
 from pyld import jsonld
 from cmipld import CMIPFileUtils, Frame, locations
 from cmipld.utils.classfn import sorted_dict
-import re, json, sys, os, copy
+import re
+import json
+import sys
+import os
+import copy
 from typing import Dict, Any, List, Optional
 
 # Constant for delimiter used in predicate processing
 DELIMITER = ' <~~ '
+
 
 class JSONLDGraphProcessor:
     """
@@ -26,7 +31,8 @@ class JSONLDGraphProcessor:
         print(f"Loaded {len(self.lddata)} items")
 
         # Extract IDs for validation
-        ids = set(re.findall(r'"@id"\s*:\s*"([^"]+)"', json.dumps(self.lddata)))
+        ids = set(re.findall(
+            r'"@id"\s*:\s*"([^"]+)"', json.dumps(self.lddata)))
 
         # Convert JSON-LD to RDF triplets
         triplets = jsonld.to_rdf(self.lddata)
@@ -37,8 +43,8 @@ class JSONLDGraphProcessor:
         blank_nodes = {}
 
         # Helper functions for URL processing
-        clink = lambda s: '/'.join(s.split('/')[:-1])
-        prefix = lambda s: s.split(':')[0]
+        def clink(s): return '/'.join(s.split('/')[:-1])
+        def prefix(s): return s.split(':')[0]
 
         # Process triplets to build nodes and links
         for group in triplets.values():
@@ -51,7 +57,8 @@ class JSONLDGraphProcessor:
 
         # Finalize graph data
         self.types = {v: clink(k) for k, v in type_map.items()}
-        self.vocab = {v: k.replace('mip:', '') for k, v in self.types.items() if 'https' not in v}
+        self.vocab = {v: k.replace('mip:', '')
+                      for k, v in self.types.items() if 'https' not in v}
         self.graph = {
             "nodes": self.nodes,
             "links": self.links,
@@ -75,9 +82,11 @@ class JSONLDGraphProcessor:
         if '_' in t['subject']['value'] and '_' not in t['object']['value'] and ':' in t['object']['value']:
             subject = t['subject']['value']
             if subject in blank_nodes:
-                blank_nodes[subject].append([t['object']['value'], t['predicate']['value']])
+                blank_nodes[subject].append(
+                    [t['object']['value'], t['predicate']['value']])
             else:
-                blank_nodes[subject] = [[t['object']['value'], t['predicate']['value']]]
+                blank_nodes[subject] = [
+                    [t['object']['value'], t['predicate']['value']]]
 
     def _process_triplet(self, t, type_map, clink, prefix):
         """Process individual triplets to create nodes and links."""
@@ -128,7 +137,7 @@ class JSONLDGraphProcessor:
         for i in range(1, len(path)):
             self._add_directory_node(path[i-1], path[0])
             self._add_directory_link(path[i-1], path[i])
-        
+
         self._add_directory_node(path[-1], path[0], 'directory-path')
         self._add_directory_link(path[-1], src)
 
@@ -138,22 +147,25 @@ class JSONLDGraphProcessor:
 
     def _add_directory_link(self, source, target):
         """Add a link between directory nodes."""
-        self.links.append({"source": source, "target": target, "predicate": '_'})
+        self.links.append(
+            {"source": source, "target": target, "predicate": '_'})
 
     def _post_process_nodes_and_links(self):
         """Add weights to nodes and links, remove duplicates."""
         node_weights = Counter(i['id'] for i in self.nodes)
-        link_weights = Counter(f"{i['source']} -> {i['target']}" for i in self.links)
+        link_weights = Counter(
+            f"{i['source']} -> {i['target']}" for i in self.links)
 
         for node in self.nodes:
             node['weight'] = node_weights[node['id']]
-        
+
         for link in self.links:
             link['weight'] = link_weights[f"{link['source']} -> {link['target']}"]
 
         # Remove duplicates
         self.nodes = list({i['id']: i for i in self.nodes}.values())
-        self.links = list({(i['source'], i['target'], i['predicate']): i for i in self.links}.values())
+        self.links = list(
+            {(i['source'], i['target'], i['predicate']): i for i in self.links}.values())
 
     @property
     def lddata_debug(self):
@@ -175,7 +187,7 @@ class JSONLDGraphProcessor:
 
         with open(location, 'w') as f:
             json.dump(data, f, indent=2)
-        
+
         print(f"{item.capitalize()} written to {location}")
 
     def linked(self, selection, direction='source'):
@@ -190,14 +202,14 @@ class JSONLDGraphProcessor:
     def walk_graph(self, sid):
         """Recursively walk the graph starting from a given node."""
         links = self.linked(sid, 'source')
-        
+
         if not links:
             return {"@extend": True}
-        
+
         output = {}
         for link in links:
             output[link['predicate']] = self.walk_graph(link['target'])
-            
+
         return output
 
     def clean_entry(self, entry: Dict[str, Any], ignore: bool = False) -> Dict[str, Any]:
@@ -213,21 +225,21 @@ class JSONLDGraphProcessor:
         """
         if '@id' in entry and not ignore:
             return {}
-        
+
         nentry = {}
         for key, value in entry.items():
             if key.startswith('@'):
                 continue
-           
+
             if value in ['no parent', 'none']:
                 value = {"@id": value}
-                
+
             if isinstance(value, (str, int, float, bool)) or value is None:
-                nentry[key] = ""  
+                nentry[key] = ""
             elif isinstance(value, dict):
                 if '@id' in value:
                     nentry[key] = {}
-                else:                        
+                else:
                     cleaned_value = self.clean_entry(value, False)
                     if cleaned_value:  # Only add non-empty dictionaries
                         nentry[key] = cleaned_value
@@ -235,7 +247,7 @@ class JSONLDGraphProcessor:
                 nentry[key] = {}
             else:
                 print(f'Unexpected type for {key}: {type(value)}')
-        
+
         return nentry
 
     @property
@@ -250,25 +262,26 @@ class JSONLDGraphProcessor:
         for k, v in self.graph['vocab'].items():
             if 'graph' in v:
                 continue
-            
-            data = Frame(self.lddata, {"@type": f'mip:{v}', "@embed": "@always"})
+
+            data = Frame(
+                self.lddata, {"@type": f'mip:{v}', "@embed": "@always"})
             if not data.data:
                 continue
-            
+
             cleaned = {}
             for i in [0, -1]:
                 single = data.data[0]
                 dummy_cleaned = self.clean_entry(single, ignore=True)
                 cleaned.update(dummy_cleaned)
-            
+
             cleaned.update({
                 '@type': f'mip:{v}',
                 '@context': {"@vocab": v, '@base': k},
                 '@embed': '@always',
-                '@explicit': True 
+                '@explicit': True
             })
-            frames[k] = cleaned 
-        
+            frames[k] = cleaned
+
         self.frames = frames
         return frames
 
@@ -286,25 +299,28 @@ class JSONLDGraphProcessor:
             links = self.linked(select, 'source')
             if not links:
                 continue
-            
+
             for link in links:
                 try:
                     if DELIMITER in link['predicate']:
                         # Handle nested keys
                         pred = link['predicate'].split(DELIMITER)
                         if len(pred) > 2:
-                            raise ValueError('Too many delimiters on key. Currently hard coded only for two.')
-                        
-                        self.frames[select][pred[0]][pred[1]] = framefreeze[link['target']]
+                            raise ValueError(
+                                'Too many delimiters on key. Currently hard coded only for two.')
+
+                        self.frames[select][pred[0]][pred[1]
+                                                     ] = framefreeze[link['target']]
                     else:
-                        self.frames[select][link['predicate']] = framefreeze[link['target']]
+                        self.frames[select][link['predicate']
+                                            ] = framefreeze[link['target']]
                 except Exception as e:
                     fail.append({**link, 'error': str(e)})
-        
+
         print("Failed links:")
         for f in fail:
             print(f"- {f}")
-        
+
         self.failed_links = fail
         return self.frames
 
@@ -313,13 +329,14 @@ class JSONLDGraphProcessor:
         with open(frame, 'r') as f:
             self.frames = json.load(f)
         return self
-    
+
     @property
     def filter_frames(self):
         """Filter frames to only include those in the current repository."""
         self.get_prefix
-        self.frames = {k: v for k, v in self.frames.items() if self.prefix in k}    
-    
+        self.frames = {k: v for k, v in self.frames.items()
+                       if self.prefix in k}
+
     def update_frames(self, overwrite=True):
         """Update frame files in the repository."""
         self.get_prefix
@@ -327,19 +344,20 @@ class JSONLDGraphProcessor:
         for location, content in self.frames.items():
             if self.prefix not in location:
                 continue
-            
-            file = location.replace(self.prefix, f"{self.repo_root}/JSONLD/") + '/frame.jsonld'
+
+            file = location.replace(
+                self.prefix, f"{self.repo_root}/JSONLD/") + '/frame.jsonld'
             if not os.path.exists(file):
                 print(f"Warning: No file found at {file}")
                 continue
-            
+
             if overwrite:
                 with open(file, 'r') as f:
                     previous = json.load(f)
-                
+
                 content = sorted_dict(content)
                 if content != previous and content:
-                    with open(file, 'w') as f:   
+                    with open(file, 'w') as f:
                         json.dump(content, f, indent=4)
                     print(f'Updated frame: {location} ({file})')
 
@@ -349,31 +367,38 @@ class JSONLDGraphProcessor:
     def get_prefix(self):
         """Get the repository prefix and root directory."""
         if hasattr(self, 'prefix'):
-            return 
-        
-        self.repo_root = os.popen('git rev-parse --show-toplevel').read().strip()
-        repo_url = os.popen('git config --get remote.origin.url').read().strip().replace('.git', '')
+            return
+
+        self.repo_root = os.popen(
+            'git rev-parse --show-toplevel').read().strip()
+        repo_url = os.popen(
+            'git config --get remote.origin.url').read().strip().replace('.git', '')
 
         namesplit = locations.namesplit(repo_url)
 
         try:
             assert locations.namesplit(self.repo_root)[1] == namesplit[1]
         except AssertionError:
-            print('Repositories must be registered within cmipld.locations file. \nThese are:')
+            print(
+                'Repositories must be registered within cmipld.locations file. \nThese are:')
             for s in locations.rmap:
                 print(s)
-            
-            sys.exit(f'You tried to submit: {locations.namesplit(self.repo_root)[1]} whilst expected: {namesplit[1]}')
+
+            sys.exit(
+                f'You tried to submit: {locations.namesplit(self.repo_root)[1]} whilst expected: {namesplit[1]}')
 
         self.prefix = locations.rmap[namesplit]
+
 
 if __name__ == "__main__":
     import argparse
 
     def context():
-        parser = argparse.ArgumentParser(description='Uses the graph.json to generate a context for a type.')
+        parser = argparse.ArgumentParser(
+            description='Uses the graph.json to generate a context for a type.')
         parser.add_argument('type', type=str, help='type you want to check')
-        parser.add_argument('graph', type=str, help='The file(s) to use to generate the context network.json')
+        parser.add_argument(
+            'graph', type=str, help='The file(s) to use to generate the context network.json')
         args = parser.parse_args()
-        
+
         print(args)

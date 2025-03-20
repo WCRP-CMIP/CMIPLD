@@ -1,26 +1,23 @@
 import os
 
 
-
-
-def newrelease(owner,repo,version,content,title=''):
+def newrelease(owner, repo, version, content, title=''):
     print('release')
     print(os.popen(f'gh repo set-default {owner}/{repo}').read())
     release = f'gh release create "{version}" -n "{content}" -t "{title}"'
     print(os.popen(release).read())
 
 
-
 # import json
 # import urllib.request
 
 # def trigger_CV(owner,repo,token):
-    
+
 #     repository = "owner/repo"
 #     workflow_name = "Generate CV file"
 #     branch = "main"
-   
-    
+
+
 #      # Encode parts of the URL
 #     encoded_repository = urllib.parse.quote(repository, safe='')
 #     encoded_workflow_name = urllib.parse.quote(workflow_name, safe='')
@@ -39,7 +36,7 @@ def newrelease(owner,repo,version,content,title=''):
 #     encoded_payload = json.dumps(payload).encode('utf-8')
 
 #     req = urllib.request.Request(url, data=encoded_payload, headers=headers, method='POST')
-    
+
 #     try:
 #         with urllib.request.urlopen(req) as response:
 #             if response.getcode() == 204:

@@ -1,10 +1,14 @@
 
-import os, json
+import os
+import json
+
 
 def read_jsn(f):
-    return json.load(open(f,'r'))
+    return json.load(open(f, 'r'))
 
-rjsn=read_jsn
+
+rjsn = read_jsn
+
 
 def read_url(url):
     import urllib
@@ -23,9 +27,10 @@ def read_url(url):
         # print(err)
         return None
 
+
 def wjsn(data, f):
     with open(f, 'w') as file:
         json.dump(data, file, indent=4)
 
-    
+
 # git reset --hard miptables/jsonld && git clean -fd

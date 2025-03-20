@@ -1,19 +1,21 @@
 
-import json,sys,os,re
+import json
+import sys
+import os
+import re
 import importlib.util
 
 
 path = '.github/ISSUE_SCRIPT/'
 
 
-
 def get_issue():
     return {
-    'body' : os.environ.get('ISSUE_BODY'),
-    "labels_full": os.environ.get('ISSUE_LABELS'),
-    'number': os.environ.get('ISSUE_NUMBER'),
-    'title':os.environ.get('ISSUE_TITLE'),
-    'author':os.environ.get('ISSUE_SUBMITTER')
+        'body': os.environ.get('ISSUE_BODY'),
+        "labels_full": os.environ.get('ISSUE_LABELS'),
+        'number': os.environ.get('ISSUE_NUMBER'),
+        'title': os.environ.get('ISSUE_TITLE'),
+        'author': os.environ.get('ISSUE_SUBMITTER')
     }
 
 
@@ -32,15 +34,13 @@ def parse_issue_body(issue_body):
     # Remove trailing spaces
     for key in issue_data:
         issue_data[key] = issue_data[key].strip()
-        
+
         if issue_data[key] == "\"none\"":
             issue_data[key] = issue_data[key].replace("\"none\"", "none")
-        
+
     return issue_data
 
     # return json.dumps(issue_data, indent=4)
-
-
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
     # print(json.dumps(parsed_issue,indent=4))
 
     if not issue_type:
-        print(json.dumps(parsed_issue,indent=4))
+        print(json.dumps(parsed_issue, indent=4))
         sys.exit('No issue type selected. Exiting')
 
     # Define the path to the script based on the issue_type
@@ -64,20 +64,12 @@ def main():
         spec.loader.exec_module(module)
         print(f"Successfully loaded {script_path}")
         # run the processing script
-        module.run(parsed_issue,issue)
-        
+        module.run(parsed_issue, issue)
+
     else:
         print(f"Script {script_path} does not exist")
 
 
-
-
-
-
-
-
-
-    
 '''
 # GitHub API URL for the issue
 url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/issues/{issue_number}'

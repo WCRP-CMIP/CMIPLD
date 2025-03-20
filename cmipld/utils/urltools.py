@@ -3,6 +3,7 @@ import requests
 from urllib.parse import urlparse, urlunparse
 from os.path import relpath
 
+
 def url_exists(url):
     try:
         response = requests.head(url, allow_redirects=True, timeout=5)
@@ -14,7 +15,6 @@ def url_exists(url):
     except requests.RequestException as e:
         print(f"An error occurred: {e}")
         return None
-    
 
 
 def relative_url(base_url, target_url):
@@ -22,13 +22,14 @@ def relative_url(base_url, target_url):
     target_parsed = urlparse(target_url)
 
     if base_parsed.netloc != target_parsed.netloc:
-        raise ValueError("URLs have different domains; cannot compute relative path.")
+        raise ValueError(
+            "URLs have different domains; cannot compute relative path.")
 
     # Compute relative path
     base_path = base_parsed.path
     target_path = target_parsed.path
     relative_path = relpath(target_path, start=base_path)
-    
+
     # Reconstruct the relative URL
     return relative_path
 

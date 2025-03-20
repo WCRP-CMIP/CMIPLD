@@ -3,7 +3,9 @@ import requests
 import json
 import base64
 import asyncio
-import sys,os,re
+import sys
+import os
+import re
 from .locations import LatestFiles
 
 '''
@@ -14,11 +16,8 @@ Use main CMIP class to get data from CMIP JSON-LD files
 '''
 
 
-
 def ldname(path):
     return re.sub(r'([^/]+)$', lambda m: m.group(1).replace('_', '-').lower(), path)
-    
-
 
 
 async def gh_read_file(owner, repo, file_path, branch='main'):
@@ -27,13 +26,14 @@ async def gh_read_file(owner, repo, file_path, branch='main'):
         response = requests.get(url)
         response.raise_for_status()
         content = response.json()['content']
-        
+
         if content == '':
-            print(f"[Switching to using gh_read_raw] Empty contents received from API, this might be because file is too big.")
+            print(
+                f"[Switching to using gh_read_raw] Empty contents received from API, this might be because file is too big.")
             return await gh_read_raw(owner, repo, file_path, branch)
         else:
             return json.loads(base64.b64decode(content).decode('utf-8'))
-    
+
     except requests.RequestException as e:
         print(f"Error reading file: {e}")
         if '403' in str(e):
@@ -42,10 +42,10 @@ async def gh_read_file(owner, repo, file_path, branch='main'):
             except:
                 raise AssertionError(e)
         return None
-        
-        
+
+
 async def gh_read_raw(owner, repo, file_path, branch='main'):
-    url = f"https://github.com/{owner}/{repo}/raw/refs/heads/{branch}/{file_path}"    
+    url = f"https://github.com/{owner}/{repo}/raw/refs/heads/{branch}/{file_path}"
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -70,8 +70,6 @@ class CMIPFileUtils:
             print(f"Error fetching files: {e}")
             return None
 
-
-
     @staticmethod
     async def read_file_fs(filename):
         try:
@@ -90,7 +88,7 @@ class CMIPFileUtils:
         except requests.RequestException as e:
             print(f"Error fetching JSON from {url}: {e}")
             return None
-        
+
     # @staticmethod
     # async def merge_files(promises,):
     #     try:
@@ -102,16 +100,14 @@ class CMIPFileUtils:
     @staticmethod
     def merge_files(*args):
         return args
-        
+
     # @property
     @staticmethod
     async def load_latest():
         print("Loading latest CMIP6Plus and MIP-CMOR-Tables files...")
         latest = [LatestFiles.mip_cmor_tabes, LatestFiles.cmip6plus]
-        
-        return sum([await gh_read_file(*f) for f in latest],[])
-        
-        
+
+        return sum([await gh_read_file(*f) for f in latest], [])
 
     @staticmethod
     def write_file(content, file):
@@ -121,10 +117,9 @@ class CMIPFileUtils:
             print(f"JSON data has been written to {file}")
         except Exception as e:
             print(f"Error writing to file: {e}")
-            
-            
+
     @staticmethod
-    async def load(lddata:list):
+    async def load(lddata: list):
         read = []
         for f in lddata:
             if 'http' in f:
@@ -134,13 +129,13 @@ class CMIPFileUtils:
             elif os.path.exists(f):
                 read.append(await CMIPFileUtils.read_file_fs(f))
             else:
-                sys.exit(f"File {f} not found. Make sure you are supplying a list to the load function.")
-                
-        if len(read)>1:    
-            return sum(read,[])
+                sys.exit(
+                    f"File {f} not found. Make sure you are supplying a list to the load function.")
+
+        if len(read) > 1:
+            return sum(read, [])
         else:
             return read[0]
-        
 
 
 def sync(item):
@@ -148,5 +143,3 @@ def sync(item):
     # return asyncio.run(item)
     loop = asyncio.get_event_loop()
     return loop.run_until_complete(item)
-
-

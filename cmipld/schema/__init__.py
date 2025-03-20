@@ -2,11 +2,12 @@
 from jsonschema import validate, exceptions
 from jsonschema import RefResolver
 
-import json, yaml
+import json
+import yaml
 
 # validate(data, schema)
-    
-    
+
+
 def expand_schema(schema):
     """Expand the schema by resolving all $ref references using a self-contained URI"""
     resolver = RefResolver.from_schema(schema)
@@ -15,12 +16,8 @@ def expand_schema(schema):
 # expand_schema(schema)
 
 
-
-
-
-
 # def convert_schema_to_github_form(schema_path, output_path):
-    
+
 #     # with open(schema_path, 'r') as f:
 #     #     schema = json.load(f)
 
@@ -61,7 +58,7 @@ def expand_schema(schema):
 
 #         form["body"].append(form_field)
 
-# # checkbox options can be required much like the field. 
+# # checkbox options can be required much like the field.
 
 
 #     # with open(output_path, 'w') as f:

@@ -1,9 +1,11 @@
-import os, sys
+import os
+import sys
 
 
 def runread(cmd):
     print(os.popen(cmd).read())
-    
+
+
 runread('git pull')
 cmd = r'''
     cd ../../../
@@ -21,7 +23,9 @@ runread(cmd)
 def forcepush():
     runread('git push -f origin main')
 
-try:   
+
+try:
     if sys.argv[1].strip() == '-f':
         forcepush()
-except:pass
+except:
+    pass

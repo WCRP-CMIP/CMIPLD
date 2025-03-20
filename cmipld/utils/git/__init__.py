@@ -1,7 +1,6 @@
-from . import actions 
-from . import release 
+from . import actions
+from . import release
 from . import tree
-from .functions import *  
+from .functions import *
 
-import re 
-
+import re

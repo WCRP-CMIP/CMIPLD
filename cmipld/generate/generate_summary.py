@@ -21,14 +21,14 @@ from cmipld.utils.checksum import version
 
 def write(location, me, data):
     summary = version(data, me, location.split("/")[-1])
-    
+
     if os.path.exists(location):
         old = cmipld.utils.io.rjson(location)
         if old['Header']['checksum'] == summary['Header']['checksum']:
             return 'no update - file already exists'
-    
-    cmipld.utils.io.wjsn(summary,location)
-    
+
+    cmipld.utils.io.wjsn(summary, location)
+
 
 def run(file):
     if file == __file__:
@@ -38,7 +38,7 @@ def run(file):
 
     try:
         # this = importlib.import_module(os.path.abspath(file))
-        
+
         spec = importlib.util.spec_from_file_location("module.name", file)
         this = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(this)  # Load the module
@@ -52,14 +52,14 @@ def run(file):
     return
 
 
-    
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Process a file path.")
-    parser.add_argument("dir", type=str, help="Path to the generate scripts directory")
-    parser.add_argument("repos", type=json.loads, help="JSON string containing repositories")
-
+    parser.add_argument(
+        "dir", type=str, help="Path to the generate scripts directory")
+    parser.add_argument("repos", type=json.loads,
+                        help="JSON string containing repositories")
 
     args = parser.parse_args()
 
@@ -83,11 +83,10 @@ def main():
     print(f'Github IO link: {io_url}')
     print('-'*50)
 
-
     ldpath = cmipld.utils.git.ldpath()
 
     repos = args.repos
-    
+
     # {
     #     'https://wcrp-cmip.github.io/WCRP-universe/': 'universal',
     #     # 'https://wcrp-cmip.github.io/MIP-variables/': 'variables',
@@ -105,10 +104,8 @@ def main():
 
     for file in tqdm.tqdm(files):
         run(file)
-        
+
     localserver.stop_server()
-
-
 
     if __name__ == '__main__':
         main()
