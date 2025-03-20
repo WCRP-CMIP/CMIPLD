@@ -32,12 +32,26 @@ class experiment_model(BaseModel, id_field, type_field, description_field):
         assert value in [1, 2, 3], 'tier should be 1,2, or 3'
         return value
 
-    @field_validator('start_date', mode='after')
+    # @field_validator('start_date', mode='after')
+    # @classmethod
+    # def s_date(cls, value):
+    #     if value != 'none':
+    #         validate_date(value)
+    #     return value
+
+
+    @model_validator(mode='after')
     @classmethod
-    def s_date(cls, value):
-        if value != 'none':
-            validate_date(value)
-        return value
+    def s_date(cls, values):
+
+        if values['start-date'] != 'none':
+            validate_date(values['start-date'])
+        else: 
+            if values["minimum-number-of-years"] > 0:
+                raise ValueError('If no start date is provided, a minimum number of years entry must be supplied.')
+            
+        return values
+
 
     # @field_validator('branch_date', mode='after')
     # @classmethod
