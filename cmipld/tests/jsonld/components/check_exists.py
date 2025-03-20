@@ -9,10 +9,8 @@ from datetime import datetime
 
 # class date_field:
 #     date: str
-    
+
 #     @validator('date')
-
-
 
 
 def validate_date(cls, value):

@@ -10,21 +10,18 @@ from .ror import ror_field
 from ..components import id_field, type_field
 
 
-class institution(BaseModel,id_field,type_field,ror_field):
+class institution(BaseModel, id_field, type_field, ror_field):
 
-
-    @field_validator('type', mode='after')  
+    @field_validator('type', mode='after')
     @classmethod
-    def type_contains(cls,value):
+    def type_contains(cls, value):
         assert 'wcrp:organisation' in value
         assert 'wcrp:institution' in value
         assert 'wcrp:consortium' not in value
         return value
-    
-    
 
     def json(self):
         return self.model_json_dump()
-    
+
 # Example usage
 # a = EMD(**{'num':'1','id':'ts-t'})

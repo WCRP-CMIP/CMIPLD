@@ -1,4 +1,4 @@
-# # from . import git 
+# # from . import git
 # from .file_io import CMIPFileUtils,LatestFiles,sync
 # from .frame_ld import Frame,get_frame,key_only,key_value,value_only
 from .locations import *
@@ -10,44 +10,40 @@ processor = JsonLdProcessor()
 def reload(module=None):
     # nowork
     import sys
-    if not module: 
+    if not module:
         module = sys.modules[__name__]
-        
+
     import importlib
     del sys.modules[module.__name__]
     importlib.invalidate_caches()
     module = importlib.import_module(module.__name__)
     importlib.reload(module)
-    print('Reloaded',module)
-    
+    print('Reloaded', module)
 
 
-def get(a,kwargs):
-    return processor.get(a,**kwargs)
+def get(a, kwargs):
+    return processor.get(a, **kwargs)
 
 
 def expand(u):
     return jsonld.expand(resolve_url(u))
 
+
 def getall(l):
     '''
     Get multiple items
     '''
-    assert isinstance(l,list)
+    assert isinstance(l, list)
     return [expand(a) for a in l]
 
 
-
 # getall auto depend. -. is this the same as processor get?
-
-
 
 
 # # for CLI purposes. To develop further
 
 # import argparse,os
 # import subprocess
-
 
 
 # # import the library
@@ -64,10 +60,6 @@ def getall(l):
 #     return cmipld.Frame(latest['@graph'], frame).clean().json if clean else cmipld.Frame(latest['@graph'], frame).json
 
 # # await quicklook(['JSONLD/organisations/institutions/graph.jsonld'])
-
-
-
-
 
 
 # def run_bash_script(script_name):

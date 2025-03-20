@@ -9,15 +9,17 @@ import json
 from pprint import pprint
 from typing import Dict, Any, List, Optional
 
+
 class EnhancedJSONLDGraphProcessor(JSONLDGraphProcessor):
     """
     An enhanced version of JSONLDGraphProcessor with additional functionality for getting frames.
     """
-    def __init__(self,original_instance):
+
+    def __init__(self, original_instance):
         # super().__init__(existingself)
         self.__dict__.update(original_instance.__dict__)
         self.extended = True
-   
+
     @staticmethod
     def clean_entry(entry: Dict[str, Any], ignore: bool = False) -> Dict[str, Any]:
         """
@@ -33,25 +35,26 @@ class EnhancedJSONLDGraphProcessor(JSONLDGraphProcessor):
         nentry = {}
         if '@id' in entry and not ignore:
             return {}
-        
+
         if isinstance(entry, dict):
             for key, value in entry.items():
                 if key[0] == '@':
                     continue
-           
+
                 if isinstance(value, (str, int, float, bool)) or value is None:
-                    nentry[key] = ""  
+                    nentry[key] = ""
                 elif isinstance(value, dict):
                     if '@id' in value:
                         nentry[key] = {}
-                    else:                        
-                        cleaned_value = EnhancedJSONLDGraphProcessor.clean_entry(value, False)
+                    else:
+                        cleaned_value = EnhancedJSONLDGraphProcessor.clean_entry(
+                            value, False)
                         if cleaned_value:  # Only add non-empty dictionaries
                             nentry[key] = cleaned_value
-                            
+
                 elif isinstance(value, list):
                     nentry[key] = []
-                       
+
                 else:
                     print('-else', key, value)
         return nentry
@@ -67,20 +70,21 @@ class EnhancedJSONLDGraphProcessor(JSONLDGraphProcessor):
         for k, v in self.graph['vocab'].items():
             if 'graph' in v:
                 continue
-            
-            data = Frame(self.lddata, {"@type": f'mip:{v}', "@embed": "@always"})
+
+            data = Frame(
+                self.lddata, {"@type": f'mip:{v}', "@embed": "@always"})
             if not len(data.data):
                 continue
-            
+
             print(k, v)
             single = data.data[-1]
             cleaned = self.clean_entry(single, ignore=True)
             cleaned['@type'] = f'mip:{v}'
             cleaned['@context'] = {"@vocab": v, '@base': k}
             cleaned['@embed'] = '@always'
-            cleaned['@explicit'] = True 
-            frames[k] = cleaned 
-        
+            cleaned['@explicit'] = True
+            frames[k] = cleaned
+
         self.frames = frames
         return frames
 
@@ -102,17 +106,15 @@ class EnhancedJSONLDGraphProcessor(JSONLDGraphProcessor):
             print(links)
             for link in links:
                 try:
-                    frames[select][link['predicate']] = self.frames[link['target']]
+                    frames[select][link['predicate']
+                                   ] = self.frames[link['target']]
                 except Exception as e:
                     link['error'] = str(e)
                     fail.append(link)
                     continue
-        
+
         print("Failed links:", fail)
-        
-        
-        
-    
+
     def write_frame(self, location: str) -> None:
         """
         Write frames to a file.
@@ -133,7 +135,7 @@ class EnhancedJSONLDGraphProcessor(JSONLDGraphProcessor):
 #     await graph.process_files(args.files)
 
 #     print("Graph keys:", graph.get_graph_keys())
-    
+
 #     frames = graph.generate_frames()
 #     fail = graph.link_frames(frames)
 

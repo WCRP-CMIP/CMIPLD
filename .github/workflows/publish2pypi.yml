@@ -1,5 +1,4 @@
-name: DREQ to PyPI and TestPyPI
-
+name: Publish to PyPI
 on:
   push:
     tags:

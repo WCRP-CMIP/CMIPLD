@@ -11,16 +11,16 @@ repo = 'ror-records'
 # Regex pattern for ROR key validation
 ror_pattern = re.compile(r'^\d{2}\w{5}\d{2}$')
 
+
 class ror_field:
-    
-    ror:str
+
+    ror: str
 
     @field_validator('ror', mode='after')
     @classmethod
-    def ror_length(cls,value):
+    def ror_length(cls, value):
         assert len(value) == 9, f'ROR key "{value}" must be 9 characters long'
         return value
-    
 
     @field_validator('ror', mode='after')
     @classmethod
@@ -31,8 +31,7 @@ class ror_field:
             )
         return value
 
-
-    # just a test, may need a bit of updating. 
+    # just a test, may need a bit of updating.
 
     # @field_validator('ror', mode='after')
     # @classmethod
@@ -40,5 +39,3 @@ class ror_field:
     #     if value not in rors:
     #         raise FileExistsError(f'ROR key "{value}" not found in the ROR records of latest tag: {tag}')
     #     return value
-    
-    

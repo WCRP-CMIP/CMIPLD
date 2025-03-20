@@ -26,17 +26,20 @@ import asyncio
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Process CMIP JSON-LD files and perform graph operations.")
+    parser = argparse.ArgumentParser(
+        description="Process CMIP JSON-LD files and perform graph operations.")
     parser.add_argument("--graph", help="Path to write the graph JSON output")
     parser.add_argument("--frame", help="Path to write the frame JSON output")
-    parser.add_argument("--frame-update", action='store_true', help="Path to write the updated frame JSON output")
-    parser.add_argument('files', type=str, nargs='+', help='The file(s) to use to generate the network.json')
-    
+    parser.add_argument("--frame-update", action='store_true',
+                        help="Path to write the updated frame JSON output")
+    parser.add_argument('files', type=str, nargs='+',
+                        help='The file(s) to use to generate the network.json')
+
     args = parser.parse_args()
 
     if not args.files:
         parser.error("At least one input file is required.")
-        
+
     return args
 
 
@@ -66,20 +69,17 @@ async def main(args):
         graph.update_frames()
 
     return print(f"Processing completed for {graph.prefix}")
-    
-
-    
 
 
 def run():
     args = parse_args()
     asyncio.run(main(args))
-    
+
 
 if __name__ == "__main__":
     run()
 
-    
+
 '''
 
 reframe --graph ./compiled/graph.json --frame ./compiled/frames.json --frame-update /Users/daniel.ellis/WIPwork/mip-cmor-tables/compiled/graph_data.json /Users/daniel.ellis/WIPwork/CMIP6Plus_CVs/compiled/graph_data.json

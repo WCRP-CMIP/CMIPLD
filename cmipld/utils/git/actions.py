@@ -1,6 +1,10 @@
 
-import os,sys,json,ast
-import re,configparser
+import os
+import sys
+import json
+import ast
+import re
+import configparser
 from io import StringIO
 
 
@@ -9,18 +13,18 @@ def parse_md(body):
     pattern = r'<!---(.*?)--->'
 
     # Remove comments using re.sub
-    body = re.sub(r'/r/n',r'/n', re.sub(pattern, '', body, flags=re.DOTALL))
-    
+    body = re.sub(r'/r/n', r'/n', re.sub(pattern, '', body, flags=re.DOTALL))
 
-    config_str = re.search(r'```\sconfigfile(.*?)```',body, re.DOTALL).group(1)
+    config_str = re.search(r'```\sconfigfile(.*?)```',
+                           body, re.DOTALL).group(1)
     print(config_str)
 
     # Create a file-like object from the string
     config_file = StringIO(config_str)
-    
+
     # Create a ConfigParser object
     config = configparser.ConfigParser()
-    
+
     # Read configuration from the file-like object
     config.read_file(config_file)
 
@@ -31,12 +35,13 @@ def parse_md(body):
     for section in config.sections():
         config_dict[section] = {}
         for option in config.options(section):
-            config_dict[section][option] = ast.literal_eval(config.get(section, option))
-    
+            config_dict[section][option] = ast.literal_eval(
+                config.get(section, option))
+
     return config_dict
 
 
-def dispatch(token,payload,repo):
+def dispatch(token, payload, repo):
 
     import json
     from urllib import request
@@ -52,7 +57,8 @@ def dispatch(token,payload,repo):
     datapayload = json.dumps(payload).encode('utf-8')
 
     # Make the POST request
-    req = request.Request(f"{repo}/dispatches", data=datapayload, headers=headers, method='POST')
+    req = request.Request(f"{repo}/dispatches",
+                          data=datapayload, headers=headers, method='POST')
 
     # Perform the request
     try:
@@ -60,8 +66,8 @@ def dispatch(token,payload,repo):
             if response.getcode() == 204:
                 print("Dispatch event triggered successfully.")
             else:
-                print(f"Failed to trigger dispatch event. Status code: {response.getcode()}")
+                print(
+                    f"Failed to trigger dispatch event. Status code: {response.getcode()}")
                 print(response.read().decode('utf-8'))
     except Exception as e:
         print(f"Error: {e}")
-
