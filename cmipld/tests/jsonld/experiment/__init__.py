@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic import StrictStr, StrictBool, StrictFloat
 from typing import Union, Optional, List
 import json
@@ -40,15 +40,25 @@ class experiment_model(BaseModel, id_field, type_field, description_field):
     #     return value
 
 
-    @model_validator(mode='after')
+#  before -  after has _ 
+
+    @model_validator(mode='before')
     @classmethod
     def s_date(cls, values):
+        print('----------------'*50)
+        print(values)
 
         if values['start-date'] != 'none':
             validate_date(values['start-date'])
         else: 
-            if values["minimum-number-of-years"] > 0:
-                raise ValueError('If no start date is provided, a minimum number of years entry must be supplied.')
+            error = True
+            try:
+                if int(values['minimum-number-of-years']) > 0:
+                    error = False
+            except:...
+            finally: 
+                if error:
+                    raise ValueError('If no start date is provided, a (numeric) minimum number of years entry must be supplied.')
             
         return values
 
