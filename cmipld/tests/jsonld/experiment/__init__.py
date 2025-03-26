@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic import StrictStr, StrictBool, StrictFloat
 from typing import Union, Optional, List
 import json
