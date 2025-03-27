@@ -55,8 +55,9 @@ cmipld = ["scripts/*/*"
     "scripts/directory-utilities/validjsonld",
     "scripts/directory-utilities/ld2graph",
     "scripts/jsonld-util/rmbak",
-    "scripts/jsonld-util/rmgraph"
-  ]
+    "scripts/jsonld-util/rmgraph",
+    "scripts/development/coauthor_file"
+]
 
 [tool.setuptools_scm]
 write_to = "cmipld/version.py"
