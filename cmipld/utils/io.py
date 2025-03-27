@@ -3,6 +3,36 @@ import os
 import json
 
 
+import json
+import glob
+import pprint
+import os
+from .git_core import toplevel
+
+def jr(file):
+    """JSON read"""
+    return json.load(open(file, 'r'))
+
+def jw(data, file):
+    """JSON write"""
+    return json.dump(data, open(file, 'w'), indent=4)
+
+def getfile(fileend):
+    """Get files with specific ending"""
+    return glob.glob(f'*{fileend}.json')
+
+def pp(js):
+    """Pretty print"""
+    pprint.pprint(js)
+
+def ldpath(path=''):
+    """Get location path"""
+    loc = os.path.abspath(f"{toplevel()}/src-data/{path}/")
+    if loc[-1] != '/':
+        loc += '/'
+    return loc
+
+
 def read_jsn(f):
     return json.load(open(f, 'r'))
 

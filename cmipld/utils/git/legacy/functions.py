@@ -163,14 +163,18 @@ def url():
     return subprocess.getoutput('git remote get-url origin').replace('.git', '').strip()
 
 
-def commit_override_author(entry, where):
-    if os.environ.get('OVERRIDE_AUTHOR'):
-        cmd = f'git commit -a --author="{os.environ["OVERRIDE_AUTHOR"].strip()} <{os.environ["OVERRIDE_AUTHOR"].strip()}@users.noreply.github.com>" -m "New entry {entry} to the {where} LD file"'
-        print(os.popen(cmd).read())
-        return True
-    print('No author found')
-    os.popen(f'git commit -m "A commit to {entry} at {where}"').read()
-    return False
+def issue_author(issue_number):
+    return os.popen(f"gh issue view '{issue_number}' --json author --jq '.author.login'").read().strip()
+
+
+# def commit_override_author(entry, where):
+#     if os.environ.get('OVERRIDE_AUTHOR'):
+#         cmd = f'git commit -a --author="{os.environ["OVERRIDE_AUTHOR"].strip()} <{os.environ["OVERRIDE_AUTHOR"].strip()}@users.noreply.github.com>" -m "New entry {entry} to the {where} LD file;Co-authored-by:  {os.environ["OVERRIDE_AUTHOR"].strip()} <{os.environ["OVERRIDE_AUTHOR"].strip()}@users.noreply.github.com>"'
+#         print(os.popen(cmd).read())
+#         return True
+#     print('No author found')
+#     os.popen(f'git commit -m "A commit to {entry} at {where}"').read()
+#     return False
 
 
 def commit_one(location, author, comment, branch=None):
@@ -340,6 +344,8 @@ EOF
 
     # Add a comment to the issue if necessary
     update_issue(f'New Pull Request: {output}', False)
+    # assign a label to the issue telling us a pull request has been generated. 
+    print(os.popen(f'gh issue edit "{issue}" --add-label "pull_req"').read())
 
 
 def pull_req(feature_branch, author, content, title):
