@@ -7,12 +7,12 @@ import pprint
 import os
 from .git.git_core import toplevel
 
-def shell(cmd,print=True):
+def shell(cmd,print_result=True):
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"Error running '{cmd}': {result.stderr}")
     stdout = result.stdout.strip()
-    if print:
+    if print_result:
         print(stdout)
     return stdout
 
