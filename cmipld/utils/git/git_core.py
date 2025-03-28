@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import re
 
 def toplevel():
     """Get the top-level directory of the git repository"""
