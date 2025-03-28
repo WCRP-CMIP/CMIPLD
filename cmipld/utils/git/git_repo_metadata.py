@@ -20,7 +20,7 @@ def getlasttag():
 
 def getfilenames(branch='main'):
     """Get file names in the repository"""
-    return shell(f'git ls-tree -r {branch} --name-only ').read().split()
+    return shell(f'git ls-tree -r {branch} --name-only ').split()
 
 def get_cmip_repo_info():
     """Retrieve repository information and tags"""
