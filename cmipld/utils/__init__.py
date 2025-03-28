@@ -1,5 +1,5 @@
 from .json import *
-from .io import *
+from . import io
 from .write06 import *
 from . import server
 from . import git

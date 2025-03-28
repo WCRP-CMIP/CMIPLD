@@ -5,7 +5,7 @@ import subprocess
 import glob
 import pprint
 import os
-from .git.git_core import toplevel
+from .git import toplevel
 
 def shell(cmd,print_result=True):
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
