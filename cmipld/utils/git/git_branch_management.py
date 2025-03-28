@@ -1,5 +1,7 @@
 import os
 import subprocess
+import json
+from ..io import shell
 
 def getbranch():
     """Get the current git branch name"""
@@ -40,3 +42,21 @@ def reset_branch(feature_branch):
 
     for cmd in cmds:
         print(os.popen(cmd).read())
+
+
+def branch_pull_requests(branch_name,head = None,base = None):
+    # Use GitHub CLI to list PRs
+    # base is usually main
+    # head is the branch name
+    
+    cmd = f"gh pr list --json url,title,headRefName,baseRefName,number"
+    if head:
+        cmd += f" --head {head}"
+    if base:
+        cmd += f" --base {base}"
+    
+    return json.loads(shell(cmd).strip())
+    
+
+
+# gh pr list --base main --head "new_experiment__esm-scen7-h-aer"  --json url,title,headRefName,baseRefName,number
