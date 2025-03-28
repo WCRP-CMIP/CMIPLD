@@ -1,13 +1,20 @@
 
 import os
 import json
-
-
-import json
+import subprocess
 import glob
 import pprint
 import os
-from .git_core import toplevel
+from .git.git_core import toplevel
+
+def shell(cmd,print=True):
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Error running '{cmd}': {result.stderr}")
+    stdout = result.stdout.strip()
+    if print:
+        print(stdout)
+    return stdout
 
 def jr(file):
     """JSON read"""
