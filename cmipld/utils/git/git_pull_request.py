@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 from . import reset_branch, branchinfo, update_summary, update_issue,branch_pull_requests
-from ..io import shell  # Assuming your custom shell() handles command execution
+from ..io import shell 
 
 def prepare_pull(feature_branch):
     """Prepare a pull request branch"""
