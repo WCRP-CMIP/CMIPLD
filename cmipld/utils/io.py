@@ -5,7 +5,7 @@ import subprocess
 import glob
 import pprint
 import os
-from .git import toplevel
+
 
 def shell(cmd,print_result=True):
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -34,6 +34,7 @@ def pp(js):
 
 def ldpath(path=''):
     """Get location path"""
+    from .git import toplevel
     loc = os.path.abspath(f"{toplevel()}/src-data/{path}/")
     if loc[-1] != '/':
         loc += '/'
