@@ -1,12 +1,14 @@
 import os
 import subprocess
 import json
+from .git_actions_management import update_summary
+from ..io import shell
 
 def update_issue_title(what):
     """Update the title of a GitHub issue"""
     if 'ISSUE_NUMBER' in os.environ:
         issue_number = os.environ['ISSUE_NUMBER']
-        print(os.popen(f'gh issue edit {issue_number} --title "{what}"').read())
+        shell(f'gh issue edit {issue_number} --title "{what}"')
     update_summary(f"#### Title Updated:\n `{what}`")
 
 def update_issue(comment, err=True, summarize=True):
@@ -15,7 +17,7 @@ def update_issue(comment, err=True, summarize=True):
         issue_number = os.environ['ISSUE_NUMBER']
         cmd = f'gh issue comment {issue_number} --body \'{comment}\' '
         print(cmd)
-        out = os.popen(cmd).read()
+        out = shell(cmd, print_result=False)
 
         if summarize:
             update_summary(comment)
@@ -29,7 +31,7 @@ def close_issue(comment, err=True):
     """Close a GitHub issue"""
     if 'ISSUE_NUMBER' in os.environ:
         issue_number = os.environ['ISSUE_NUMBER']
-        print(os.popen(f'gh issue close {issue_number} -c "{comment}"'))
+        shell(f'gh issue close {issue_number} -c "{comment}"')
         if err:
             raise ValueError(comment)
 
@@ -38,7 +40,7 @@ def close_issue(comment, err=True):
 def issue_author(issue_number):
     """Get the author of a GitHub issue"""
     # return os.popen(f"gh issue view '{issue_number}' --json author --jq '.author.name <.author.login'>").read().strip()
-    author = json.loads(os.popen(f"gh issue view '{issue_number}' --json author").read())
+    author = json.loads(shell(f"gh issue view '{issue_number}' --json author", print_result=False))
     # return f"{author['author']} <{author['login']}>"
     return author
     
@@ -50,4 +52,4 @@ def issue_list(state='open', tags=None):
         # filter by tags
         cmd += f' --label {tags}'
         
-    return json.loads(os.popen(cmd).read())
+    return json.loads(shell(cmd, print_result=False))
