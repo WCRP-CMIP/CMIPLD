@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import re
+from .git_repo_metadata import extract_repo_info
 
 def toplevel():
     """Get the top-level directory of the git repository"""

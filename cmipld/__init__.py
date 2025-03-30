@@ -21,7 +21,7 @@ def reload(module=None):
     print('Reloaded', module)
 
 
-def get(a, kwargs):
+def get(a, **kwargs):
     return processor.get(a, **kwargs)
 
 
