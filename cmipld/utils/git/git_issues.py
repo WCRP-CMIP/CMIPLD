@@ -1,4 +1,4 @@
-import os
+import os,re
 import subprocess
 import json
 from .git_actions_management import update_summary
@@ -45,11 +45,15 @@ def issue_author(issue_number):
     return author
     
 
-def issue_list(state='open', tags=None):
+def issue_list(state='open', tags=None,limit = 1000):
     
-    cmd = f'gh issue list --state {state} --limit 1000 --json "author,body,title,number"'
+    cmd = f'gh issue list --state {state} --limit {limit} --json "author,body,title,number"'
     if tags:
         # filter by tags
         cmd += f' --label {tags}'
         
-    return json.loads(shell(cmd, print_result=False))
+    out = shell(cmd, print_result=False)
+    
+    clean = re.sub(r'\x1b\[[0-9;]*m', '', out)
+        
+    return json.loads(clean)

@@ -75,7 +75,7 @@ class JsonLdProcessor(Loader, LinkNav):
                         del data['@id']
                         data = jsonld.compact(
                             {**expanded[0], **data}, expanded[0])
-                        print(data.keys())
+                        # print(data.keys())
                         # print(data)
 
                     else:
@@ -101,7 +101,7 @@ class JsonLdProcessor(Loader, LinkNav):
 
     def get(self, query, **kwargs):
         query = self.resolve_prefix(query)
-        return self.expand_document(query, **kwargs)
+        return self.expand_document(query,**kwargs)
 
     def frame(self, query, frame=None, embed='@always'):
         query = self.resolve_prefix(query)
