@@ -26,7 +26,7 @@ def commit_one(location, author, comment, branch=None):
 
     cmds = [
         f'git add {location}',
-        f'git commit -a --author="{author_str}" -m "{comment}"'
+        f'git commit --author="{author_str}" -m "{comment}"'
     ]
 
     if branch:
