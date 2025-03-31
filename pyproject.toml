@@ -40,9 +40,9 @@ rewrite_type = "cmipld.generate.rewritetype:main"
 new_issue = "cmipld.generate.new_issue:main"
 generate_summary = "cmipld.generate.generate_summary:main"
 
-# [tool.setuptools]
-# packages = ["cmipld"]
-# include-package-data = true
+[tool.setuptools]
+packages = ["cmipld"]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = [".."]
