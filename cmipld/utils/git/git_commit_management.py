@@ -3,6 +3,8 @@ from ..io import shell  # assuming your shell() prints output and handles errors
 
 
 def gen_author_str(author):
+    
+    print(f"🔸 Generating author string for {author}")
     # Normalize author
     if isinstance(author, str):
         author = {'login': author, 'name': author}
