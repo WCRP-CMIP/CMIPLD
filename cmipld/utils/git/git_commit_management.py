@@ -1,14 +1,25 @@
 import os
 from ..io import shell  # assuming your shell() prints output and handles errors
 
-def commit_one(location, author, comment, branch=None):
-    """Commit changes with specific author and optional branch"""
 
+def gen_author_str(author):
     # Normalize author
     if isinstance(author, str):
         author = {'login': author, 'name': author}
+        
+    author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
+    if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
+    author.setdefault('name', author['login'])  # Use login if name is missing
+    
+    return f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
 
-    author_str = f"{author['name']} <{author['login']}@users.noreply.github.com>"
+
+
+def commit_one(location, author, comment, branch=None):
+    """Commit changes with specific author and optional branch"""
+
+    author_str = gen_author_str(author)
+
 
     cmds = [
         f'git add {location}',
@@ -44,16 +55,7 @@ def push(branch='HEAD'):
 def recommit_file(path, author, message=None):
     """Recommit a file with a new author and message"""
 
-    # Normalize author
-    if isinstance(author, str):
-        author = {'login': author, 'name': author}
-        
-    author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
-    if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
-    author.setdefault('name', author['login'])  # Use login if name is missing
-    
-    
-    author_str = f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
+    author_str = gen_author_str(author)
 
     # Default commit message
     if not message:
