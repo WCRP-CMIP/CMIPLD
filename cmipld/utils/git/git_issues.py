@@ -42,7 +42,7 @@ def issue_author(issue_number):
     # return os.popen(f"gh issue view '{issue_number}' --json author --jq '.author.name <.author.login'>").read().strip()
     author = json.loads(shell(f"gh issue view '{issue_number}' --json author", print_result=False))
     # return f"{author['author']} <{author['login']}>"
-    return author
+    return author.get(author, author)
     
 
 def issue_list(state='open', tags=None,limit = 1000):
