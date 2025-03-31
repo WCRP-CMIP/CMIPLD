@@ -47,19 +47,31 @@ def recommit_file(path, author, message=None):
     # Normalize author
     if isinstance(author, str):
         author = {'login': author, 'name': author}
+        
+    author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
+    # if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
+    
+    author.setdefault('name', author['login'])  # Use login if name is missing
+    author_str = f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
 
-    author_str = f"{author['name']} <{author['login']}>"
-
-    # Default message
+    # Default commit message
     if not message:
         message = f"Re-adding {path}."
 
     print(f"🔸 Untracking {path}...")
-    shell(f'git rm --cached "{path}"')
-    shell(f'git commit -m "Stop tracking {path}"')
+    output = os.popen(f'git rm --cached "{path}"').read()
+    print(output)
+
+    print(f"🔸 Committing removal of {path}...")
+    output = os.popen(f'git commit -m "Stop tracking {path}"').read()
+    print(output)
 
     print(f"🔸 Re-adding {path} as {author_str}...")
-    shell(f'git add "{path}"')
-    shell(f'git commit -m "{message}" --author="{author_str}"')
+    output = os.popen(f'git add "{path}"').read()
+    print(output)
+
+    print(f"🔸 Committing {path} with new author...")
+    output = os.popen(f'git commit --author="{author_str}" -m "{message}"').read()
+    print(output)
 
     print(f"✅ {path} recommitted with author {author_str}.")

@@ -5,7 +5,7 @@ import threading
 import tempfile
 import os
 import subprocess
-
+from .io import shell
 
 class LocalServer:
     def __init__(self, base_path, port=8000):
@@ -25,8 +25,9 @@ class LocalServer:
         # Use OpenSSL to generate a self-signed certificate
         subprocess.run([
             'openssl', 'req', '-x509', '-newkey', 'rsa:4096', '-keyout', keyfile,
-            '-out', certfile, '-days', '365', '-nodes', '-subj', '/CN=localhost'
+            '-out', certfile, '-days', '365', '-nodes', '-subj', '/CN=localhost', '-quiet'
         ], check=True)
+        
 
         print(f"Created SSL certificates in: {self.base_path}")
         return certfile, keyfile
