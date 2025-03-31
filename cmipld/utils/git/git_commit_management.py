@@ -49,9 +49,10 @@ def recommit_file(path, author, message=None):
         author = {'login': author, 'name': author}
         
     author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
-    # if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
-    
+    if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
     author.setdefault('name', author['login'])  # Use login if name is missing
+    
+    
     author_str = f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
 
     # Default commit message
