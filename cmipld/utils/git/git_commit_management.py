@@ -39,7 +39,8 @@ def commit_one(location, author, comment, branch=None):
 
     for cmd in cmds:
         print(f">> {cmd}")
-        shell(cmd)
+        # shell(cmd)
+        os.popen(cmd).read()
 
 def commit(message):
     """Commit all changes with a message"""
