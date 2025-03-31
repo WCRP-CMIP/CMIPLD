@@ -44,8 +44,8 @@ generate_summary = "cmipld.generate.generate_summary:main"
 packages = ["cmipld"]
 include-package-data = true
 
-[tool.setuptools.packages.find]
-where = [".."]
+#[tool.setuptools.packages.find]
+#where = [".."]
 
 
 [tool.setuptools.package-data]
