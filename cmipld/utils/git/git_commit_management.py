@@ -7,9 +7,10 @@ def gen_author_str(author):
     if isinstance(author, str):
         author = {'login': author, 'name': author}
         
+    author.setdefault('name', author['login'])  # Use login if name is missing
+    
     author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
     if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
-    author.setdefault('name', author['login'])  # Use login if name is missing
     
     return f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
 
