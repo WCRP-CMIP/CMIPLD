@@ -25,6 +25,8 @@ def commit_one(location, author, comment, branch=None):
 
 
     cmds = [
+        f'git config user.name "{author["login"]}"'
+        f'git config user.email "{author["login"]}@users.noreply.github.com"',
         f'git add {location}',
         f'git commit --author="{author_str}" -m "{comment}"'
     ]
