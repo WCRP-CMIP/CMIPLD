@@ -16,11 +16,11 @@ def prepare_pull(feature_branch):
 def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None):
     """Create or update a pull request"""
     
-    prs = branch_pull_requests(feature_branch)
+    prs = branch_pull_requests(head=feature_branch,)
     
     if prs:
         update = prs[0]['number']
-        print(f"++ Found existing PR: {update}. Will be updating this. ")
+        update_summary(f"++ Found existing PR: {update}. Will be updating this. ")
     
     # Get current branch name
     current_branch = shell("git rev-parse --abbrev-ref HEAD").strip()

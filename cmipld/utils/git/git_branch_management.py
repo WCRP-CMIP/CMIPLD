@@ -44,10 +44,12 @@ def reset_branch(feature_branch):
         print(os.popen(cmd).read())
 
 
-def branch_pull_requests(branch_name,head = None,base = None):
+def branch_pull_requests(head = None,base = None):
     # Use GitHub CLI to list PRs
     # base is usually main
     # head is the branch name
+    
+    
     
     cmd = f"gh pr list --json url,title,headRefName,baseRefName,number"
     if head:
