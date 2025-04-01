@@ -17,6 +17,7 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     """Create or update a pull request"""
     
     prs = branch_pull_requests(feature_branch)
+    
     if prs:
         update = prs[0]['number']
         print(f"++ Found existing PR: {update}. Will be updating this. ")
@@ -66,8 +67,8 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
         """
 
     # Execute the command
-    # output = shell(cmds).strip()
-    output = os.popen(cmds).read().strip()
+    output = shell(cmds).strip()
+    # output = os.popen(cmds).read().strip()
 
     # Update issue with PR info
     update_issue(f"New Pull Request: {output}", False)
