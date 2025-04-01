@@ -32,19 +32,19 @@ def commit_one(location, author, comment, branch=None):
     ]
 
     if branch:
-        cmds.append(f'git push origin {branch} --force')
+        cmds.append(f'git push origin {branch} --force;')
         print(f'🚀 Pushing commit to branch "{branch}" as {author_str}')
 
-    cmds.append('git push -f')
+    cmds.append('git push -f;')
 
     for cmd in cmds:
         print(f">> {cmd}")
-        # shell(cmd)
-        os.popen(cmd).read()
+        shell(cmd)
+        # os.popen(cmd).read()
 
 def commit(message):
     """Commit all changes with a message"""
-    shell(f'git commit -a -m "{message}"')
+    shell(f'git commit -a -m "{message}";')
 
 def addfile(file):
     """Stage a specific file"""
