@@ -10,10 +10,10 @@ def getbranch():
 def newbranch(branch):
     """Create or switch to a new branch"""
     branch = branch.replace(' ', '-')
-    print(os.popen(f"git pull").read())
-    print(os.popen(f"git checkout -b {branch} || git checkout {branch}").read())
-    print(os.popen(f"git pull").read())
-    print(os.popen(f'git branch --set-upstream-to=origin/{branch}').read())
+    shell(f"git pull;")
+    shell(f"git checkout -b {branch} || git checkout {branch};")
+    shell(f"git pull;")
+    shell(f'git branch -u origin {branch};')
 
 def branchinfo(feature_branch):
     """Check if a branch exists and get its info"""
@@ -41,7 +41,7 @@ def reset_branch(feature_branch):
         cmds[5] = f"git push --set-upstream origin {feature_branch} --force"
 
     for cmd in cmds:
-        print(os.popen(cmd).read())
+        shell(cmd)
 
 
 def branch_pull_requests(head = None,base = None):

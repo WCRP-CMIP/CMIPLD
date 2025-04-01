@@ -71,7 +71,7 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     # output = os.popen(cmds).read().strip()
 
     # Update issue with PR info
-    update_issue(f"New Pull Request: {output}", False)
+    update_issue(f"Updating Pull Request: {output}", False)
     
     # Add "pull_req" label to the issue (if it's a new PR)
     if update is None:
