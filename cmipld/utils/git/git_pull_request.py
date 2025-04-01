@@ -57,7 +57,7 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     # If updating, just comment on the existing PR
     if update:
         print(f"++ Updating PR {update} with new comment")
-        cmds = f"gh pr comment {update} --body '{pr_body}';"
+        cmds = f"gh pr comment {update} --body '{pr_body}' ;"
     else:
         print(f"++ Creating a new PR")
         cmds = f"""
@@ -66,7 +66,8 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
         """
 
     # Execute the command
-    output = shell(cmds).strip()
+    # output = shell(cmds).strip()
+    output = os.popen(cmds).read().strip()
 
     # Update issue with PR info
     update_issue(f"New Pull Request: {output}", False)
