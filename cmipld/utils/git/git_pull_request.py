@@ -57,12 +57,12 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     # If updating, just comment on the existing PR
     if update:
         print(f"++ Updating PR {update} with new comment")
-        cmds = f"gh pr comment {update} --body \"{pr_body}\""
+        cmds = f"gh pr comment {update} --body '{pr_body}';"
     else:
         print(f"++ Creating a new PR")
         cmds = f"""
         nohup git pull -v > /dev/null 2>&1 ;
-        {where} --body \"{pr_body}\"
+        {where} --body '{pr_body}' ;
         """
 
     # Execute the command
@@ -86,11 +86,11 @@ def pull_req(feature_branch, author, content, title):
 
     # Configure Git user details
     print(f"🔸 Setting git author to: {author}")
-    shell(f'git config --global user.email "{author}@users.noreply.github.com"')
-    shell(f'git config --global user.name "{author}"')
+    shell(f'git config --global user.email "{author}@users.noreply.github.com";')
+    shell(f'git config --global user.name "{author}";')
 
     # Check if the pull request already exists for the feature branch
-    curl_command = f"gh pr list --head {feature_branch} --state all --json url --jq '.[].url'"
+    curl_command = f"gh pr list --head {feature_branch} --state all --json url --jq '.[].url';"
     pr_url = shell(curl_command).strip()
     update = None
 
