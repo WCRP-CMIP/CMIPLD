@@ -35,7 +35,11 @@ def commit_one(location, author, comment, branch=None):
         cmds.append(f'git push origin {branch} --force;')
         print(f'🚀 Pushing commit to branch "{branch}" as {author_str}')
 
-    cmds.append('git push -f;')
+    try:
+        cmds.append('git push -f;')
+    except Exception as e:
+        print("Error pushing commit:", e)
+        cmds.append('git push origin HEAD;')
 
     for cmd in cmds:
         print(f">> {cmd}")
