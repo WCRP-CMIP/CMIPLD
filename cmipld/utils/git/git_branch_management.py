@@ -12,7 +12,12 @@ def newbranch(branch):
     branch = branch.replace(' ', '-')
     shell(f"git pull;")
     shell(f"git checkout -b {branch} || git checkout {branch};")
-    shell(f"git pull;")
+    try:
+        shell(f"git pull;")
+    except Exception as e:
+        print("Error pulling branch:", e)
+    # Set upstream branch to origin
+    # shell(f'git branch --set-upstream-to=origin {branch};')
     shell(f'git branch -u origin {branch};')
 
 def branchinfo(feature_branch):
