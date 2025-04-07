@@ -44,15 +44,15 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
 
     # Construct PR body (same body for both new and existing PR)
     pr_body = f"""
-    This pull request was automatically created by a GitHub Actions workflow.
+This pull request was automatically created by a GitHub Actions workflow.
 
-    Adding the following new data:
+Adding the following new data:
 
-    ```js
-    {content}
-    ```
+```js
+{content}
+```
 
-    Resolves #{issue}
+Resolves #{issue}
     """
 
     # If updating, just comment on the existing PR
