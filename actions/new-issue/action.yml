@@ -21,6 +21,7 @@ runs:
 
       - name: Configure Git for simple push
         run: git config --global push.default simple
+        shell: bash
 
       - name: Run Python script
         id: run_python
