@@ -67,6 +67,7 @@ class Loader:
         replaced = [('https://wcrp-cmip.github.io/CF/', 'cf'),]
 
         '''
+        # input('replacing loader, press enter to continue')
         import warnings
         from requests.packages.urllib3.exceptions import InsecureRequestWarning
         warnings.simplefilter('ignore', InsecureRequestWarning)
@@ -85,6 +86,7 @@ class Loader:
 
             url = https(url)
             if url in custom_cache:
+                # input(f'cache hit: {url}')
                 return custom_cache[url]
 
             for j, i in replaced:
