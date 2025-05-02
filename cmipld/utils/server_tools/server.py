@@ -2,18 +2,31 @@ import http.server
 import socketserver
 import ssl
 import threading
-import tempfile
+# import tempfile
 import os
 import subprocess
-from .io import shell
+from ..io import shell
+from rich import print
+from rich.console import Console
+from rich.text import Text
+from ...locations import mapping
+from .monkeypatch_requests import RequestRedirector
+console = Console()
+
+from ..logging.unique import UniqueLogger
+log = UniqueLogger()
 
 class LocalServer:
-    def __init__(self, base_path, port=8000):
+    def __init__(self, base_path, port=8000, debug = False):
         self.base_path = base_path
         self.port = port
         self.certfile, self.keyfile = self.create_ssl_certificates()
         self.server = None
         self.thread = None
+        self.debug = debug
+        
+        self.prefix_map = None
+        self.redirect_rules = None
 
     def create_ssl_certificates(self):
         """Create self-signed SSL certificates and return the file paths."""
@@ -29,17 +42,36 @@ class LocalServer:
         ], check=True)
         
 
-        print(f"Created SSL certificates in: {self.base_path}")
+        # print(f"Created SSL certificates in: {self.base_path}")
+        log.debug(f"Created SSL certificates in:[bold #FF7900] {self.base_path} [/bold #FF7900]")
+        
         return certfile, keyfile
 
     def start_server(self):
         """Start the HTTPS server without changing the working directory."""
         self.stop_server()  # Ensure any existing server is stopped
 
+        if not self.debug:
+            http.server.SimpleHTTPRequestHandler.log_message = lambda *args: None
+
+
+        # Call the request redirector to handle the reques
+        if not self.prefix_map:
+            self.prefix_map = mapping #from cmipld.mapping
+
+        self.requests = RequestRedirector(
+            prefix_map=self.prefix_map,
+            redirect_rules=self.redirect_rules or {}
+        )
+
+
         # Define a custom handler that serves files from the specified base_path
         handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
             *args, directory=self.base_path, **kwargs
         )
+        
+        
+        
 
         self.server = socketserver.TCPServer(("", self.port), handler)
 
@@ -62,7 +94,8 @@ class LocalServer:
         # )
 
         def run_server():
-            print(f"Serving {self.base_path} at https://localhost:{self.port}")
+            # print(f"Serving {self.base_path} at https://localhost:{self.port}")
+            log.debug(f"[bold orange]Serving[/bold orange] [italic #FF7900]{self.base_path}[/italic #FF7900] at [bold magenta]https://localhost:{self.port}[/bold magenta]")
             self.server.serve_forever()
 
         # Start the server in a separate thread
@@ -78,4 +111,7 @@ class LocalServer:
             self.thread.join()
             self.server = None
             self.thread = None
-            print("Server stopped.")
+            # print("Server stopped.")
+            self.requests.restore_defaults()
+            log.info("[bold yellow]Server stopped.[/bold yellow]")
+            
