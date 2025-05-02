@@ -7,14 +7,10 @@ import tarfile
 import datetime
 # from .. import locations
 from .server import LocalServer
-from ..locations import reverse_mapping
-from .git import io2repo
-
-# loader in read, part of cmipld.processor
-
-
-# import loader class
-
+# from ...locations import reverse_mapping
+from ..git import io2repo
+from ..logging.unique import UniqueLogger
+log = UniqueLogger()
 
 class LD_server:
     def __init__(self, repos=None, zipfile=None, copy=None, override=None):
@@ -75,19 +71,19 @@ class LD_server:
                 if override == 'y':
                     shutil.rmtree(repo_path)
                 else:
-                    print(f'Repo {target_name} not replaced')
+                    log.warn(f'Repo {target_name} not replaced')
                     continue
 
             clone = os.popen(' '.join(
                 ["git", "clone", "--branch", branch, "--single-branch", repo_url, repo_path])).read()
-            print(clone)
+            log.debug(clone)
 
             assert 'fatal' not in clone
 
             # move the relevant repo into place. This is because our production branch serves only the src-data directory
-            print(os.popen(f'mv {repo_path}/{dir}/* {repo_path}').read())
+            log.debug(os.popen(f'mv {repo_path}/{dir}/* {repo_path}').read())
 
-        print(f"Repositories cloned into {self.temp_dir}")
+        log.info(f"Repositories cloned into {self.temp_dir}")
 
     def copy_existing_repos(self, repo_paths: List[str], override='n'):
         """
@@ -104,8 +100,10 @@ class LD_server:
                 repo_path = tocopy
                 repo_name = tocopy
 
-            print('Copying the repo into LocalServer ',
-                  repo_path, '-->', repo_name)
+            log.debug(f'Copying the repo into LocalServer [#FF7900] {repo_path} --> {repo_name} [/]')
+            
+            # add to monkeypatch
+            
             target_name = os.path.basename(repo_name)
             target_path = os.path.join(self.temp_dir.name, target_name)
 
@@ -120,7 +118,7 @@ class LD_server:
                     continue
             shutil.copytree(repo_path, target_path)
 
-        print(f"Repositories copied into {self.temp_dir}")
+        log.debug(f"Repositories copied into [#FF7900] {self.temp_dir} [/]")
 
     def rollback_repo(self, repo_name: str, commit_hash: str):
         """
@@ -138,7 +136,7 @@ class LD_server:
 
         subprocess.run(["git", "checkout", commit_hash],
                        cwd=repo_path, check=True)
-        print(f"Repository '{repo_name}' rolled back to commit {commit_hash}")
+        log.warn(f"Repository '{repo_name}' rolled back to commit {commit_hash}")
 
     def to_zip(self, output_file: str):
         """
@@ -149,7 +147,7 @@ class LD_server:
         temp_dir = self.create_temp_dir()
         with tarfile.open(output_file, "w:gz") as tar:
             tar.add(temp_dir, arcname=os.path.basename(temp_dir.name))
-        print(f"Repositories compressed into {output_file}")
+        log.info(f"Repositories compressed into {output_file}")
 
     def from_zip(self, zip_path: str):
         """
@@ -160,7 +158,7 @@ class LD_server:
         temp_dir = self.create_temp_dir()
         with tarfile.open(zip_path, "r:gz") as tar:
             tar.extractall(temp_dir.name)
-        print(f"Repositories extracted into {temp_dir}")
+        log.info(f"Repositories extracted into {temp_dir}")
 
     def start_server(self, port=8080):
         '''
@@ -172,13 +170,15 @@ class LD_server:
                 break
             except:
                 port += 1
-                print('Port in use, trying:', port)
+                log.debug('Port in use, trying:'+ port)
 
         self.url = self.server.start_server()
+        # print('add the mappings here to the server')
+        
         return self.url
 
     def stop_server(self):
         self.server.stop_server()
         self.server = None
         self.url = None
-        print("Server stopped.")
+        log.info("Server stopped.")

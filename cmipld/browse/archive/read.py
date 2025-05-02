@@ -14,13 +14,17 @@ from .contexts import get_context, generate_context
 from p_tqdm import p_map
 
 
-from .class_loader import Loader
+# from ..utils
+
+# import Loader
+from ..utils.server_tools.loader import Loader
 from .class_linknav import LinkNav
 # linknav import depends.
 # Depends import processurl.
 
+# Loader
 
-class JsonLdProcessor(Loader, LinkNav):
+class JsonLdProcessor(Loader,LinkNav):
     """
     A class for processing JSON-LD documents with recursive expansion and ID resolution.
 
@@ -32,28 +36,22 @@ class JsonLdProcessor(Loader, LinkNav):
     - Extracts document dependencies
     """
 
+
+
+
+
+
     def _resolve_ids(self,
                      data: Union[Dict, List],
                      compact: bool = True,
                      depth: int = 60
                      ) -> Union[Dict, List]:
-        """
-        Recursively resolve @id fields in the document.
 
-        Args:
-            data: The data structure to process
-            compact: Whether to compact the resulting document
-
-        Returns:
-            The processed data structure with resolved IDs
-        """
         if not depth:
             return data
 
         if isinstance(data, dict):
             if '@id' in data and not '@type' in data and data['@id'].startswith('http'):
-
-                # print('!!!',data['@id'])
 
                 try:
 
@@ -67,6 +65,7 @@ class JsonLdProcessor(Loader, LinkNav):
                 except jsonld.JsonLdError:
                     print('\n WARNING missing id: ', data['@id'])
                     expanded = None
+                    
                 if expanded:
 
                     if len(data.keys()) - 1:
@@ -93,14 +92,15 @@ class JsonLdProcessor(Loader, LinkNav):
                 def resolve_id(it):
                     return self._resolve_ids(it, compact, depth)
 
-                return p_map(resolve_id, data)
+                # return p_map(resolve_id, data)
+                return list(map(resolve_id, data))
             else:
                 return [self._resolve_ids(item, compact, depth) for item in data]
 
         return data
 
     def get(self, query, **kwargs):
-        query = self.resolve_prefix(query)
+        # query = self.resolve_prefix(query)
         return self.expand_document(query,**kwargs)
 
     def frame(self, query, frame=None, embed='@always'):
@@ -135,47 +135,37 @@ class JsonLdProcessor(Loader, LinkNav):
     def expand_document(self,
                         jsonld_doc: Union[str, Dict],
                         compact: bool = True,
-                        expand_ctx: bool = True,
+                        # expand_ctx: bool = True,
                         expand_links: bool = True,
-                        no_ctx: bool = False,
+                        no_ctx: bool = True,
                         as_json: bool = False,
                         pprint: bool = False,
                         depth: int = 2,
                         is_nested: bool = False) -> List[Dict]:
-        """
-        Expand a JSON-LD document and resolve all referenced URLs.
 
-        Args:
-            jsonld_doc: The JSON-LD document to process (URL or dict)
-            compact: Whether to compact the final document
-            expand_ctx: Whether to expand the context
-            expand_links: Whether to expand linked documents
-            is_nested: Whether this is a nested expansion
 
-        Returns:
-            List of processed documents
-        """
-        # doc = self._load_document(jsonld_doc) if isinstance(jsonld_doc, str) else jsonld_doc
-
-        # if isinstance(doc['@context'],str):
-        #     if not valid_url(doc['@context']):
-        #         doc['@context']
-
-        expanded = jsonld.expand(jsonld_doc, options={
-                                 'defaultLoader': self.loader})
+        expanded = jsonld.expand(jsonld_doc,options={'extractAllScripts': True})
+                                #  options={ 'defaultLoader': self.loader}
+                                # )
         depth -= 1
 
         # mainfile context
         processed = []
         for item in expanded:
-
+            print(item.get('@id',item))
             if expand_links:
                 processed_item = self._resolve_ids(item, compact, depth).copy()
             else:
                 processed_item = item.copy()
 
+
+            
+
             if compact:
                 # and not is_nested:
+                
+                # print('\n\n ++++++++++',self.id2ctx(item['@id']),'+++')
+                
                 processed_item = jsonld.compact(
                     processed_item, self.id2ctx(item['@id']))
 
@@ -183,6 +173,8 @@ class JsonLdProcessor(Loader, LinkNav):
                 del processed_item['@context']
 
             processed.append(processed_item)
+
+
 
         if not no_ctx:
             if isinstance(jsonld_doc, str):
@@ -194,11 +186,17 @@ class JsonLdProcessor(Loader, LinkNav):
                 if '@context' not in item:
                     item['@context'] = ctx
 
+
+            # sys.exit('processed_item'+str(processed))
+        
         if pprint:
             from pprint import pprint
             pprint(processed)
+            
+            
         if as_json:
             return json.dumps(processed, indent=4)
+        
         return processed
 
     @staticmethod

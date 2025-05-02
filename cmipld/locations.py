@@ -1,4 +1,4 @@
-from .utils import DotAccessibleDict
+# from .utils import DotAccessibleDict
 import re
 
 # Registered locations
@@ -16,8 +16,8 @@ mapping = {
 mapping = dict(sorted(mapping.items(), key=lambda item: len(item[0])))
 
 
-# a dot accessible dict of the mapping
-latest = DotAccessibleDict(dict([i, j + 'graph'] for i, j in mapping.items()))
+# # a dot accessible dict of the mapping
+# latest = DotAccessibleDict(dict([i, j + 'graph'] for i, j in mapping.items()))
 
 
 def reverse_mapping():

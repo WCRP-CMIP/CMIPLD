@@ -85,7 +85,7 @@ def main():
         ), justify="center"
     )
 
-    ldpath = cmipld.utils.io.ldpath()
+    ldpath = cmipld.utils.io.ldpath() 
 
 
 # we done need to pre-load these
@@ -99,16 +99,25 @@ def main():
 
 # repos=repos.items(),
 
+    print('We should read all rep dependencies and pre-load them here.')
+
     localserver = LD_server( copy=[
                             [ldpath, whoami]], override='y')
 
     localhost = localserver.start_server(8084)
-    cmipld.processor.replace_loader(
-        localhost,[]
-        )
+    
+    
+    
+    
+    # cmipld.processor.replace_loader(
+    #     localhost,[[cmipld.mapping[whoami], whoami]],
+    #     )
         # [list(i) for i in repos.items()])
+    # print(cmipld.processor.loader)
+    # input('wait')
 
     files = glob.glob(relpath+'*.py')
+    
     
     def run(file):
         if file == __file__:
@@ -146,6 +155,10 @@ def main():
         
     # for each file run the function
     for file in tqdm.tqdm(files):
+        
+        if os.path.basename(file).lower().startswith('x_'):
+            # skip files that start with x
+            continue
         run(file)
 
     localserver.stop_server()

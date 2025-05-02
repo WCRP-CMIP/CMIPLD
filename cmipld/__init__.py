@@ -1,10 +1,13 @@
-# # from . import git
-# from .file_io import CMIPFileUtils,LatestFiles,sync
-# from .frame_ld import Frame,get_frame,key_only,key_value,value_only
+# -*- coding: utf-8 -*-
 from .locations import *
-from .browse import *
+# from pyld import jsonld
+from .utils.server_tools.loader import Loader
+# from .utils.server_tools.offline import LD_server
+from .utils import * 
 
-processor = JsonLdProcessor()
+
+loader = Loader(tries=3)
+
 
 
 def reload(module=None):
@@ -20,9 +23,6 @@ def reload(module=None):
     importlib.reload(module)
     print('Reloaded', module)
 
-
-def get(a, **kwargs):
-    return processor.get(a, **kwargs)
 
 
 def expand(u):
