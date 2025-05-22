@@ -20,26 +20,26 @@ import sys
 import re
 # from p_tqdm import p_map
 import tqdm
-from cmipld.utils.offline import LD_server
+from cmipld.utils.server_tools.offline import LD_server
 from cmipld.utils.checksum import version
+from cmipld.utils.git.repo_info import cmip_info
 
-from rich import box
-from rich.panel import Panel
-from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
-console = Console()
 
+from cmipld.utils.logging.unique import UniqueLogger,Panel, box
+log = UniqueLogger()
 
 
 def write(location, me, data):
+    # print(f'AWriting to {location}',data)
     summary = version(data, me, location.split("/")[-1])
 
     if os.path.exists(location):
-        old = cmipld.utils.io.rjson(location)
+        old = cmipld.utils.io.jr(location)
         if old['Header']['checksum'] == summary['Header']['checksum']:
             return 'no update - file already exists'
 
-    cmipld.utils.io.wjsn(summary, location)
-    print(f'Written to {location}')
+    cmipld.utils.io.jw(summary, location)
+    log.debug(f'Written to {location}')
 
 
 
@@ -55,59 +55,31 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"File path provided: {args.dir}")
+    log.debug(f"File path provided: {args.dir}")
 
     # relpath = __file__.replace('__main__.py', '')
     relpath = args.dir
 
-    repo_url = cmipld.utils.git.url()
-    io_url = cmipld.utils.git.url2io(repo_url)
 
-    # branch = cmipld.utils.git.getbranch()
-    repopath = cmipld.utils.git.toplevel()
-    reponame = cmipld.utils.git.getreponame()
 
-    whoami = cmipld.reverse_mapping()[io_url]
-
-    # print('-'*50)
-    # print(f'Parsing repo: {whoami}')
-    # print(f'Location: {repo_url}')
-    # print(f'Github IO link: {io_url}')
-    # print('-'*50)
-    
-    
-    console.print(Panel.fit(
-        f"[bold cyan]Parsing repo:[/bold cyan] {whoami}\n"
-        f"[bold magenta]Location:[/bold magenta] {repo_url}\n"
-        f"[bold red]Github IO link:[/bold red] {io_url}",
-        title="[bold yellow]Repository Info[/bold yellow]",
-        border_style="blue"
-        ), justify="center"
-    )
+    repo = cmip_info()
 
     ldpath = cmipld.utils.io.ldpath() 
 
 
-# we done need to pre-load these
-    # repos = args.repos
-
-    # {
-    #     'https://wcrp-cmip.github.io/WCRP-universe/': 'universal',
-    #     # 'https://wcrp-cmip.github.io/MIP-variables/': 'variables',
-    #     # 'https://wcrp-cmip.github.io/CMIP6Plus_CVs/': 'cmip6plus'
-    # }
-
-# repos=repos.items(),
 
     print('We should read all rep dependencies and pre-load them here.')
 
     localserver = LD_server( copy=[
-                            [ldpath, whoami]], override='y')
+                            [ldpath, repo.io, repo.whoami],
+                            ['/Users/daniel.ellis/WIPwork/WCRP-universe/src-data/', repo.io.replace('CMIP7-CVs','WCRP-universe'), 'universal'],
+                            ], override='y')
 
     localhost = localserver.start_server(8084)
     
     
     
+    # input('wait')
     
     # cmipld.processor.replace_loader(
     #     localhost,[[cmipld.mapping[whoami], whoami]],
@@ -127,7 +99,7 @@ def main():
 
         try:
             # this = importlib.import_module(os.path.abspath(file))
-            console.print(
+            log.print(
                 Panel.fit(
                     f"Starting to run {file.split('/')[-1].replace('.py','')}",
                     box=box.ROUNDED,
@@ -143,7 +115,8 @@ def main():
             this = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(this)  # Load the module
 
-            processed = this.run(localhost, whoami, repopath, reponame)
+            processed = this.run(**repo)
+            
             if len(processed) == 3:
                 write(*processed)
 
@@ -166,3 +139,5 @@ def main():
 
 
 
+
+# %%

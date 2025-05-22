@@ -1,6 +1,7 @@
 from . import actions
 from . import release
 from . import tree
+from . import repo_info
 
 from .git_core import *
 from .git_branch_management import *

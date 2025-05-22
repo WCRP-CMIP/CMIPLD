@@ -14,8 +14,8 @@ def get(link, compact=True, depth=2):
     Returns:
         dict or list: The resolved and optionally compacted JSON-LD document.
     """
-    body = jsonld.expand(link, options={'extractAllScripts': False})
-    print('body',body,link)
+    body = jsonld.expand(link, options={'extractAllScripts': True})
+
     
     resolved = _resolve_ids(body, compact=compact, depth=depth)
 

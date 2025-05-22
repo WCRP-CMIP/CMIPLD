@@ -6,9 +6,13 @@ https://github.com/digitalbazaar/pyld/blob/master/lib/pyld/documentloader/reques
 """
 
 import string
+import urllib3
 import urllib.parse as urllib_parse
 import re
 from typing import Any, Dict
+
+# Suppress only the specific InsecureRequestWarning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 import requests

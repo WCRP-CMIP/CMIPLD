@@ -5,6 +5,7 @@ from pyld import jsonld
 from ...locations import mapping
 from .pyld_requests import requests_document_loader
 
+
 from ..logging.unique import UniqueLogger
 
 log = UniqueLogger()
@@ -40,9 +41,9 @@ class Loader:
 
     def set_cache_loader(self, tries=3):
 
-        default_loader = requests_document_loader(prefix=list(mapping.keys()) , verify=None)
+        default_loader = requests_document_loader(prefix=list(mapping.keys()) , verify=False)
         
-        print('default_loader',default_loader)
+        log.debug(f"default_loader: {default_loader}")
 
         def cached_loader(url, kwargs={}):
             global custom_cache

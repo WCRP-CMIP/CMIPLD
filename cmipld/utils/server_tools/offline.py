@@ -1,4 +1,4 @@
-import os
+import os,re
 import shutil
 import subprocess
 import tempfile
@@ -11,7 +11,7 @@ from .server import LocalServer
 from ..git import io2repo
 from ..logging.unique import UniqueLogger
 log = UniqueLogger()
-
+import urllib
 class LD_server:
     def __init__(self, repos=None, zipfile=None, copy=None, override=None):
         '''
@@ -23,6 +23,7 @@ class LD_server:
         '''
         self.temp_dir = None
         self.create_temp_dir()
+        self.redirect_rules = {}
 
         # ignore
         # if not repos and not zipfile:
@@ -35,7 +36,8 @@ class LD_server:
             self.clone_repos(repos, override=override)
         if copy:
             self.copy_existing_repos(copy, override=override)
-
+            
+            
     def create_temp_dir(self):
         """Create a temporary directory to hold repositories."""
         if not self.temp_dir:
@@ -94,13 +96,34 @@ class LD_server:
         E.g. [[path1,name1],[path2,name2]]
         """
         for tocopy in repo_paths:
-            if len(tocopy) == 2:
-                repo_path, repo_name = tocopy
+            if len(tocopy) == 3:
+                repo_path, repo_url, repo_name = tocopy
             else:
-                repo_path = tocopy
-                repo_name = tocopy
+                raise ValueError(tocopy)
+                # repo_path = tocopy
+                # repo_name = tocopy
+                # repo_url = tocopy
 
             log.debug(f'Copying the repo into LocalServer [#FF7900] {repo_path} --> {repo_name} [/]')
+            
+            
+            
+            # URL parsing functions for server
+            
+            parsed = urllib.parse.urlparse(repo_url)
+            host = parsed.netloc
+            path = parsed.path
+            
+            if host not in self.redirect_rules:
+                # create a new rule for the host
+                self.redirect_rules[host] = []
+            self.redirect_rules[host].append({
+                "regex_in": re.compile(rf"^{repo_url}"),
+                "regex_out": f"/{repo_name}/"
+            })
+            
+
+            
             
             # add to monkeypatch
             
@@ -160,19 +183,42 @@ class LD_server:
             tar.extractall(temp_dir.name)
         log.info(f"Repositories extracted into {temp_dir}")
 
-    def start_server(self, port=8080):
+    def start_server(self, port=8080, nojson=False):
         '''
         Serve the directory at the specified port.
         '''
         for _ in range(9):
             try:
-                self.server = LocalServer(self.temp_dir.name, port)
+                # we should know the redirects
+                self.server = LocalServer(self.temp_dir.name, port,debug=True)
                 break
             except:
                 port += 1
                 log.debug('Port in use, trying:'+ port)
 
         self.url = self.server.start_server()
+        
+        if not nojson:
+            # {"wcrp-cmip.github.io":[{"regex_in" : re.compile(r'^(?!.*(_context_|\.json(?:ld|l)?)$).*'), "regex_out": ".json"}]} 
+            self.server.requests.add_redirect(
+                'wcrp-cmip.github.io',
+                re.compile('^(?!.*(_context_|\\.json(?:ld)?|\/)$).*'),
+                r'\g<0>.json'
+            )
+        
+        for i in self.redirect_rules:
+            for j in self.redirect_rules[i]:
+                # self.server.redirect_rules[i]['regex_out'] = self.url+j['regex_out']
+                
+                self.server.requests.add_redirect(i, j['regex_in'],self.url+ j['regex_out'])
+                
+                
+        # Finally if not set, make json files into json. 
+        # This step is usually accomplished on the production branch and not an issue for the IO pages. 
+
+                
+        self.server.requests.list_redirects()
+        
         # print('add the mappings here to the server')
         
         return self.url
@@ -181,4 +227,4 @@ class LD_server:
         self.server.stop_server()
         self.server = None
         self.url = None
-        log.info("Server stopped.")
+        # log.info("Server stopped.") displayed by server. 
