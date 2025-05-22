@@ -8,12 +8,12 @@ def get_entry(data, entry='label'):
             return [data[entry]]
         else:
             data = list(data.values())
-    return [i.get(entry) for i in data]
+    return [i.get(entry) for i in data if entry in i]
 
 
 def name_entry(data, value='description', key='label'):
     if isinstance(data, list):
-        return sortd({entry[key]: entry[value] for entry in data})
+        return sortd({entry[key]: entry[value] for entry in data if key in entry})
 
     elif isinstance(data, dict):
         if 'id' in data:
@@ -48,7 +48,7 @@ def name_extract(data, fields=None, key='label'):
             return {data[key]: data}
         else:
             data = list(data.values())
-    return sortd({entry[key]: {k: entry[k] for k in fields if k in entry} for entry in data})
+    return sortd({entry[key]: {k: entry[k] for k in fields if k in entry} for entry in data if key in entry})
 
 
 def sortd(d):

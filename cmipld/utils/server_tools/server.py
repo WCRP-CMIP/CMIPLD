@@ -3,7 +3,7 @@ import socketserver
 import ssl
 import threading
 # import tempfile
-import os
+import os,re
 import subprocess
 from ..io import shell
 from rich import print
@@ -24,7 +24,7 @@ class LocalServer:
         self.server = None
         self.thread = None
         self.debug = debug
-        
+        self.requests = None
         self.prefix_map = None
         self.redirect_rules = None
 
@@ -53,6 +53,10 @@ class LocalServer:
 
         if not self.debug:
             http.server.SimpleHTTPRequestHandler.log_message = lambda *args: None
+        else:
+            http.server.SimpleHTTPRequestHandler.log_message = lambda *args: log.debug(
+                f"[bold #FF7900] {str(args)} [/bold #FF7900] "
+            )
 
 
         # Call the request redirector to handle the reques
@@ -115,3 +119,7 @@ class LocalServer:
             self.requests.restore_defaults()
             log.info("[bold yellow]Server stopped.[/bold yellow]")
             
+
+    def test(self, **args):
+        return self.requests.test_redirect(**args)
+    

@@ -31,6 +31,7 @@ class URLRewritingAdapter(HTTPAdapter):
 
     def send(self, request, **kwargs):
         parsed = urlparse(request.url)
+        
         host = parsed.hostname
 
         rules = self.redirect_rules.get(host, [])
@@ -44,7 +45,7 @@ class URLRewritingAdapter(HTTPAdapter):
 class RequestRedirector:
     def __init__(self, redirect_rules={}, prefix_map=None):
         # self.redirect_rules = redirect_rules or {}
-        self.redirect_rules = {
+        self.redirect_rules = { 
             host: [
                 {
                     **rule,
@@ -62,7 +63,8 @@ class RequestRedirector:
 
         self.default_session = requests.Session
         self._patch_requests()
-        self.list_redirects()
+        # self.list_redirects()
+        
 
     def _patch_requests(self):
         session = PrefixResolvingSession(self.prefix_map)
@@ -117,10 +119,12 @@ class RequestRedirector:
 
         console.print(table)
 
-    def test_redirect(self, url):
+    @staticmethod
+    def test_redirect(url, result=True):
         response = requests.get(url, verify=False)
         print(f"Original URL: {url}")
         print(f"Final URL: {response.url}")
-        print(f"Status Code: {response.status_code}")
-        print(response.text[:300])
+        if result:
+            print(f"Status Code: {response.status_code}")
+            print(response.text[:300])
 

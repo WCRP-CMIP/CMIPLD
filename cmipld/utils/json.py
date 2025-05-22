@@ -1,13 +1,19 @@
 from collections import OrderedDict
 
 
-class DotAccessibleDict:
-    def __init__(self, entries):
-        self.entries = dict(entries)
-        for key in self.entries.keys():
-            self.__dict__[key] = self.entries[key]
-            if '-' in key:
-                self.__dict__[key.replace('-', '_')] = self.entries[key]
+# class DotAccessibleDictOld:
+#     def __init__(self, entries):
+#         self.entries = dict(entries)
+#         for key in self.entries.keys():
+#             self.__dict__[key] = self.entries[key]
+#             if '-' in key:
+#                 self.__dict__[key.replace('-', '_')] = self.entries[key]
+
+
+# class DotAccessible:
+#     def __init__(self, **kwargs):
+#         for key, value in kwargs.items():
+#             setattr(self, key, value)
 
     # def __getattr__(self, name):
     #     if name in self.entries:
@@ -15,9 +21,47 @@ class DotAccessibleDict:
     #     else:
     #         raise AttributeError(f"'DotAccessibleDict' object has no attribute '{name}'")
 
+
+
+
+    # def __str__(self):
+    #     return str(self.entries.keys())
+    
+    
+class DotAccessibleDict:
+    def __init__(self, **kwargs):
+        # Store the variables both as attributes and in the internal dictionary
+        self._data = kwargs
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def __getitem__(self, key):
+        # Allow dictionary-style access
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        # Allow setting values both as attributes and in the dictionary
+        self._data[key] = value
+        setattr(self, key, value)
+
+    def __repr__(self):
+        # Pretty representation of the object
+        return repr(self._data)
+
+    def items(self):
+        # Allow dict-like items() method
+        return self._data.items()
+
+    def keys(self):
+        # Allow dict-like keys() method
+        return self._data.keys()
+
+    def values(self):
+        # Allow dict-like values() method
+        return self._data.values()
+
     def __str__(self):
         return str(self.entries.keys())
-
 
 def sorted_json(dct):
     """

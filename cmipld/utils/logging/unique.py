@@ -9,6 +9,7 @@ from typing import Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import Traceback
+from rich import box
 
 
 class UniqueErrorFilter(logging.Filter):
@@ -98,7 +99,7 @@ class RichConsoleHandler(logging.Handler):
             logging.DEBUG: "dim",
         }.get(levelno, "")
 
-        self.console.print(Panel(messages, title=title, style=style))
+        self.console.print(Panel(messages, title=title, style=style, box=box.ROUNDED))
         self.buffer.clear()
         self.last_key = None
 
@@ -154,6 +155,9 @@ class UniqueLogger:
     def get_logger(self):
         return self.logger
 
+    def print(self, *args, **kwargs):
+        """Print to the console using the rich console."""
+        self.logger.handlers[0].console.print(*args, **kwargs)
 
 # Example usage:
 if __name__ == "__main__":
