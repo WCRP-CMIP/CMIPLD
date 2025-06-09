@@ -63,3 +63,27 @@ def compact_url(url):
         return url
     else:
         return url
+
+def prefix_url(url):
+    url = url.replace('http:','https:')
+    if url.startswith('http') :
+        for k, v in mapping.items():
+            if url.startswith(v):
+                return url.replace(v, k+':')
+        return url
+    else:
+        return url
+    
+    
+def resolve_prefix(query):
+    if isinstance(query, str) and not query.startswith('http'):
+        m = matches.search(query+':')
+        if m:
+            match = m.group()
+            if len(match)-1 == len(query):
+                query = f"{mapping[match]}graph.jsonld"
+            else:
+                query = query.replace(match, mapping[match[:-1]])
+            print('Substituting prefix:')
+            print(match, query)
+    return query
