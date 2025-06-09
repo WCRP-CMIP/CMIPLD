@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 from .locations import *
 # from pyld import jsonld
-from .utils.server_tools.loader import Loader
+
 # from .utils.server_tools.offline import LD_server
+
+# remap the requests links using prefixe mapping
+from .utils.server_tools.monkeypatch_requests import RequestRedirector
+redir = RequestRedirector({}, mapping)
+
+
+from .utils.server_tools.loader import Loader
 from .utils import * 
 
 
