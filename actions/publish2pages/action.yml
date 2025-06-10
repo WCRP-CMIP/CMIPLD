@@ -57,8 +57,11 @@ runs:
 
               # curl command here
               # echo "curl command here"
-              git checkout "${BRANCH}" -- 404.html
-              touch 404.html
+
+              # git checkout "${BRANCH}" -- 404.html
+              # touch 404.html
+
+              curl -f "https://wcrp-cmip.github.io/CMIP-LD/static/404README/404.html" -o 404.html || echo "Failed to download 404.html"
               git add 404.html
 
               # Create a .nojekyll file to prevent GitHub Pages from processing with Jekyll
@@ -112,12 +115,12 @@ runs:
           cp src-data/graph.jsonld src-data/graph
         shell: bash
     
-      # - name: Update ctx
-      #   id: update-ctx
-      #   shell: bash
-      #   run: |
-      #     update_ctx
-      #   continue-on-error: true
+      - name: Update ctx
+        id: update-ctx
+        shell: bash
+        run: |
+          update_ctx
+        continue-on-error: true
 
       # - name: Allow downstream workflows to trigger
       #   run: |
