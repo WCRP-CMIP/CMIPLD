@@ -39,7 +39,7 @@ runs:
           git config --global user.email "daniel.ellis@ext.esa.int"
           git config --global user.name "Daniel Ellis"
           git config --global push.default current
-          echo "GH_TOKEN=${{ inputs.GITHUB_TOKEN }}" >> $GITHUB_ENV
+          # echo "GH_TOKEN=${{ inputs.GITHUB_TOKEN }}" >> $GITHUB_ENV
         shell: bash
 
       - name: create symbolic link without extension 
@@ -112,12 +112,12 @@ runs:
           cp src-data/graph.jsonld src-data/graph
         shell: bash
     
-      - name: Update ctx
-        id: update-ctx
-        shell: bash
-        run: |
-          update_ctx
-        continue-on-error: true
+      # - name: Update ctx
+      #   id: update-ctx
+      #   shell: bash
+      #   run: |
+      #     update_ctx
+      #   continue-on-error: true
 
       # - name: Allow downstream workflows to trigger
       #   run: |

@@ -37,30 +37,30 @@ except ImportError:
     def prefix_url(url): return url.replace('https://wcrp-cmip.github.io/your-repo/', 'your-prefix:')
 
 
-def extract_bullets_with_brackets(html_text):
-    """Extract bullet points with brackets from HTML text."""
-    try:
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(html_text, "html.parser")
-        results = {}
+# def extract_bullets_with_brackets(html_text):
+#     """Extract bullet points with brackets from HTML text."""
+#     try:
+#         from bs4 import BeautifulSoup
+#         soup = BeautifulSoup(html_text, "html.parser")
+#         results = {}
 
-        bullet_pattern = re.compile(r"\s*-\s*(\w+):\s*([^\(]+?)(?:\s*\((.*?)\))?\.")
+#         bullet_pattern = re.compile(r"\s*-\s*(\w+):\s*([^\(]+?)(?:\s*\((.*?)\))?\.")
 
-        for details in soup.find_all("details"):
-            lines = details.get_text().splitlines()
-            for line in lines:
-                match = bullet_pattern.match(line)
-                if match:
-                    symbol, description, bracket_info = match.groups()
-                    results[symbol] = {
-                        "text1": description.strip(),
-                        "text2": bracket_info.strip() if bracket_info else None
-                    }
+#         for details in soup.find_all("details"):
+#             lines = details.get_text().splitlines()
+#             for line in lines:
+#                 match = bullet_pattern.match(line)
+#                 if match:
+#                     symbol, description, bracket_info = match.groups()
+#                     results[symbol] = {
+#                         "text1": description.strip(),
+#                         "text2": bracket_info.strip() if bracket_info else None
+#                     }
 
-        return results
-    except ImportError:
-        print("Warning: BeautifulSoup not available. HTML parsing will be skipped.")
-        return {}
+#         return results
+#     except ImportError:
+#         print("Warning: BeautifulSoup not available. HTML parsing will be skipped.")
+#         return {}
 
 
 def bullet_pydantic(pm):
@@ -127,6 +127,10 @@ def main():
         print(f"Processing {dir_path}")
         name = dir_path.strip('/')
         
+        if name == 'project':
+            print("Skipping 'project' directory.")
+            continue
+        
         # Skip if no JSON files
         json_files = [f for f in os.listdir(dir_path) if f.endswith('.json')]
         if not json_files:
@@ -148,6 +152,7 @@ def main():
                 
                 if different:
                     print('The following keys are not present in all files:', different)
+                    print( '<<add these to an issue>>')
             
         except (ValueError, IndexError) as e:
             print(f"Error processing {dir_path}: {e}")
