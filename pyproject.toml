@@ -34,11 +34,9 @@ Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/mai
 cmipld = "cmipld.browse.__main__:main"
 update_ctx = "cmipld.generate.update_ctx:main"
 update_all = "cmipld.generate.update_all:main"
-update_schema = "cmipld.schema.update_schema:main"
-update_issues = "cmipld.schema.issue_template:main"
-rewrite_type = "cmipld.generate.rewritetype:main"
 new_issue = "cmipld.generate.new_issue:main"
 generate_summary = "cmipld.generate.generate_summary:main"
+update_readme = "cmipld.generate.create_readme:main"
 
 [tool.setuptools]
 packages = ["cmipld"]
