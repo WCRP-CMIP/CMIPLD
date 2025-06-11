@@ -183,7 +183,7 @@ class LD_server:
             tar.extractall(temp_dir.name)
         log.info(f"Repositories extracted into {temp_dir}")
 
-    def start_server(self, port=8080, nojson=False):
+    def start_server(self, port=8081, nojson=False):
         '''
         Serve the directory at the specified port.
         '''
@@ -194,7 +194,7 @@ class LD_server:
                 break
             except:
                 port += 1
-                log.debug('Port in use, trying:'+ port)
+                log.debug('Port in use, trying:'+ str(port))
 
         self.url = self.server.start_server()
         
