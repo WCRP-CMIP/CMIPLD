@@ -72,7 +72,7 @@ def main():
 
     localserver = LD_server( copy=[
                             [ldpath, repo.io, repo.whoami],
-                            ['/Users/daniel.ellis/WIPwork/WCRP-universe/src-data/', repo.io.replace('CMIP7-CVs','WCRP-universe'), 'universal'],
+                            # ['/Users/daniel.ellis/WIPwork/WCRP-universe/src-data/', repo.io.replace('CMIP7-CVs','WCRP-universe'), 'universal'],
                             ], override='y')
 
     localhost = localserver.start_server(8084)
