@@ -17,7 +17,8 @@ dependencies = [
     "jmespath",
     "pydantic",
     "p_tqdm",
-    "rich" 
+    "rich",
+    "pyopenssl"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
