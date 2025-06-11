@@ -17,7 +17,7 @@ from ..logging.unique import UniqueLogger
 log = UniqueLogger()
 
 class LocalServer:
-    def __init__(self, base_path, port=8000, debug = False):
+    def __init__(self, base_path, port=None, debug = False):
         self.base_path = base_path
         self.port = port
         self.certfile, self.keyfile = self.create_ssl_certificates()
@@ -27,6 +27,11 @@ class LocalServer:
         self.requests = None
         self.prefix_map = None
         self.redirect_rules = None
+        
+        if not port:
+            with socketserver.TCPServer(("", 0), http.server.SimpleHTTPRequestHandler) as temp_server:
+                self.port = temp_server.server_address[1]
+                log.debug(f"Using port: {self.port}")
 
     def create_ssl_certificates(self):
         """Create self-signed SSL certificates and return the file paths."""
