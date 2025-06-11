@@ -196,10 +196,11 @@ class LD_server:
         #         port += 1
         #         log.debug('Port in use, trying:'+ str(port))
         
-        with socketserver.TCPServer(("", 0), http.server.SimpleHTTPRequestHandler) as temp_server:
-            free_port = temp_server.server_address[1]
+        # with socketserver.TCPServer(("", 0), http.server.SimpleHTTPRequestHandler) as temp_server:
+        #     free_port = temp_server.server_address[1]
+        #     break
         
-        self.server = LocalServer(self.temp_dir.name, port,debug=True)
+        self.server = LocalServer(self.temp_dir.name,debug=True)
 
         self.url = self.server.start_server()
         
