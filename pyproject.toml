@@ -16,7 +16,8 @@ dependencies = [
     "pyld",
     "jmespath",
     "pydantic",
-    "p_tqdm"
+    "p_tqdm",
+    "rich" 
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
