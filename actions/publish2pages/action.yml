@@ -24,7 +24,7 @@ runs:
 
       - name: Get a list of directories with updated files
         id: install-cmipld
-        uses: WCRP-CMIP/CMIP-LD/actions/cmipld@main
+        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
 
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -161,7 +161,7 @@ runs:
 
 
           # - name: Publish
-          # uses: WCRP-CMIP/CMIP-LD/actions/publish2pages@main
+          # uses: WCRP-CMIP/CMIPLD/actions/publish2pages@main
           # with:
           #   api_key: ${{ secrets.API_KEY }}
           #   github_token: ${{ secrets.GITHUB_TOKEN }}

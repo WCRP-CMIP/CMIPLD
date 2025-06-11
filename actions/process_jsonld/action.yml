@@ -52,7 +52,7 @@ runs:
 
     - name: Commit All
       id: cmt
-      uses: WCRP-CMIP/CMIP-LD/actions/commit-all@main
+      uses: WCRP-CMIP/CMIPLD/actions/commit-all@main
       with:
           message: "Automated update of JSONLD files, DO NOT EDIT."
 
