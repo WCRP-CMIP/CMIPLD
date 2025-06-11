@@ -76,7 +76,7 @@ class LocalServer:
         
         
         
-
+        socketserver.TCPServer.allow_reuse_address = True
         self.server = socketserver.TCPServer(("", self.port), handler)
 
         # # Wrap the server with SSL

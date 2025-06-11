@@ -6,7 +6,7 @@ from typing import List, Tuple
 import tarfile
 import datetime
 # from .. import locations
-from .server import LocalServer
+from .server import LocalServer, socketserver,http
 # from ...locations import reverse_mapping
 from ..git import io2repo
 from ..logging.unique import UniqueLogger
@@ -186,15 +186,20 @@ class LD_server:
     def start_server(self, port=8081, nojson=False):
         '''
         Serve the directory at the specified port.
-        '''
-        for _ in range(9):
-            try:
-                # we should know the redirects
-                self.server = LocalServer(self.temp_dir.name, port,debug=True)
-                break
-            except:
-                port += 1
-                log.debug('Port in use, trying:'+ str(port))
+        # '''
+        # for _ in range(9):
+        #     try:
+        #         # we should know the redirects
+        #         self.server = LocalServer(self.temp_dir.name, port,debug=True)
+        #         break
+        #     except:
+        #         port += 1
+        #         log.debug('Port in use, trying:'+ str(port))
+        
+        with socketserver.TCPServer(("", 0), http.server.SimpleHTTPRequestHandler) as temp_server:
+            free_port = temp_server.server_address[1]
+        
+        self.server = LocalServer(self.temp_dir.name, port,debug=True)
 
         self.url = self.server.start_server()
         
