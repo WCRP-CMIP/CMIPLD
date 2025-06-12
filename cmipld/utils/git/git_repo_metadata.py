@@ -2,6 +2,22 @@ import subprocess, os, re
 import requests
 from ..io import shell
 
+from .gh_utils import GitHubUtils,json
+
+def list_repo_files(owner, repo, branch='main', path=''):
+    
+    utils = GitHubUtils()
+    _ , result = utils.run_gh_cmd_safe(['api', f'/repos/{owner}/{repo}/contents/{path}?ref={branch}'])
+    
+    if not _:
+        raise Exception(f"Failed to list files in repository {owner}/{repo} on branch {branch}: {result}")
+    
+    # result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    items = json.loads(result)
+
+    return [{'name': i['name'], 'type': i['type'], 'path': i['path']} for i in (items if isinstance(items, list) else [items])]
+
+
 def getreponame():
     """Get the repository name"""
     return subprocess.getoutput('git remote get-url origin').split('/')[-1].replace('.git', '').strip()

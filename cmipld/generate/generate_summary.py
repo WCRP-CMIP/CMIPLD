@@ -75,7 +75,7 @@ def main():
                             # ['/Users/daniel.ellis/WIPwork/WCRP-universe/src-data/', repo.io.replace('CMIP7-CVs','WCRP-universe'), 'universal'],
                             ], override='y')
 
-    localhost = localserver.start_server(8084)
+    localhost = localserver.start_server()
     
     
     

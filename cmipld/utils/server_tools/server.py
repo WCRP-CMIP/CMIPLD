@@ -16,6 +16,17 @@ console = Console()
 from ..logging.unique import UniqueLogger
 log = UniqueLogger()
 
+# class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
+#     def end_headers(self):
+#         self.send_header('Access-Control-Allow-Origin', '*')
+#         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+#         self.send_header('Access-Control-Allow-Headers', '*')
+#         super().end_headers()
+
+#     def do_OPTIONS(self):
+#         self.send_response(200, "ok")
+#         self.end_headers()
+
 class LocalServer:
     def __init__(self, base_path, port=None, debug = False):
         self.base_path = base_path
@@ -74,11 +85,17 @@ class LocalServer:
         )
 
 
+
+        
+        self.requests.test_redirect('https://wcrp-cmip.github.io/WCRP-universe/bob')
+
         # Define a custom handler that serves files from the specified base_path
         handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
             *args, directory=self.base_path, **kwargs
         )
-        
+        # handler = lambda *args, **kwargs: CORSRequestHandler(
+        #     *args, directory=self.base_path, **kwargs
+        # )
         
         
         socketserver.TCPServer.allow_reuse_address = True
@@ -88,6 +105,7 @@ class LocalServer:
 
         # Create an SSL context
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        # print('ssh here ssl here sssl here')
         context.load_cert_chain(certfile=self.certfile, keyfile=self.keyfile)
 
         # Wrap the server socket with SSL
