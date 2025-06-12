@@ -2,7 +2,7 @@ name: 'Push PR'
 description: 'Push after creating a PR'
 inputs:
  message:
-   description: 'commit message'
+   description: 'create a pr and merge'
    required: true
 
 runs:
