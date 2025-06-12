@@ -32,7 +32,10 @@ runs:
           PR_NUM=${{ steps.create-pr.outputs.pull-request-number }}
           echo "Created PR #$PR_NUM"
           
-          if gh pr merge $PR_NUM --merge --auto; then
+          # if gh pr merge $PR_NUM --merge --auto; then
+
+
+          if gh pr merge $PR_NUM --merge --admin --delete-branch ; then
             echo "✅ PR merged successfully"
           else
             echo "❌ Merge failed, closing PR"
