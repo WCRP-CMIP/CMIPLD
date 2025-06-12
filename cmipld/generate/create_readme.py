@@ -12,7 +12,8 @@ import sys
 import argparse
 import numpy as np
 from pathlib import Path
-
+import urllib.parse
+from collections import defaultdict
 
 
 parser = argparse.ArgumentParser(description='Create README files for WCRP universe data directories')
@@ -63,26 +64,68 @@ except ImportError:
 #         return {}
 
 
+def sort_keys_like_json(keys):
+    """
+    Sort keys in the same order as JSON files:
+    1. id
+    2. validation-key
+    3. ui-label  
+    4. description
+    5. All other keys (alphabetically)
+    6. @context
+    7. type
+    """
+    priority_keys = ['id', 'validation-key', 'ui-label', 'description']
+    end_keys = ['@context', 'type']
+    
+    sorted_keys = []
+    
+    # Add priority keys in order
+    for key in priority_keys:
+        if key in keys:
+            sorted_keys.append(key)
+    
+    # Add remaining keys alphabetically (excluding priority and end keys)
+    remaining_keys = [k for k in keys if k not in priority_keys and k not in end_keys]
+    sorted_keys.extend(sorted(remaining_keys))
+    
+    # Add end keys
+    for key in end_keys:
+        if key in keys:
+            sorted_keys.append(key)
+    
+    return sorted_keys
+
+
 def bullet_pydantic(pm):
     """Generate bullet points from Pydantic model."""
     if not pm:
         return ""
     
+    # Get all field names and sort them
+    field_names = list(pm.__pydantic_fields__.keys())
+    sorted_fields = sort_keys_like_json(field_names)
+    
     keys = ""
-    for key, value in pm.__pydantic_fields__.items():
-        typename = getattr(value.annotation, '__name__', str(value.annotation))
-        description = value.description or '<< No description in pydantic model (see esgvoc) >>'
-        keys += f"- **`{key}`** (**{typename}**) \n  {description.rstrip()}\n"
+    for key in sorted_fields:
+        if key in pm.__pydantic_fields__:
+            value = pm.__pydantic_fields__[key]
+            typename = getattr(value.annotation, '__name__', str(value.annotation))
+            description = value.description or '<< No description in pydantic model (see esgvoc) >>'
+            keys += f"- **`{key}`** (**{typename}**) \n  {description.rstrip()}\n"
     
     return keys
 
 
 def bullet_names(keynames):
     """Generate bullet points from key names."""
+    sorted_keynames = sort_keys_like_json(keynames)
+    
     keys = ""
-    for key in keynames:
+    for key in sorted_keynames:
         print(f"- **`{key}`**")
-        keys += f"- **`{key}`**  \n  ? (**NoType**)\n  No Linked Pydantic Model \n"
+        keys += f"- **`{key}`**  \n   [**unknown**]\n  No Pydantic model found.\n"
+    
     return keys
 
 
@@ -102,6 +145,79 @@ def extract_description(readme_content):
     desc_match = re.search(desc_pattern, section_content, re.DOTALL)
     
     return desc_match.group(1).strip() if desc_match else None
+
+
+def extract_external_contexts(context):
+    mappings = []
+    repos = defaultdict(set)
+
+    inner_context = context["@context"][1] if isinstance(context["@context"], list) else context["@context"]
+
+    for key, value in inner_context.items():
+        if key.startswith("@"):
+            continue
+
+        ext_context = value.get("@context") if isinstance(value, dict) else None
+        key_type = value.get("@type") if isinstance(value, dict) else None
+
+        if ext_context:
+            parsed = urllib.parse.urlparse(ext_context)
+            path_parts = parsed.path.strip("/").split("/")
+            org = path_parts[0] if len(path_parts) > 1 else "unknown"
+            repo = path_parts[1] if len(path_parts) > 2 else "unknown"
+            path = "/" + "/".join(path_parts[2:]) if len(path_parts) > 2 else parsed.path
+
+            mappings.append({
+                "key": key,
+                "type": key_type,
+                "context_url": ext_context,
+                "organization": org,
+                "repository": repo,
+                "path": path
+            })
+
+            repos[(org, repo)].add(path)
+
+    return mappings, repos
+
+
+def links(ctxloc):
+
+    try:
+        jsonld_context = json.load(open(ctxloc, 'r', encoding='utf-8'))
+    except FileNotFoundError:
+        print(f"Error: JSON-LD context file {ctxloc} not found.")
+        return "<section id='links'>\n\n## 🔗 Links\n\nNo context file found!!!</section> \n\n"
+    # Generate mappings and breakdowns
+    mappings, repo_breakdown = extract_external_contexts(jsonld_context)
+
+    # Build the markdown output
+    markdown_output = ['<section id="links">\n']
+
+    # Section: External Contexts and Key Mappings
+    markdown_output.append("## External Contexts and Key Mappings\n")
+    ctxrp = r'\_context\_'
+    for m in mappings:
+        markdown_output.append(f"- **{m['key']}** → `@type: {m['type']}`")
+        markdown_output.append(f"- - Context: [{m['context_url'].replace('_context_', ctxrp)}]({m['context_url']})")
+        markdown_output.append(f"- - Source: `{m['organization']}/{m['repository']}{m['path']}`\n")
+
+    # Section: Organization and Repository Breakdown
+    markdown_output.append("\n## Organisation and Repository Breakdown\n")
+    for (org, repo), paths in repo_breakdown.items():
+        markdown_output.append(f"- **Organisation:** `{org}`")
+        markdown_output.append(f"  - Repository: `{repo}`")
+        # for path in sorted(paths):
+        #     markdown_output.append(f"    - Path: `{name}{path}`")
+        markdown_output.append("")  # for spacing
+
+    if len(markdown_output) < 4:
+        return 'No external links found. '
+
+    # Print the complete markdown string
+    final_markdown = "\n </section>\n\n".join(markdown_output)
+    
+    return final_markdown
 
 
 def main():
@@ -186,6 +302,8 @@ def main():
         io = relpath.replace('src-data/', url2io(repo, 'main', relpath))
         short = prefix_url(io)
         
+        link_content = links(f"{dir_path}_context_")
+        
         # Create info section
         info = f'''
 
@@ -198,7 +316,7 @@ def main():
 | Pydantic class | [`{pydantic}`](https://github.com/ESGF/esgf-vocab/blob/main/src/esgvoc/api/data_descriptors/{pydantic}.py): {DATA_DESCRIPTOR_CLASS_MAPPING[pydantic].__name__ if pydantic and DATA_DESCRIPTOR_CLASS_MAPPING else ' Not yet implemented'} |
 | | |
 | JSON-LD | `{short}` |
-| Content | [{io}]({io}) |
+| Expanded reference link | [{io}]({io}) |
 | Developer Repo | [![Open in GitHub](https://img.shields.io/badge/Open-GitHub-blue?logo=github&style=flat-square)]({content}) |
 
 
@@ -220,9 +338,12 @@ def main():
 
 # {name.title().replace('-', ' ').replace(':', ' : ')}  (universal)
 
+
+
 ## Description
 {existing_description or ""}
 
+[View in HTML]({io}/{relpath.replace('src-data/', '')})
 
 </section>
 
@@ -287,7 +408,7 @@ cmipld.frame( "{short}/{select}" , frame)
     '''
         
         # Combine all sections
-        readme = f'''{description}{info}{schema}{usage}'''
+        readme = f'''{description}{info}{link_content}{schema}{usage}'''
         
         # Write README file
         with open(f'{dir_path}README.md', 'w') as f:
