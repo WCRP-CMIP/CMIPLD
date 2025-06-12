@@ -61,14 +61,14 @@ runs:
               # git checkout "${BRANCH}" -- 404.html
               # touch 404.html
 
-              curl -f "https://wcrp-cmip.github.io/CMIPLD/static/404README/404.html" -o src-data/404.html || echo "Failed to download 404.html"
+              curl -f "https://wcrp-cmip.github.io/CMIPLD/static/404README/404.html" -o 404.html || echo "Failed to download 404.html"
               git add 404.html
 
               # Create a .nojekyll file to prevent GitHub Pages from processing with Jekyll
               touch .nojekyll
               git add .nojekyll
-              # .nojekyll
-              git commit -m "Add .nojekyll to production branch"
+
+              git commit -m "Add  404.html and .nojekyll to production branch"
 
               # # Make sure the publish workflow exists 
               # mkdir -p .github/workflows
@@ -87,12 +87,10 @@ runs:
 
           # Checkout the specified branch's src-data directory into production
           git checkout "${BRANCH}" -- src-data
-          # mv src-data docs
+     
 
-          # copy the 404 code. 
-          # cp 404.html src-data/404.html
-          # now installed directly
           cp .nojekyll src-data/.nojekyll
+          cp 404.html src-data/404.html
 
 
           # Find all .json files and create symbolic links without the .json extension
