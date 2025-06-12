@@ -1,0 +1,29 @@
+name: 'Commit All'
+description: 'Commit changes to the repository as a user'
+
+inputs:
+  message:
+    description: 'commit message'
+    required: true
+  
+runs:
+  using: 'composite'
+  
+  steps:
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Automated Content Update"
+        branch: "update-jsonld-automation"
+        base: "main"
+        title: "Automated Update of JSONLD Files"
+        body: "This pull request contains automated updates to JSONLD files."
+
+    - name: Auto-merge Pull Request
+      uses: peter-evans/merge-pull-request@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        merge-method: "merge"
+        pull-request-title: "Automated Update of JSONLD Files"
+        pull-request-branch: "update-jsonld-automation"
