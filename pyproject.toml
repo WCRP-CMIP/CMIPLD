@@ -17,7 +17,8 @@ dependencies = [
     "jmespath",
     "pydantic",
     "p_tqdm",
-    "rich"
+    "rich",
+    "tqdm"
 ]
 
 
@@ -40,6 +41,7 @@ update_all = "cmipld.generate.update_all:main"
 new_issue = "cmipld.generate.new_issue:main"
 generate_summary = "cmipld.generate.generate_summary:main"
 update_readme = "cmipld.generate.create_readme:main"
+validate_json = "cmipld.generate.validate_json:main"
 
 [tool.setuptools]
 packages = ["cmipld"]
