@@ -1,43 +1,47 @@
 name: 'Push PR'
 description: 'Push after creating a PR'
+
 inputs:
- message:
-   description: 'create a pr and merge'
-   required: true
+  message:
+    description: 'Create a PR and merge'
+    required: true
+  token:
+    description: 'GitHub token to authenticate'
+    required: true
 
 runs:
- using: 'composite'
- steps:
-   - name: Create Pull Request
-     id: create-pr
-     uses: peter-evans/create-pull-request@v5
-     with:
-       token: ${{ secrets.GITHUB_TOKEN }}
-       commit-message: ${{ inputs.message }}
-       branch: "update-jsonld-automation"
-       base: "main"
-       title: "Automated Update of JSONLD Files"
-       body: "This pull request contains automated updates to JSONLD files."
-       delete-branch: false
+  using: 'composite'
+  steps:
+    - name: Create Pull Request
+      id: create-pr
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ inputs.token }}
+        commit-message: ${{ inputs.message }}
+        branch: "update-jsonld-automation"
+        base: "main"
+        title: "Automated Update of JSONLD Files"
+        body: "This pull request contains automated updates to JSONLD files."
+        delete-branch: false
 
-   - name: Auto-merge and cleanup
-     if: always()
-     shell: bash
-     run: |
-       if [ "${{ steps.create-pr.outputs.pull-request-number }}" != "" ]; then
-         PR_NUM=${{ steps.create-pr.outputs.pull-request-number }}
-         echo "Created PR #$PR_NUM"
-         
-         if gh pr merge $PR_NUM --merge --auto; then
-           echo "✅ PR merged successfully"
-         else
-           echo "❌ Merge failed, closing PR"
-           gh pr close $PR_NUM
-           exit 1
-         fi
-       fi
-       
-       # Always cleanup branch
-       gh api repos/:owner/:repo/git/refs/heads/update-jsonld-automation --method DELETE 2>/dev/null || true
-     env:
-       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Auto-merge and cleanup
+      if: always()
+      shell: bash
+      run: |
+        if [ "${{ steps.create-pr.outputs.pull-request-number }}" != "" ]; then
+          PR_NUM=${{ steps.create-pr.outputs.pull-request-number }}
+          echo "Created PR #$PR_NUM"
+          
+          if gh pr merge $PR_NUM --merge --auto; then
+            echo "✅ PR merged successfully"
+          else
+            echo "❌ Merge failed, closing PR"
+            gh pr close $PR_NUM
+            exit 1
+          fi
+        fi
+        
+        # Always cleanup branch
+        gh api repos/:owner/:repo/git/refs/heads/update-jsonld-automation --method DELETE 2>/dev/null || true
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
