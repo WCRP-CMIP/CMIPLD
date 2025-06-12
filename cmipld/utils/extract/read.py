@@ -25,6 +25,38 @@ def get(link, compact=True, depth=2):
     return resolved
 
 
+def frame(link, frame_obj, compact=True, depth=2):
+    """
+    Retrieves and frames a JSON-LD document from the given link using a frame object.
+
+    Parameters:
+        link (str): URL to the JSON-LD document.
+        frame_obj (dict): The JSON-LD frame to apply to the document.
+        compact (bool): Whether to compact the final output using the original context.
+        depth (int): How many levels deep to follow and resolve @id references.
+
+    Returns:
+        dict or list: The framed and optionally compacted JSON-LD document.
+    """
+    # First get the resolved document
+    resolved = get(link, compact=False, depth=depth)
+    
+    try:
+        # Apply the frame to the resolved document
+        framed = jsonld.frame(resolved, frame_obj)
+        
+        if compact:
+            # Compact using the original document's context
+            return jsonld.compact(framed, link)
+        
+        return framed
+        
+    except jsonld.JsonLdError as e:
+        log.warn(f'WARNING: Framing failed for {link}: {e}')
+        # Fallback to original resolved document
+        return resolved if not compact else jsonld.compact(resolved, link)
+
+
 def _resolve_ids(data, compact=True, depth=2):
     """
     Recursively resolves @id references in a JSON-LD structure.
@@ -103,4 +135,33 @@ def view(link, compact=True, depth=1):
 
     # Display the formatted JSON
     console = Console()
+    console.print(syntax)
+
+
+def view_frame(link, frame_obj, compact=True, depth=1):
+    """
+    Retrieves, frames, and displays a JSON-LD document with rich formatting.
+
+    Parameters:
+        link (str): URL to the JSON-LD document.
+        frame_obj (dict): The JSON-LD frame to apply to the document.
+        compact (bool): Whether to compact the final output using the original context.
+        depth (int): How many levels deep to follow and resolve @id references.
+    """
+    from rich.console import Console
+    from rich.syntax import Syntax
+    import json
+
+    # Get framed JSON data
+    json_data = frame(link, frame_obj, compact=compact, depth=depth)
+
+    # Convert parsed JSON data back to a formatted string for pretty display
+    json_pretty = json.dumps(json_data, indent=4)
+
+    # Create a Syntax object to apply rich formatting
+    syntax = Syntax(json_pretty, "json", theme="monokai", line_numbers=True)
+
+    # Display the formatted JSON
+    console = Console()
+    console.print("[bold green]Framed JSON-LD Document:[/bold green]")
     console.print(syntax)
