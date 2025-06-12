@@ -1,0 +1,177 @@
+name: 'Push PR'
+description: 'Push after creating a PR with auto-merge and cleanup'
+inputs:
+  message:
+    description: 'commit message'
+    required: true
+  token:
+    description: 'GitHub token'
+    required: false
+    default: ${{ github.token }}
+  branch-name:
+    description: 'Branch name for PR'
+    required: false
+    default: 'update-jsonld-automation'
+  pr-title:
+    description: 'Pull request title'
+    required: false
+    default: 'Automated Update of JSONLD Files'
+  pr-body:
+    description: 'Pull request body'
+    required: false
+    default: 'This pull request contains automated updates to JSONLD files.'
+  base-branch:
+    description: 'Base branch for PR'
+    required: false
+    default: 'main'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup variables
+      shell: bash
+      run: |
+        echo "BRANCH_NAME=${{ inputs.branch-name }}" >> $GITHUB_ENV
+        echo "PR_TITLE=${{ inputs.pr-title }}" >> $GITHUB_ENV
+        echo "PR_BODY=${{ inputs.pr-body }}" >> $GITHUB_ENV
+        echo "BASE_BRANCH=${{ inputs.base-branch }}" >> $GITHUB_ENV
+        echo "CLEANUP_NEEDED=false" >> $GITHUB_ENV
+        echo "PR_NUMBER=" >> $GITHUB_ENV
+
+    - name: Create Pull Request
+      id: create-pr
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ inputs.token }}
+        commit-message: ${{ inputs.message }}
+        branch: ${{ env.BRANCH_NAME }}
+        base: ${{ env.BASE_BRANCH }}
+        title: ${{ env.PR_TITLE }}
+        body: ${{ env.PR_BODY }}
+        delete-branch: false  # We'll handle deletion manually
+
+    - name: Set PR info and cleanup flag
+      shell: bash
+      run: |
+        if [ "${{ steps.create-pr.outputs.pull-request-number }}" != "" ]; then
+          echo "PR_NUMBER=${{ steps.create-pr.outputs.pull-request-number }}" >> $GITHUB_ENV
+          echo "CLEANUP_NEEDED=true" >> $GITHUB_ENV
+          echo "✅ Pull Request #${{ steps.create-pr.outputs.pull-request-number }} created successfully"
+          echo "🔗 URL: ${{ steps.create-pr.outputs.pull-request-url }}"
+        else
+          echo "⚠️ Pull Request creation may have failed or no changes detected"
+        fi
+
+    - name: Auto-merge Pull Request
+      id: merge-pr
+      if: steps.create-pr.outputs.pull-request-number != ''
+      shell: bash
+      run: |
+        echo "🔄 Attempting to auto-merge PR #${{ env.PR_NUMBER }}..."
+        
+        # Wait a moment for PR to be fully created
+        sleep 5
+        
+        # Try to merge the PR using GitHub CLI
+        if gh pr merge ${{ env.PR_NUMBER }} --merge --auto --delete-branch; then
+          echo "✅ Pull Request #${{ env.PR_NUMBER }} merged successfully"
+          echo "MERGE_SUCCESS=true" >> $GITHUB_ENV
+          echo "CLEANUP_NEEDED=false" >> $GITHUB_ENV  # Auto-merge will delete branch
+        else
+          echo "❌ Failed to auto-merge PR #${{ env.PR_NUMBER }}"
+          echo "MERGE_SUCCESS=false" >> $GITHUB_ENV
+          # Branch still needs cleanup
+        fi
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    - name: Check merge status and set final status
+      shell: bash
+      run: |
+        if [ "${{ env.PR_NUMBER }}" == "" ]; then
+          echo "FINAL_STATUS=no-pr-created" >> $GITHUB_ENV
+          echo "STATUS_MESSAGE=No pull request was created (no changes or error)" >> $GITHUB_ENV
+        elif [ "${{ env.MERGE_SUCCESS }}" == "true" ]; then
+          echo "FINAL_STATUS=success" >> $GITHUB_ENV
+          echo "STATUS_MESSAGE=Pull request created and merged successfully" >> $GITHUB_ENV
+        else
+          echo "FINAL_STATUS=merge-failed" >> $GITHUB_ENV
+          echo "STATUS_MESSAGE=Pull request created but auto-merge failed" >> $GITHUB_ENV
+        fi
+
+    - name: Cleanup branch on failure
+      if: always() && env.CLEANUP_NEEDED == 'true'
+      shell: bash
+      run: |
+        echo "🧹 Cleaning up branch: ${{ env.BRANCH_NAME }}"
+        
+        # Delete the branch using GitHub CLI
+        if gh api repos/:owner/:repo/git/refs/heads/${{ env.BRANCH_NAME }} --method DELETE; then
+          echo "✅ Branch ${{ env.BRANCH_NAME }} deleted successfully"
+        else
+          echo "⚠️ Failed to delete branch ${{ env.BRANCH_NAME }} (may not exist or already deleted)"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    - name: Close PR if merge failed
+      if: always() && env.FINAL_STATUS == 'merge-failed'
+      shell: bash
+      run: |
+        echo "🔒 Closing failed PR #${{ env.PR_NUMBER }}..."
+        
+        # Add a comment explaining the closure
+        gh pr comment ${{ env.PR_NUMBER }} --body "🤖 Auto-merge failed. Closing PR and cleaning up branch."
+        
+        # Close the PR
+        if gh pr close ${{ env.PR_NUMBER }}; then
+          echo "✅ PR #${{ env.PR_NUMBER }} closed successfully"
+        else
+          echo "⚠️ Failed to close PR #${{ env.PR_NUMBER }}"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    - name: Final status report
+      if: always()
+      shell: bash
+      run: |
+        echo "==================================="
+        echo "🎯 FINAL ACTION SUMMARY"
+        echo "==================================="
+        echo "Status: ${{ env.FINAL_STATUS }}"
+        echo "Message: ${{ env.STATUS_MESSAGE }}"
+        
+        case "${{ env.FINAL_STATUS }}" in
+          "success")
+            echo "✅ SUCCESS: ${{ env.STATUS_MESSAGE }}"
+            echo "PR #${{ env.PR_NUMBER }} was created and merged"
+            echo "Branch was automatically cleaned up"
+            exit 0
+            ;;
+          "merge-failed")
+            echo "❌ PARTIAL FAILURE: ${{ env.STATUS_MESSAGE }}"
+            echo "PR #${{ env.PR_NUMBER }} was created but could not be auto-merged"
+            echo "PR has been closed and branch cleaned up"
+            exit 1
+            ;;
+          "no-pr-created")
+            echo "⚠️ NO ACTION: ${{ env.STATUS_MESSAGE }}"
+            echo "This may be normal if there were no changes to commit"
+            exit 0
+            ;;
+          *)
+            echo "❓ UNKNOWN STATUS: ${{ env.STATUS_MESSAGE }}"
+            exit 1
+            ;;
+        esac
+
+    - name: Set action outputs
+      if: always()
+      shell: bash
+      run: |
+        echo "pr-number=${{ env.PR_NUMBER }}" >> $GITHUB_OUTPUT
+        echo "pr-url=${{ steps.create-pr.outputs.pull-request-url }}" >> $GITHUB_OUTPUT
+        echo "merge-success=${{ env.MERGE_SUCCESS }}" >> $GITHUB_OUTPUT
+        echo "final-status=${{ env.FINAL_STATUS }}" >> $GITHUB_OUTPUT
+        echo "status-message=${{ env.STATUS_MESSAGE }}" >> $GITHUB_OUTPUT
