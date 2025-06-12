@@ -38,6 +38,11 @@ def frame(link, frame_obj, compact=True, depth=2):
     Returns:
         dict or list: The framed and optionally compacted JSON-LD document.
     """
+    
+    if '@context' not in frame_obj:
+        frame_obj['@context'] = link  # Use the link as context if not provided
+        
+        
     # First get the resolved document
     resolved = get(link, compact=False, depth=depth)
     

@@ -1,0 +1,61 @@
+name: Blank Issue
+description: Create a blank issue for general use
+assignees:
+  - wolfiex
+labels: []
+projects:
+  - WCRP-CMIP/4
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for creating an issue! Please fill out the form below with as much detail as possible.
+
+  - type: input
+    id: title
+    attributes:
+      label: Issue Title
+      description: Provide a clear and descriptive title for this issue
+      placeholder: Brief description of the issue
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the issue, feature request, or task in detail
+      placeholder: Provide a detailed description...
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any additional context, background information, or motivation
+      placeholder: Any relevant background information...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List what needs to be accomplished for this issue to be considered complete
+      options:
+        - label: Task 1
+          required: false
+        - label: Task 2  
+          required: false
+        - label: Task 3
+          required: false
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional Information
+      description: Add any other relevant information, links, or resources
+      placeholder: Links, resources, or other relevant information...
+    validations:
+      required: false
