@@ -1,26 +1,19 @@
-import os,re
+import os, re
 import shutil
 import subprocess
 import tempfile
 from typing import List, Tuple
 import tarfile
 import datetime
+import argparse
 # from .. import locations
-from .server import LocalServer, socketserver,http
+from .server_patched import LocalServer, socketserver, http
 # from ...locations import reverse_mapping
 from ..git import io2repo
 from ..logging.unique import UniqueLogger
 log = UniqueLogger()
 import urllib
 
-# Apply global JSON-LD SSL compatibility patches
-try:
-    from .jsonld_ssl_debug import apply_global_jsonld_ssl_fix
-    _ssl_restore_info = apply_global_jsonld_ssl_fix()
-    log.debug("Global JSON-LD SSL compatibility patches applied")
-except Exception as e:
-    log.warn(f"Could not apply global SSL patches: {e}")
-    _ssl_restore_info = None
 class LD_server:
     def __init__(self, repos=None, zipfile=None, copy=None, override=None, use_ssl=None):
         '''
@@ -47,8 +40,7 @@ class LD_server:
             self.clone_repos(repos, override=override)
         if copy:
             self.copy_existing_repos(copy, override=override)
-            
-            
+
     def create_temp_dir(self):
         """Create a temporary directory to hold repositories."""
         if not self.temp_dir:
@@ -116,15 +108,12 @@ class LD_server:
                 # repo_url = tocopy
 
             log.debug(f'Copying the repo into LocalServer [#FF7900] {repo_path} --> {repo_name} [/]')
-            
-            
-            
+
             # URL parsing functions for server
-            
             parsed = urllib.parse.urlparse(repo_url)
             host = parsed.netloc
             path = parsed.path
-            
+
             if host not in self.redirect_rules:
                 # create a new rule for the host
                 self.redirect_rules[host] = []
@@ -132,12 +121,8 @@ class LD_server:
                 "regex_in": re.compile(rf"^{repo_url}"),
                 "regex_out": f"/{repo_name}/"
             })
-            
 
-            
-            
             # add to monkeypatch
-            
             target_name = os.path.basename(repo_name)
             target_path = os.path.join(self.temp_dir.name, target_name)
 
@@ -198,51 +183,130 @@ class LD_server:
     def start_server(self, port=8081, nojson=False):
         '''
         Serve the directory at the specified port.
-        # '''
-        # for _ in range(9):
-        #     try:
-        #         # we should know the redirects
-        #         self.server = LocalServer(self.temp_dir.name, port,debug=True)
-        #         break
-        #     except:
-        #         port += 1
-        #         log.debug('Port in use, trying:'+ str(port))
-        
-        # with socketserver.TCPServer(("", 0), http.server.SimpleHTTPRequestHandler) as temp_server:
-        #     free_port = temp_server.server_address[1]
-        #     break
-        
+        '''
+        # Pass the SSL configuration to LocalServer
         self.server = LocalServer(self.temp_dir.name, debug=True, use_ssl=self.use_ssl)
 
         self.url = self.server.start_server()
-        
+
         if not nojson:
-            # {"wcrp-cmip.github.io":[{"regex_in" : re.compile(r'^(?!.*(_context_|\.json(?:ld|l)?)$).*'), "regex_out": ".json"}]} 
+            # Add JSON redirect rule for wcrp-cmip.github.io
             self.server.requests.add_redirect(
                 'wcrp-cmip.github.io',
                 re.compile('^(?!.*(_context_|\\.json(?:ld)?|\/)$).*'),
                 r'\g<0>.json'
             )
-        
+
+        # Apply custom redirect rules
         for i in self.redirect_rules:
             for j in self.redirect_rules[i]:
-                # self.server.redirect_rules[i]['regex_out'] = self.url+j['regex_out']
-                
-                self.server.requests.add_redirect(i, j['regex_in'],self.url+ j['regex_out'])
-                
-                
-        # Finally if not set, make json files into json. 
-        # This step is usually accomplished on the production branch and not an issue for the IO pages. 
+                self.server.requests.add_redirect(i, j['regex_in'], self.url + j['regex_out'])
 
-                
+        # List all redirects for debugging
         self.server.requests.list_redirects()
-        
-        # print('add the mappings here to the server')
-        
+
         return self.url
 
     def stop_server(self):
         self.server.stop_server()
         self.server = None
         self.url = None
-        # log.info("Server stopped.") displayed by server. 
+
+
+def main():
+    """Command line interface for LD_server with SSL options."""
+    parser = argparse.ArgumentParser(
+        description="CMIP-LD Local Server with SSL/TLS support",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Auto-detect SSL capability (default)
+  python -m cmipld.utils.server_tools.offline --repos repo1,repo2
+  
+  # Force disable SSL (HTTP only)
+  python -m cmipld.utils.server_tools.offline --no-ssl --repos repo1,repo2
+  
+  # Force enable SSL (will fail if neither OpenSSL nor cryptography available)
+  python -m cmipld.utils.server_tools.offline --ssl --repos repo1,repo2
+        """
+    )
+    
+    # SSL options (mutually exclusive)
+    ssl_group = parser.add_mutually_exclusive_group()
+    ssl_group.add_argument(
+        '--no-ssl', 
+        action='store_true',
+        help='Disable SSL/TLS - serve over HTTP only (useful when OpenSSL not available)'
+    )
+    ssl_group.add_argument(
+        '--ssl', 
+        action='store_true',
+        help='Force enable SSL/TLS - will fail if SSL setup is not possible'
+    )
+    
+    # Server options
+    parser.add_argument('--port', type=int, default=8081, help='Port to serve on (default: 8081)')
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--nojson', action='store_true', help='Disable automatic .json suffix redirects')
+    
+    # Repository options
+    parser.add_argument('--repos', help='Comma-separated list of repositories to clone')
+    parser.add_argument('--zipfile', help='Path to tar.gz file to extract')
+    parser.add_argument('--copy', help='Comma-separated list of local repository paths to copy')
+    parser.add_argument('--override', choices=['y', 'n'], default='n', 
+                       help='Override existing repositories without prompting (default: n)')
+    
+    args = parser.parse_args()
+    
+    # Determine SSL setting
+    use_ssl = None  # Auto-detect by default
+    if args.no_ssl:
+        use_ssl = False
+        log.info("SSL explicitly disabled - server will use HTTP")
+    elif args.ssl:
+        use_ssl = True
+        log.info("SSL explicitly enabled - server will attempt HTTPS")
+    
+    # Parse repository lists
+    repos = None
+    if args.repos:
+        repo_list = args.repos.split(',')
+        repos = [(repo.strip(), repo.strip().split('/')[-1]) for repo in repo_list]
+    
+    copy_repos = None
+    if args.copy:
+        copy_list = args.copy.split(',')
+        copy_repos = [[path.strip(), path.strip(), os.path.basename(path.strip())] for path in copy_list]
+    
+    try:
+        # Create and start server
+        server = LD_server(
+            repos=repos,
+            zipfile=args.zipfile,
+            copy=copy_repos,
+            override=args.override,
+            use_ssl=use_ssl
+        )
+        
+        url = server.start_server(port=args.port, nojson=args.nojson)
+        log.info(f"Server started at: {url}")
+        log.info("Press Ctrl+C to stop the server")
+        
+        # Keep the server running
+        try:
+            while True:
+                import time
+                time.sleep(1)
+        except KeyboardInterrupt:
+            log.info("Stopping server...")
+            server.stop_server()
+            
+    except Exception as e:
+        log.error(f"Failed to start server: {e}")
+        return 1
+    
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())
