@@ -61,7 +61,7 @@ runs:
               # git checkout "${BRANCH}" -- 404.html
               # touch 404.html
 
-              curl -f "https://wcrp-cmip.github.io/CMIPLD/static/404README/404.html" -o 404.html || echo "Failed to download 404.html"
+              curl -f "https://wcrp-cmip.github.io/CMIPLD/404README/404.html" -o 404.html || echo "Failed to download 404.html"
               git add 404.html
 
               # Create a .nojekyll file to prevent GitHub Pages from processing with Jekyll
