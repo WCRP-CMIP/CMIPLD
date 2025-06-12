@@ -2,8 +2,7 @@ import http.server
 import socketserver
 import ssl
 import threading
-# import tempfile
-import os,re
+import os, re
 import subprocess
 import shutil
 from ..io import shell
@@ -11,7 +10,7 @@ from rich import print
 from rich.console import Console
 from rich.text import Text
 from ...locations import mapping
-from .monkeypatch_requests_patched import RequestRedirector
+from .monkeypatch_requests import RequestRedirector
 console = Console()
 
 from ..logging.unique import UniqueLogger
@@ -84,17 +83,6 @@ def create_self_signed_cert_python(certfile, keyfile):
     except Exception as e:
         log.warn(f"Failed to create SSL certificate with Python: {e}")
         return False
-
-# class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
-#     def end_headers(self):
-#         self.send_header('Access-Control-Allow-Origin', '*')
-#         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-#         self.send_header('Access-Control-Allow-Headers', '*')
-#         super().end_headers()
-
-#     def do_OPTIONS(self):
-#         self.send_response(200, "ok")
-#         self.end_headers()
 
 class LocalServer:
     def __init__(self, base_path, port=None, debug=False, use_ssl=None):
@@ -203,25 +191,16 @@ class LocalServer:
         if not self.prefix_map:
             self.prefix_map = mapping  # from cmipld.mapping
 
-        ssl_config = {
-            'disable_ssl_verify': True,  # Always disable for local development
-            'auto_protocol_fix': True    # Enable protocol switching
-        }
-        
         self.requests = RequestRedirector(
             prefix_map=self.prefix_map,
-            redirect_rules=self.redirect_rules or {},
-            ssl_config=ssl_config
+            redirect_rules=self.redirect_rules or {}
         )
 
-        # Test redirect with the appropriate protocol
-        test_protocol = "https" if self.use_ssl else "http"
-        test_url = f'{test_protocol}://wcrp-cmip.github.io/WCRP-universe/bob'
-        print(f"Testing redirect with: {test_url}")
-        try:
-            self.requests.test_redirect(test_url)
-        except Exception as e:
-            log.warn(f"Redirect test failed (this is usually ok): {e}")
+        # Only test redirect if SSL is available (otherwise the https test will fail)
+        if self.use_ssl:
+            self.requests.test_redirect('https://wcrp-cmip.github.io/WCRP-universe/bob')
+        else:
+            self.requests.test_redirect('http://wcrp-cmip.github.io/WCRP-universe/bob')
 
         # Define a custom handler that serves files from the specified base_path
         handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
@@ -272,8 +251,6 @@ class LocalServer:
             self.thread = None
             self.requests.restore_defaults()
             log.info("[bold yellow]Server stopped.[/bold yellow]")
-            
 
     def test(self, **args):
         return self.requests.test_redirect(**args)
-    
