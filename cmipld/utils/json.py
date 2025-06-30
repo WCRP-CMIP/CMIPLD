@@ -2,7 +2,7 @@ from collections import OrderedDict
 from ..generate.validate_json import JSONValidator
 jval = JSONValidator('./')
 validate_and_fix_json = jval.validate_and_fix_json
-
+sort_json_keys = jval.sort_json_keys
 
 # class DotAccessibleDictOld:
 #     def __init__(self, entries):
