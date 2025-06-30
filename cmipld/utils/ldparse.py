@@ -2,7 +2,7 @@ from collections import OrderedDict
 rmld = ['id', 'type', '@context']
 
 
-def get_entry(data, entry='label'):
+def get_entry(data, entry='validation-key'):
     if isinstance(data, dict):
         if 'id' in data:
             return [data[entry]]
@@ -11,7 +11,7 @@ def get_entry(data, entry='label'):
     return [i.get(entry) for i in data if entry in i]
 
 
-def name_entry(data, value='description', key='label'):
+def name_entry(data, value='description', key='validation-key'):
     if isinstance(data, list):
         return sortd({entry[key]: entry[value] for entry in data if key in entry})
 
@@ -37,7 +37,7 @@ def rmkeys(data, keys=rmld):
         return data
 
 
-def name_extract(data, fields=None, key='label'):
+def name_extract(data, fields=None, key='validation-key'):
 
     assert isinstance(data, list) or isinstance(
         data, dict), 'data must be a list or dict'

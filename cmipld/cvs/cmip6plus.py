@@ -7,7 +7,7 @@ def license(data):
 
 def organisation(data):
     # return 'None if this is missing' Does not break CVs.
-    return [name_entry(o['organisation'], 'long_label') if isinstance(o['organisation'], dict) else {o['organisation']: None} for o in data]
+    return [name_entry(o['organisation'], 'ui-label') if isinstance(o['organisation'], dict) else {o['organisation']: None} for o in data]
 
 
 functionlist = {}
@@ -64,7 +64,7 @@ named_entry_feed = ['mip_era', 'activity', 'product', 'tables']
 
 for field in named_entry_feed:
     functionlist[field] = lambda data, field=field: rmkeys(
-        get_entry(data[field], entry='label'))
+        get_entry(data[field], entry='validation-key'))
 
 # save the functions to the local global list
 locals().update(functionlist)
@@ -89,7 +89,7 @@ def experiment(data):
         for name in ['activity', 'parent_experiment', 'additional_allowed_model_components', 'required_model_components']:
             e[name] = name_entry(e[name])
 
-        dummy[e['label']] = rmkeys(e, ['id', 'type', 'model_realms'])
+        dummy[e['validation-key']] = rmkeys(e, ['id', 'type', 'model_realms'])
 
         # 'sub_experiment',
 
@@ -98,27 +98,27 @@ def experiment(data):
 
 def source(data):
 
-    license_keep = ['label', 'url',
+    license_keep = ['validation-key', 'url',
                     'exceptions_contact', 'source_specific_info']
     dummy = {}
     for s in data:
         s['license'] = s['license'][0]
         s['license'] = key_extract(s['license'], license_keep)
 
-        s['organisation'] = name_entry('long_label')
+        s['organisation'] = name_entry('ui-label')
         # {k.split('/')[-1]:v for k,v in s['organisation']},
 
         s['institution'] = s['organisation']
 
         s['model_component'] = [key_extract(
-            x, ['realm', 'description', 'label', 'native-nominal-resolution']) for x in s['model_component']]
+            x, ['realm', 'description', 'validation-key', 'native-nominal-resolution']) for x in s['model_component']]
 
         s['source'] = ''
         for mc in s['model_component']:
-            s['source'] += f"{mc['label']} ({mc['realm']}); "
+            s['source'] += f"{mc['validation-key']} ({mc['realm']}); "
 
         s = rmkeys(s, ['id', 'type', 'organisation', 'model_component'])
 
-        dummy[s['label']] = s
+        dummy[s['validation-key']] = s
 
     return dummy

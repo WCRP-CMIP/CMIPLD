@@ -386,7 +386,7 @@ cmipld.get( "{short}/{select}")
 
 ### Framing
 Framing is a way we can filter the downloaded data to match what we want. 
-```js
+```python
 frame = {{
             "@context": "{io}/_context_",
             "@type": "wcrp:{name}",
@@ -395,10 +395,6 @@ frame = {{
 
         }}
         
-```
-
-```python
-
 import cmipld
 cmipld.frame( "{short}/{select}" , frame)
 
