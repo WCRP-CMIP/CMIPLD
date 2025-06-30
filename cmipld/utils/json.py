@@ -1,4 +1,7 @@
 from collections import OrderedDict
+from ..generate.validate_json import JSONValidator
+jval = JSONValidator('./')
+validate_and_fix_json = jval.validate_and_fix_json
 
 
 # class DotAccessibleDictOld:
