@@ -24,9 +24,15 @@ def commit_one(location, author, comment, branch=None):
     author_str = gen_author_str(author)
 
 
+    # Normalize author for git config commands
+    if isinstance(author, str):
+        author_login = author
+    else:
+        author_login = author['login']
+
     cmds = [
-        f'git config user.name "{author["login"]}";'
-        f'git config user.email "{author["login"]}@users.noreply.github.com";',
+        f'git config user.name "{author_login}";'
+        f'git config user.email "{author_login}@users.noreply.github.com";',
         f'git add {location};',
         f'git commit --author="{author_str}" -m "{comment}";'
     ]
