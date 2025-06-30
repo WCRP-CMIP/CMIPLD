@@ -77,7 +77,7 @@ class experiment_model(BaseModel, id_field, type_field, description_field):
         urlbase = mapping['universal']
         for i in value:
 
-            url = f'{urlbase}source-type/{i['id']}'
+            url = f"{urlbase}source-type/{i['id']}"
             try:
                 jsonld.expand(url)
             except:

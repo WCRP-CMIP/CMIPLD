@@ -1,4 +1,5 @@
 import os
+import subprocess
 from ..io import shell  # assuming your shell() prints output and handles errors
 
 
@@ -11,10 +12,16 @@ def gen_author_str(author):
         
     author.setdefault('name', author['login'])  # Use login if name is missing
     
-    author['name'] = author['name'].replace('-', ' ')  # Remove quotes from name
+    author['name'] = author['name'].replace('-', ' ')  # Remove dashes from name
     if author['name'] == '': author['name'] = author['login']  # Use login if name is empty
     
-    return f"{author.get('name',author['login'])} <{author['login']}@users.noreply.github.com>"
+    # Use provided email if available, otherwise use GitHub noreply email
+    if 'email' in author and author['email']:
+        email = author['email']
+    else:
+        email = f"{author['login']}@users.noreply.github.com"
+    
+    return f"{author.get('name',author['login'])} <{email}>"
 
 
 
@@ -27,12 +34,14 @@ def commit_one(location, author, comment, branch=None):
     # Normalize author for git config commands
     if isinstance(author, str):
         author_login = author
+        author_email = f"{author}@users.noreply.github.com"
     else:
-        author_login = author['login']
+        author_login = author.get('login', author.get('name', 'unknown'))
+        author_email = author.get('email', f"{author_login}@users.noreply.github.com")
 
     cmds = [
         f'git config user.name "{author_login}";'
-        f'git config user.email "{author_login}@users.noreply.github.com";',
+        f'git config user.email "{author_email}";',
         f'git add {location};',
         f'git commit --author="{author_str}" -m "{comment}";'
     ]
@@ -92,3 +101,54 @@ def recommit_file(path, author, message=None):
     print(output)
 
     print(f"✅ {path} recommitted with author {author_str}.")
+
+
+def get_last_committer(filepath):
+    """Get the last committer (author) of a file using git log
+    
+    Args:
+        filepath: Path to the file to check
+        
+    Returns:
+        dict: Dictionary with 'name' and 'email' keys, or just username string, or None if error
+    """
+    try:
+        # Get the last commit author name and email
+        result = subprocess.run(
+            ['git', 'log', '-1', '--pretty=format:%an|%ae', filepath],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        output = result.stdout.strip()
+        if '|' in output:
+            author_name, author_email = output.split('|', 1)
+            
+            # Extract GitHub username from email if it's a GitHub noreply email
+            if '@users.noreply.github.com' in author_email:
+                github_username = author_email.split('@')[0]
+                # Remove any numeric prefix (like 12345+username)
+                if '+' in github_username:
+                    github_username = github_username.split('+')[1]
+                
+                # Return dict format for use with gen_author_str
+                return {
+                    'login': github_username,
+                    'name': author_name,
+                    'email': author_email
+                }
+            else:
+                # For non-GitHub emails, return full author info
+                return {
+                    'name': author_name,
+                    'email': author_email,
+                    'login': author_name  # Use name as login fallback
+                }
+        else:
+            # Fallback if format parsing fails
+            return output
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting committer for {filepath}: {e}")
+        return None
