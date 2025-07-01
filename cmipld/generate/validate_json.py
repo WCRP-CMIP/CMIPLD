@@ -36,6 +36,7 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 import time
@@ -105,6 +106,9 @@ class JSONValidator:
         Returns:
             (modified: bool, message: str)
         """
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+            
         try:
             # Read the JSON file
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -114,7 +118,8 @@ class JSONValidator:
                 return False, "Empty file"
             
             try:
-                data = json.loads(content)
+                # Load JSON as OrderedDict to preserve order
+                data = json.loads(content, object_pairs_hook=OrderedDict)
             except json.JSONDecodeError as e:
                 return False, f"Invalid JSON: {e}"
             
@@ -175,7 +180,9 @@ class JSONValidator:
             # Check if key order changed
             if list(data.keys()) != list(sorted_data.keys()):
                 modified = True
-                data = sorted_data
+            
+            # Always use the sorted OrderedDict for writing
+            data = sorted_data
             
             # Determine final file path
             final_file_path = file_path
@@ -198,7 +205,8 @@ class JSONValidator:
             # Write back if modified and not dry run
             if modified and not self.dry_run:
                 with open(final_file_path, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=4, ensure_ascii=False)
+                    # Use sort_keys=False to preserve our custom ordering
+                    json.dump(data, f, indent=4, ensure_ascii=False, sort_keys=False)
                     f.write('\n')  # Add trailing newline
             
             # Generate status message
@@ -218,11 +226,11 @@ class JSONValidator:
         except Exception as e:
             return False, f"Error: {str(e)}"
     
-    def sort_json_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def sort_json_keys(self, data: Dict[str, Any]) -> OrderedDict:
         """Sort JSON keys according to CMIP-LD specification"""
-        sorted_data = {}
+        sorted_data = OrderedDict()
         
-        # First, add priority keys in order (excluding @context and type)
+        # Standard key order for all files
         priority_keys = ['id', 'validation-key', 'ui-label', 'description']
         for key in priority_keys:
             if key in data:
