@@ -1,7 +1,7 @@
 from .git_core import url,url2io,toplevel
 from .git_repo_metadata import getreponame
 from ... import reverse_mapping
-from ..json import DotAccessibleDict
+from ..jsontools import DotAccessibleDict
 
 from rich import box
 from rich.panel import Panel
