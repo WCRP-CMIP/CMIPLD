@@ -1,4 +1,4 @@
-// Reference collection and linking - UPDATED to use jsonld library and proper linked field detection
+// Reference collection and linking
 import { Utils } from './utils.js';
 
 export class ReferenceManager {
@@ -6,102 +6,64 @@ export class ReferenceManager {
     this.prefixMapping = prefixMapping;
     this.resolvedContext = {};
     this.linkProperties = new Set();
-    this.contextTermDefinitions = new Map(); // Store full term definitions from context
   }
 
-  // Set the resolved context for link detection - UPDATED to use jsonld library
-  async setResolvedContext(context) {
-    console.log('🔗 === SETTING RESOLVED CONTEXT ===');
-    console.log('🔗 Context keys:', Object.keys(context || {}));
-    console.log('🔗 Context sample:', context);
-    
+  // Set the resolved context for link detection
+  setResolvedContext(context) {
     this.resolvedContext = context;
-    
-    // Use the jsonld library to process the context and identify linked properties
-    await this.identifyLinkPropertiesWithJsonLD(context);
-    
-    // Enhanced logging
-    console.log(`🔗 Link properties identified (${this.linkProperties.size}): ${Array.from(this.linkProperties).join(', ')}`);
-    
-    if (this.linkProperties.size === 0) {
-      console.warn('⚠️ No link properties identified! This might indicate a problem with context resolution.');
+    this.linkProperties = this.identifyLinkProperties(context);
+    // Also create a reverse mapping from expanded URIs to compacted names
+    this.expandedToCompactMap = this.createExpandedToCompactMap(context);
+    // Reduced logging - only log summary
+    if (this.linkProperties.size > 0) {
+      console.warn(`🔗 Link properties identified: ${Array.from(this.linkProperties).join(', ')}`);
     }
   }
 
-  // Use jsonld library to properly identify link properties from context
-  async identifyLinkPropertiesWithJsonLD(context) {
+  // Identify properties that are defined as links in the context
+  identifyLinkProperties(context) {
     const linkProps = new Set();
-    this.contextTermDefinitions.clear();
     
-    try {
-      // Use jsonld.processContext to get proper term definitions
-      const processedContext = await jsonld.processContext({}, context);
-      
-      console.log('🔗 Processed context with jsonld library:', processedContext);
-      
-      // Examine the processed context to find terms with @type: @id
-      const termDefinitions = processedContext.mappings || {};
-      
-      for (const [term, definition] of Object.entries(termDefinitions)) {
-        // Store the full term definition
-        this.contextTermDefinitions.set(term, definition);
-        
-        // Check if this term has @type: @id (indicates it's a link property)
-        if (definition && typeof definition === 'object') {
-          if (definition['@type'] === '@id') {
-            linkProps.add(term);
-            console.log(`🔗 Found link property from jsonld processing: ${term} (has @type: @id)`);
-          }
-          // Also check if the definition has nested @context with @type: @id
-          else if (definition['@context'] && typeof definition['@context'] === 'object') {
-            // This term has its own scoped context - check if it defines link behavior
-            const scopedContext = definition['@context'];
-            if (scopedContext['@type'] === '@id') {
-              linkProps.add(term);
-              console.log(`🔗 Found link property with scoped context: ${term} (scoped context has @type: @id)`);
-            }
-          }
-        }
-      }
-      
-    } catch (jsonldError) {
-      console.warn('⚠️ Failed to process context with jsonld library:', jsonldError.message);
-      console.log('🔄 Falling back to manual context analysis...');
-      
-      // Fallback to manual analysis
-      this.identifyLinkPropertiesManually(context, linkProps);
-    }
-    
-    // Store the identified link properties
-    this.linkProperties = linkProps;
-    
-    console.log(`🔗 Total link properties identified: ${linkProps.size}`);
-  }
-
-  // Fallback manual identification of link properties - UPDATED to be more precise
-  identifyLinkPropertiesManually(context, linkProps) {
     for (const [key, value] of Object.entries(context)) {
-      // Skip JSON-LD keywords and 'id' field
-      if (key.startsWith('@') || key === 'id') {
+      // Skip 'id' field - never treat it as a link property
+      if (key === 'id') {
         continue;
       }
       
-      // ONLY identify as link properties if they explicitly have @type: @id or nested @context
-      if (typeof value === 'object' && value !== null) {
-        // CASE 1: Object with @type: @id
+      if (value === '@id') {
+        linkProps.add(key);
+      } else if (typeof value === 'object' && value !== null) {
         if (value['@type'] === '@id') {
           linkProps.add(key);
-          console.log(`🔗 Found link property (manual): ${key} (has @type: @id)`);
-        }
-        // CASE 2: Object with nested @context
-        else if (value['@context']) {
-          linkProps.add(key);
-          console.log(`🔗 Found link property (manual): ${key} (has nested @context)`);
         }
       }
-      // Do NOT add string mappings or other types as link properties
-      // Only explicit @type: @id or nested @context should be considered linked
     }
+    
+    return linkProps;
+  }
+
+  // Mark a property as a link property
+  markAsLinkProperty(propertyName) {
+    if (!this.linkProperties) {
+      this.linkProperties = new Set();
+    }
+    this.linkProperties.add(propertyName);
+    console.log(`🔗 Marked '${propertyName}' as a link property`);
+  }
+
+  // Create a mapping from expanded URIs to compacted names
+  createExpandedToCompactMap(context) {
+    const map = new Map();
+    
+    for (const [key, value] of Object.entries(context)) {
+      if (typeof value === 'string') {
+        map.set(value, key);
+      } else if (typeof value === 'object' && value !== null && value['@id']) {
+        map.set(value['@id'], key);
+      }
+    }
+    
+    return map;
   }
 
   // Check if a key (compacted or expanded) represents a linked property
@@ -112,85 +74,23 @@ export class ReferenceManager {
     }
     
     // Check if this is an expanded URI that maps to a linked property
-    if (this.contextTermDefinitions.has(key)) {
-      return this.linkProperties.has(key);
-    }
-    
-    // For expanded IRIs, check if any of our link properties expand to this IRI
-    for (const linkProp of this.linkProperties) {
-      const termDef = this.contextTermDefinitions.get(linkProp);
-      if (termDef && termDef['@id'] === key) {
-        return true;
-      }
+    if (this.expandedToCompactMap && this.expandedToCompactMap.has(key)) {
+      const compactedName = this.expandedToCompactMap.get(key);
+      return this.linkProperties.has(compactedName);
     }
     
     return false;
   }
 
-  // Expand a reference using context with jsonld library when possible
-  async expandReference(value, key = null) {
-    if (!value || typeof value !== 'string') return value;
-    
-    // Already a full URL
-    if (value.startsWith('http')) return value;
-    
-    try {
-      // Try to use jsonld library for proper expansion
-      const mockDoc = {};
-      if (key) {
-        mockDoc[key] = value;
-      } else {
-        mockDoc['@id'] = value;
-      }
-      
-      const expanded = await jsonld.expand(mockDoc, { '@context': this.resolvedContext });
-      
-      if (expanded && expanded.length > 0) {
-        const expandedDoc = expanded[0];
-        if (key && expandedDoc[this.getExpandedKey(key)]) {
-          const expandedValue = expandedDoc[this.getExpandedKey(key)];
-          if (Array.isArray(expandedValue) && expandedValue.length > 0 && expandedValue[0]['@id']) {
-            const result = expandedValue[0]['@id'];
-            console.log(`🔗 Expanding reference '${value}' using jsonld library: ${result}`);
-            return result;
-          }
-        } else if (expandedDoc['@id']) {
-          const result = expandedDoc['@id'];
-          console.log(`🔗 Expanding reference '${value}' using jsonld library: ${result}`);
-          return result;
-        }
-      }
-    } catch (jsonldError) {
-      console.warn(`⚠️ jsonld expansion failed for '${value}':`, jsonldError.message);
-    }
-    
-    // Fallback to manual expansion
-    return this.expandReferenceManually(value, key);
-  }
-
-  // Get the expanded form of a key
-  getExpandedKey(key) {
-    const termDef = this.contextTermDefinitions.get(key);
-    if (termDef && termDef['@id']) {
-      return termDef['@id'];
-    }
-    
-    // Check for direct string mapping in context
-    if (this.resolvedContext[key] && typeof this.resolvedContext[key] === 'string') {
-      return this.resolvedContext[key];
-    }
-    
-    return key;
-  }
-
-  // Manual expansion fallback with proper priority and correct prefix resolution
-  expandReferenceManually(value, key = null) {
+  // Expand a reference using context with proper priority and correct prefix resolution
+  expandReference(value, key = null) {
     if (!value || typeof value !== 'string') return value;
     
     // Already a full URL
     if (value.startsWith('http')) return value;
     
     // PRIORITY 1: Handle prefixed values FIRST (before property-scoped contexts)
+    // This ensures "universal:activity/cmip" is resolved correctly
     if (value.includes(':')) {
       const colonIndex = value.indexOf(':');
       const prefix = value.substring(0, colonIndex);
@@ -282,7 +182,7 @@ export class ReferenceManager {
     return value;
   }
 
-  // Find and collect all @id references that need resolution - UPDATED to only collect from linked properties
+  // Find and collect all @id references that need resolution
   collectIdReferences(obj, refs = new Set(), visited = new Set()) {
     if (typeof obj !== 'object' || obj === null || visited.has(obj)) {
       return refs;
@@ -299,12 +199,12 @@ export class ReferenceManager {
         }
       }
 
-      // String values in properties marked as links in the context (using proper JSON-LD detection)
+      // String values in properties marked as links in the context
       Object.entries(obj).forEach(([key, value]) => {
-        // ONLY collect references from properties that are actually defined as linked in the context
+        // Check if this key is marked as a link property
         if (this.isLinkedProperty(key)) {
           if (typeof value === 'string') {
-            const expandedValue = this.expandReferenceManually(value, key);
+            const expandedValue = this.expandReference(value, key);
             if (this.isValidReference(expandedValue, this.resolvedContext)) {
               console.log(`🔗 Collecting linked reference in '${key}': ${value} -> ${expandedValue}`);
               refs.add(expandedValue);
@@ -312,7 +212,7 @@ export class ReferenceManager {
           } else if (Array.isArray(value)) {
             value.forEach(item => {
               if (typeof item === 'string') {
-                const expandedValue = this.expandReferenceManually(item, key);
+                const expandedValue = this.expandReference(item, key);
                 if (this.isValidReference(expandedValue, this.resolvedContext)) {
                   console.log(`🔗 Collecting linked reference in '${key}[]': ${item} -> ${expandedValue}`);
                   refs.add(expandedValue);
@@ -373,7 +273,7 @@ export class ReferenceManager {
     return false;
   }
 
-  // Collect all @id references from the data structure for iterative processing - UPDATED
+  // Collect all @id references from the data structure for iterative processing
   collectAllIdReferences(obj, refs = new Set(), visited = new Set()) {
     if (typeof obj !== 'object' || obj === null || visited.has(obj)) {
       return refs;
@@ -390,16 +290,16 @@ export class ReferenceManager {
         }
       }
 
-      // Look for string values that are references - ONLY in linked properties
+      // Look for string values that are references
       Object.entries(obj).forEach(([key, value]) => {
         if (typeof value === 'string' && this.isExpandableReference(value, key)) {
-          const expandedValue = this.expandReferenceManually(value, key);
+          const expandedValue = this.expandReference(value, key);
           console.log(`🔗 Found expandable reference in '${key}': ${value} -> ${expandedValue}`);
           refs.add(expandedValue);
         } else if (Array.isArray(value)) {
           value.forEach((item, index) => {
             if (typeof item === 'string' && this.isExpandableReference(item, key)) {
-              const expandedValue = this.expandReferenceManually(item, key);
+              const expandedValue = this.expandReference(item, key);
               console.log(`🔗 Found expandable reference in '${key}[${index}]': ${item} -> ${expandedValue}`);
               refs.add(expandedValue);
             } else if (typeof item === 'object') {
@@ -427,15 +327,10 @@ export class ReferenceManager {
     return this.isExpandableReference(obj['@id'], '@id');
   }
 
-  // Check if a string value is an expandable reference - UPDATED to only expand linked properties
+  // Check if a string value is an expandable reference with proper priority
   isExpandableReference(value, key) {
     if (typeof value !== 'string') return false;
-    if (['@context', '@base', '@vocab', 'id', '@id'].includes(key)) return false;
-    
-    // CRITICAL: Only expand references in properties that are defined as linked in the context
-    if (key !== '@id' && !this.isLinkedProperty(key)) {
-      return false;
-    }
+    if (['@context', '@base', '@vocab', 'id', '@id'].includes(key)) return false;  // Never expand 'id' or '@id' fields
     
     // PRIORITY 1: Check for explicit context mapping
     if (this.resolvedContext && this.resolvedContext[value]) {
@@ -446,7 +341,18 @@ export class ReferenceManager {
       }
     }
     
-    // PRIORITY 2: Check if the value looks like a reference
+    // PRIORITY 2: Check if the key is defined as a link property in context
+    if (this.linkProperties && this.linkProperties.has(key)) {
+      // Expand the value to see if it's a valid reference
+      const expandedValue = this.expandReference(value, key);
+      const isValid = this.isValidReference(expandedValue, this.resolvedContext);
+      if (isValid) {
+        console.log(`🔗 '${value}' in '${key}' is expandable via link property definition`);
+      }
+      return isValid;
+    }
+    
+    // PRIORITY 3: Check if the value looks like a reference
     if (value.startsWith('http')) {
       return true;
     }
@@ -467,7 +373,7 @@ export class ReferenceManager {
       }
     }
     
-    // PRIORITY 3: Check if we have base/vocab that could expand this
+    // PRIORITY 4: Check if we have base/vocab that could expand this
     if (this.resolvedContext && (this.resolvedContext['@base'] || this.resolvedContext['@vocab'])) {
       console.log(`🔗 '${value}' might be expandable via base/vocab`);
       return true;

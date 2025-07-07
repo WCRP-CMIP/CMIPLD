@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMIP-LD Enhanced Viewer</title>
+  <author name="Daniel Ellis">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsonld/8.3.0/jsonld.min.js"></script>
+  <script src="config.js"></script>
+  <script src="template.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>CMIP-LD Enhanced Viewer</h1>
+      <p>Load and explore JSON-LD documents with comprehensive context resolution and iterative reference expansion</p>
+    </div>
+
+    <div class="input-section" id="inputSection">
+      <div class="input-header">
+        <button class="minimize-btn" id="minimizeBtn" title="Minimize">
+          <span class="minimize-icon">−</span>
+        </button>
+      </div>
+      <div class="input-content" id="inputContent">
+      <div class="form-group">
+        <label for="uri">URI or Prefix:</label>
+        <input type="text" id="uri" placeholder="https://example.com/data.jsonld or universal:graph.jsonld" required>
+        <div class="prefix-examples">
+          <strong>Available prefixes:</strong>
+          <code>universal:</code> <code>variables:</code> <code>cmip6plus:</code> <code>cmip7:</code> <code>cf:</code> <code>obs4mips:</code>
+        </div>
+      </div>
+
+      <div class="options-section">
+        <div class="options-grid">
+          <div class="form-group">
+            <label for="depth">Link Resolution Depth:</label>
+            <input type="number" id="depth" value="2" min="0" max="5">
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="followLinks" checked>
+            <label for="followLinks">Follow @id Links</label>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="insertContext">
+            <label for="insertContext">Insert Resolved Context</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="options-section view-mode-section">
+        <div class="toggle-group">
+          <div class="toggle-switch">
+            <input type="checkbox" id="viewToggle">
+            <span class="slider"></span>
+          </div>
+          <div class="toggle-labels">
+            <div class="toggle-label">Compacted ⟷ Expanded JSON-LD</div>
+            <div class="toggle-description">Toggle OFF = Compacted view (human-readable with context). Toggle ON = Expanded view (jsonld.expand output with full URIs, no context).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn" id="loadBtn">Load Data</button>
+      </div>
+
+      <div class="workflow-note">
+        <strong>Enhanced Workflow (Modular Architecture):</strong> 
+        The viewer loads documents and contexts, expands them using JSON-LD processing, builds an entity index, then iteratively inserts linked items by pulling @id references with entities from the expanded view. Context expansion is controlled by the checkbox and only occurs when enabled.
+      </div>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      Loading and processing data...
+    </div>
+
+    <div class="result-section" id="resultSection" style="display: none;">
+      <div class="result-header">
+        <div class="result-meta">
+          <div class="result-stats" id="resultStats"></div>
+        </div>
+        <div class="field-toggles" id="fieldToggles"></div>
+      </div>
+      <div class="json-container">
+        <div class="json-viewer" id="jsonViewer"></div>
+      </div>
+      <div class="result-footer">
+        <button class="btn btn-secondary" id="copyBtn">📋 Copy JSON</button>
+        <button class="btn btn-success" id="downloadBtn">💾 Download JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>

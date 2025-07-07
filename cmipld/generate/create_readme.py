@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Create README files for WCRP universe data directories.
-Converts Jupyter notebook functionality to standalone script.
+
 """
 
 import os

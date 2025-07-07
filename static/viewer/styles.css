@@ -40,10 +40,18 @@ body {
   font-weight: 700;
 }
 
-.header p {
+.header-workflow {
+  background: #eff6ff;
+  border-left: 4px solid var(--primary-color);
+  padding: 1rem;
   margin: 0;
+  font-size: 0.9rem;
   color: var(--secondary-color);
-  font-size: 1.1rem;
+  border-radius: 0 6px 6px 0;
+}
+
+.header-workflow strong {
+  color: var(--text-color);
 }
 
 .input-section {
@@ -229,6 +237,19 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   transition: all 0.3s ease;
 }
 
+/* Substitute toggle specific labels */
+#substituteLinkedFiles + .slider:after {
+  content: "DISABLED";
+}
+
+#substituteLinkedFiles:checked + .slider:after {
+  content: "SUBSTITUTE";
+  right: auto;
+  left: 6px;
+  color: white;
+  font-size: 8px;
+}
+
 .toggle-switch input:checked + .slider {
   background-color: var(--primary-color);
   box-shadow: inset 0 2px 4px rgba(37, 99, 235, 0.3);
@@ -275,6 +296,8 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   color: var(--secondary-color);
 }
 
+
+
 .btn {
   background: var(--primary-color);
   color: white;
@@ -314,11 +337,66 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   background: #059669;
 }
 
+.btn-info {
+  background: #0ea5e9;
+}
+
+.btn-info:hover {
+  background: #0284c7;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
 .loading {
   display: none;
   text-align: center;
   padding: 2rem;
   color: var(--secondary-color);
+}
+
+.loading-text {
+  margin-top: 1rem;
+}
+
+.progress-info {
+  margin-top: 1rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progress-text {
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-percentage {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
 .spinner {
@@ -375,6 +453,90 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   width: 100%;
 }
 
+/* Collapsible field sections */
+.field-section-wrapper {
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.field-section-header.collapsible-header {
+  background: var(--code-background);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+  padding: 0;
+}
+
+.section-toggle-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.section-toggle-btn:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.section-toggle-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.section-toggle-icon {
+  color: var(--secondary-color);
+  font-size: 0.8em;
+  transition: transform 0.2s ease;
+  width: 12px;
+  display: inline-block;
+  text-align: center;
+}
+
+.section-toggle-btn[aria-expanded="true"] .section-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.section-title {
+  font-weight: bold;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.section-field-count {
+  color: var(--secondary-color);
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.field-section-content {
+  overflow: hidden;
+  transition: all 0.3s ease;
+  max-height: 1000px;
+  opacity: 1;
+}
+
+.field-section-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.field-section-content .field-section {
+  padding: 1rem;
+}
+
 .field-section-header {
   font-weight: bold;
   margin: 0.5rem 0;
@@ -392,13 +554,15 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 }
 
 .field-toggle {
-  padding: 0.25rem 0.5rem;
+  position: relative;
+  padding: 0.4rem 0.7rem;
   background: var(--border-color);
   border: none;
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
+  margin: 0.2rem;
 }
 
 .field-toggle.jsonld-field {
@@ -408,18 +572,91 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   font-weight: 600;
 }
 
+.field-toggle.jsonld-field:hover {
+  background: var(--jsonld-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+.linked-property a.json-key-link{
+  color: #f59e0b !important;
+}
+
+/* CRITICAL: Link field keys - Orange text MUST override everything */
+.json-key.linked-property,
+.json-key.link-field,
+.json-key[data-is-link="true"],
+.json-key.is-link,
+.json-key.reference-field,
+.json-key[class*="link"],
+.json-key[class*="reference"],
+.json-key[class*="related"] {
+  color: #f59e0b !important;
+  font-weight: 700 !important;
+  background-color: transparent !important;
+  border-left: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  position: static !important;
+}
+
+.json-key.linked-property:hover,
+.json-key.link-field:hover,
+.json-key[data-is-link="true"]:hover,
+.json-key.is-link:hover,
+.json-key.reference-field:hover,
+.json-key[class*="link"]:hover,
+.json-key[class*="reference"]:hover,
+.json-key[class*="related"]:hover {
+  color: #d97706 !important;
+  background-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* CRITICAL: URL values - Pink/Red text MUST override everything */
+.json-url,
+.json-reference,
+.json-link,
+.expandable-text,
+.json-viewer .json-url,
+.json-renderer .json-url,
+a[href].json-url,
+span.json-url {
+  color: #e91e63 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+.json-url:hover,
+.json-reference:hover,
+.json-link:hover,
+.expandable-text:hover {
+  color: #c2185b !important;
+  text-decoration: underline !important;
+  background-color: transparent !important;
+}
+
+/* Field toggle buttons for linked fields - Keep orange boxes for buttons */
 .field-toggle.linked-field {
-  background: #fef3c7;
-  border-left: 3px solid #f59e0b;
-  color: #92400e;
-  font-weight: 600;
+  background: #fef3c7 !important;
+  border-left: 3px solid #f59e0b !important;
+  color: #92400e !important;
+  font-weight: 600 !important;
   position: relative;
   padding-right: 2rem;
 }
 
 .field-toggle.linked-field:hover {
-  background: #f59e0b;
-  color: white;
+  background: #f59e0b !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3) !important;
 }
 
 .field-toggle.linked-field .expand-icon {
@@ -434,54 +671,32 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   transform: translateY(-50%) rotate(90deg);
 }
 
-.field-toggle.context-field {
-  background: #e0e7ff;
-  border-left: 3px solid #6366f1;
-  color: #4338ca;
-  font-weight: 600;
-}
-
-.field-toggle.context-field:hover {
-  background: #6366f1;
-  color: white;
-}
-
 .field-toggle.content-field {
   background: var(--border-color);
+  color: var(--text-color);
+}
+
+.field-toggle.content-field:hover {
+  background: var(--secondary-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(100, 116, 139, 0.3);
 }
 
 .field-toggle.hidden {
   background: var(--error-color);
   color: white;
+  position: relative;
+}
+
+.field-toggle.hidden::before {
+  content: '👁️‍🗨️ ';
+  opacity: 0.8;
 }
 
 .field-toggle:hover {
-  background: var(--secondary-color);
-  color: white;
-}
-
-.field-toggle.jsonld-field:hover {
-  background: var(--jsonld-color);
-  color: white;
-}
-
-.json-toggle.linked-field {
-  color: #f59e0b;
-  font-weight: bold;
-}
-
-.json-toggle.linked-field::after {
-  content: ' 🔗';
-  font-size: 0.8em;
-  opacity: 0.7;
-}
-
-.expand-icon {
-  transition: all 0.2s ease;
-}
-
-.expand-icon:hover {
-  transform: scale(1.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .json-container {
@@ -497,34 +712,47 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 }
 
 .json-key {
-  color: #8b5cf6;
+  /* color: #8b5cf6; */
+  color:var(--primary-color);
   font-weight: 600;
 }
 
-.json-key.linked-property {
-  color: #f59e0b;
-  font-weight: 700;
-  position: relative;
-}
-
-.json-key.linked-property::before {
-  content: '🔗 ';
-  font-size: 0.9em;
-  opacity: 0.8;
+/* Force orange highlighting for ALL link indicators */
+.json-key.linked-property::before,
+.json-key.link-field::before,
+.json-key[data-is-link="true"]::before,
+.json-key.is-link::before,
+.json-key.reference-field::before {
+  content: '🔗 ' !important;
+  color: #f59e0b !important;
+  font-size: 0.9em !important;
+  opacity: 0.8 !important;
 }
 
 .json-string {
   color: var(--success-color);
 }
 
-.json-url {
-  color: var(--primary-color);
-  text-decoration: none;
-  cursor: pointer;
+/* Link URLs and references - Pink/Red styling */
+.json-url,
+.json-reference,
+.json-link,
+.expandable-text {
+  color: #e91e63 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 
-.json-url:hover {
-  text-decoration: underline;
+.json-url:hover,
+.json-reference:hover,
+.json-link:hover,
+.expandable-text:hover {
+  color: #c2185b !important;
+  text-decoration: underline !important;
+  background-color: transparent !important;
 }
 
 .json-object-inline {
@@ -543,7 +771,9 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 }
 
 .json-number {
-  color: #f59e0b;
+  /* color: #f59e0b; */
+  /* color: var(--primary-color); */
+  color: var(--jsonld-color);
 }
 
 .json-boolean {
@@ -583,6 +813,74 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   color: var(--primary-color);
 }
 
+/* JSON-LD toggle specifically for linked fields */
+.json-toggle.linked-field {
+  color: #f59e0b !important;
+  font-weight: bold !important;
+}
+
+.json-toggle.linked-field::after {
+  content: ' 🔗' !important;
+  font-size: 0.8em !important;
+  opacity: 0.7 !important;
+  color: #f59e0b !important;
+}
+
+/* Expandable inline document links - Pink/Red theme */
+.expandable-id-link {
+  margin: 0.5rem 0;
+  border-left: 3px solid #e91e63;
+  padding-left: 0.5rem;
+  background: rgba(233, 30, 99, 0.05);
+  border-radius: 0 4px 4px 0;
+}
+
+.expandable-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.expandable-toggle {
+  cursor: pointer;
+  user-select: none;
+  color: #e91e63 !important;
+  font-weight: bold;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.expandable-toggle:hover {
+  color: #c2185b !important;
+}
+
+.external-link-icon {
+  color: #e91e63 !important;
+  text-decoration: none;
+  font-size: 0.8em;
+  margin-left: 5px;
+  transition: color 0.2s ease;
+}
+
+.external-link-icon:hover {
+  color: #c2185b !important;
+  text-decoration: none;
+}
+
+.expandable-content {
+  margin-left: 20px;
+  margin-top: 5px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+}
+
+.expandable-content .json-viewer {
+  font-size: 0.85rem;
+}
+
 .error-message {
   background: #fee2e2;
   color: #991b1b;
@@ -593,7 +891,9 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 
 .prefix-examples {
   background: var(--code-background);
-  padding: 1rem;
+  /* position: relative; */
+  /* padding: 1rem; */
+  left:1em!important;
   border-radius: 6px;
   margin-top: 0.5rem;
   font-size: 0.9rem;
@@ -612,6 +912,23 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-top: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.inline-checkbox {
+  margin-left: auto;
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+  background: var(--code-background);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.inline-checkbox label {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  color: var(--text-color);
 }
 
 .options-section {
@@ -649,6 +966,155 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   gap: 1rem;
 }
 
+/* Override any other color schemes for link keys - Orange text only */
+.json-key[class*="link"],
+.json-key[class*="reference"],
+.json-key[class*="related"] {
+  color: #f59e0b !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Field toggle buttons still get orange boxes */
+.field-toggle[class*="link"],
+.field-toggle[class*="reference"] {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+  border-left: 3px solid #f59e0b !important;
+}
+
+/* Additional overrides to ensure URL styling is pink/red */
+.json-viewer .json-url,
+.json-renderer .json-url,
+a[href].json-url,
+span.json-url,
+.json-reference,
+.json-link {
+  color: #e91e63 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Additional overrides to ensure link key styling is orange text only */
+.json-viewer .json-key.linked-property,
+.json-renderer .json-key.linked-property,
+.json-viewer .json-key.link-field,
+.json-renderer .json-key.link-field {
+  color: #f59e0b !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Data attributes for link keys - Orange text only */
+[data-is-linked="true"],
+[data-linked="true"],
+[data-reference="true"] {
+  color: #f59e0b !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Special case: If these are URLs, make them pink/red instead */
+[data-is-url="true"],
+[data-url="true"] {
+  color: #e91e63 !important;
+}
+
+/* Enhanced substituted content boxes - bright green highlighting like copy 10 */
+.json-substituted-link-container {
+  border-left: 4px solid #10b981 !important;
+  padding-left: 12px !important;
+  background-color: #f0fdf4 !important;
+  border-radius: 6px !important;
+  margin: 8px 0 !important;
+  padding: 12px !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1) !important;
+  position: relative;
+}
+
+.json-substituted-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px !important;
+  transition: opacity 0.2s ease;
+}
+
+.json-substituted-header:hover {
+  opacity: 0.8;
+}
+
+.json-substituted-content {
+  border-top: 1px solid #d1fae5 !important;
+  padding-top: 8px !important;
+  margin-top: 8px !important;
+  max-height: 400px !important;
+  overflow-y: auto;
+  box-shadow: none;
+  font-size: 0.95em;
+}
+
+/* Unobtrusive broken link styling - minimal and inline like copy 10 */
+.json-broken-link-container {
+  margin: 4px 0 !important;
+  padding: 8px !important;
+  border-radius: 4px !important;
+  background-color: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  display: inline-block;
+}
+
+.json-error-details {
+  font-family: monospace !important;
+  font-size: 0.8em !important;
+  color: #991b1b !important;
+  margin-top: 4px !important;
+  padding: 4px 8px !important;
+  background-color: #fee2e2 !important;
+  border-radius: 3px !important;
+}
+
+/* Animation for collapsible content */
+.json-substituted-content,
+.json-broken-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* Success and error indicators */
+.json-success-indicator {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: #059669 !important;
+  font-size: 1em;
+}
+
+.json-error-indicator {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: #dc2626 !important;
+  font-size: 1em;
+}
+
+/* Focus and accessibility improvements */
+.section-toggle-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.field-toggle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
   .result-meta {
     flex-direction: column;
@@ -666,5 +1132,53 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
   .result-footer {
     flex-direction: column;
     gap: 0.5rem;
+  }
+  
+  .field-section-content .field-section {
+    padding: 0.75rem;
+  }
+  
+  .section-toggle-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .field-toggle {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    margin: 0.15rem;
+  }
+  
+  .field-toggle.linked-field {
+    padding-right: 1.8rem;
+  }
+  
+  /* Mobile adaptations for substituted content boxes */
+  .json-substituted-link-container {
+    margin: 6px 0 !important;
+    padding: 10px !important;
+  }
+  
+  .json-substituted-header {
+    margin-bottom: 6px !important;
+  }
+  
+  .json-substituted-content {
+    padding-top: 6px !important;
+    margin-top: 6px !important;
+    font-size: 0.9em !important;
+  }
+  
+  /* Mobile broken link styling */
+  .json-broken-link-container {
+    margin: 3px 0 !important;
+    padding: 6px !important;
+    font-size: 0.85em !important;
+  }
+  
+  .json-error-details {
+    padding: 3px 6px !important;
+    margin-top: 3px !important;
+    font-size: 0.75em !important;
   }
 }

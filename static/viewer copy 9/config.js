@@ -24,7 +24,8 @@ window.CMIPLD_CONFIG = {
 
   // Default settings
   defaults: {
-    substituteLinkedFiles: true,
+    depth: 2,
+    followLinks: true,
     insertContext: false,
     expanded: false
   },

@@ -1,9 +1,0 @@
-{
-    "@type": [
-        "mip:frequency"
-    ],
-    "frequency:name": "",
-    "frequency:long_name": "",
-    "frequency:description": "",
-    "@explicit": true
-}
