@@ -163,27 +163,30 @@ export class DocumentLoader {
     return contexts;
   }
 
+  // Build comprehensive context from all loaded documents
+  async buildResolvedContext(data, baseUrl) {
+    const resolvedContext = {};
 
-
-  // Collect property-specific contexts that need to be resolved
-  async collectPropertySpecificContexts(context, baseUrl, propertyContexts) {
-    if (typeof context === 'object' && context !== null && !Array.isArray(context)) {
-      for (const [key, value] of Object.entries(context)) {
-        if (typeof value === 'object' && value !== null && value['@context']) {
-          console.log(`🔄 Found property-specific context for '${key}': ${value['@context']}`);
-          
-          // Resolve the property-specific context
-          const resolvedPropContext = await this.collectAndLoadContexts(value['@context'], baseUrl);
-          propertyContexts[key] = resolvedPropContext;
-          
-          console.log(`✅ Resolved property-specific context for '${key}' with`, Object.keys(resolvedPropContext).length, 'terms');
-        }
-      }
-    } else if (Array.isArray(context)) {
-      for (const ctx of context) {
-        await this.collectPropertySpecificContexts(ctx, baseUrl, propertyContexts);
+    // Collect contexts from the main document
+    if (data['@context']) {
+      const mainContexts = await this.collectAndLoadContexts(data['@context'], baseUrl);
+      Object.assign(resolvedContext, mainContexts);
+      
+      // If the main context has @base, preserve it
+      if (typeof data['@context'] === 'object' && data['@context']['@base']) {
+        resolvedContext['@base'] = data['@context']['@base'];
       }
     }
+
+    // Collect contexts from all loaded documents
+    for (const [url, doc] of this.loadedDocuments) {
+      if (doc['@context']) {
+        const docContexts = await this.collectAndLoadContexts(doc['@context'], url);
+        Object.assign(resolvedContext, docContexts);
+      }
+    }
+
+    return resolvedContext;
   }
 
   // Merge context definitions

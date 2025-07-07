@@ -1,0 +1,96 @@
+// Key changes to make to json-renderer.js
+
+// 1. Update createValueElement method to handle prefixed IDs
+function createValueElement_UPDATE(data, level, key) {
+  // Handle substituted/broken/loading links
+  if (typeof data === 'object' && data !== null && data['@id']) {
+    return this.createEnhancedLinkElement(data, level, key);
+  }
+  
+  // Handle prefixed IDs in compact mode (e.g., "universal:activity/cmip")
+  if (typeof data === 'string' && this.isPrefixedId(data) && this.isLinkedField(key)) {
+    const container = document.createElement('span');
+    const link = document.createElement('a');
+    link.href = this.resolveUrl(data, key);
+    link.target = '_blank';
+    link.className = 'json-string json-url json-prefixed-link';
+    link.textContent = `"${data}"`;
+    link.title = `Prefixed reference: ${data}`;
+    container.appendChild(link);
+    return container;
+  }
+  
+  if (typeof data === 'string' && this.isUrl(data)) {
+    const container = document.createElement('span');
+    const link = document.createElement('a');
+    link.href = this.resolveUrl(data, key);
+    link.target = '_blank';
+    link.className = 'json-string json-url';
+    link.textContent = `"${data}"`;
+    container.appendChild(link);
+    return container;
+  }
+  return this.createJsonElement(data, level, key);
+}
+
+// 2. Add new helper methods
+function isPrefixedId_NEW(str) {
+  if (typeof str !== 'string') return false;
+  return str.includes(':') && !str.startsWith('http://') && !str.startsWith('https://');
+}
+
+function isLinkedField_NEW(key) {
+  if (!key) return false;
+  
+  // Check with reference manager first
+  if (this.referenceManager && this.referenceManager.isLinkedProperty(key)) {
+    return true;
+  }
+  
+  // Fallback: check against known CMIP linked fields
+  const cmipLinkedFields = [
+    'activity', 'experiment', 'source', 'institution', 'grid', 'variant',
+    'variable', 'member', 'table', 'realm', 'frequency', 'modeling_realm',
+    'required_model_components', 'parent_experiment_id', 'parent_variant_label',
+    'activity_id', 'experiment_id', 'source_id', 'institution_id',
+    'member_id', 'table_id', 'grid_label', 'variant_label',
+    'variable_id', 'realm_id', 'frequency_id',
+    'parent-activity', 'parent-experiment', 'sub-experiment', 'model-realms',
+    'related', 'references', 'seeAlso', 'isVersionOf', 'isPartOf', 'derivedFrom'
+  ];
+  
+  return cmipLinkedFields.includes(key) || 
+         key.endsWith('_id') || 
+         key.endsWith('Id') ||
+         key.includes('related') ||
+         key.includes('linked') ||
+         key.includes('ref') ||
+         key.includes('Reference') ||
+         key.startsWith('see') ||
+         key.startsWith('same');
+}
+
+// 3. Update linked property detection in createObjectElement
+// Change:
+//   if (this.referenceManager && this.referenceManager.isLinkedProperty(key)) {
+// To:
+//   if (this.isLinkedField(key)) {
+
+// 4. Add CSS for prefixed links and linked properties
+const additionalCSS = `
+.json-prefixed-link {
+  background-color: #fef3c7 !important;
+  border: 1px solid #f59e0b !important;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-weight: 500;
+}
+
+.linked-property {
+  background-color: #e0f2fe !important;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-weight: 600;
+  border: 1px solid #0284c7;
+}
+`;

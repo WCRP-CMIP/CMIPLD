@@ -1,4 +1,4 @@
-// CMIP-LD Viewer v3 - Updated: Removed depth field, use substitute linked files toggle
+// CMIP-LD Viewer v3 - Highly modular implementation with workflow orchestration
 import { URLManager } from './modules/url-manager.js';
 import { ModuleFactory } from './modules/core/module-factory.js';
 
@@ -41,7 +41,8 @@ export class CMIPLDViewer {
     const inputSection = document.getElementById('inputSection');
     const settings = {
       uri: document.getElementById('uri').value.trim(),
-      substituteLinkedFiles: document.getElementById('substituteLinkedFiles').checked,
+      depth: document.getElementById('depth').value,
+      followLinks: document.getElementById('followLinks').checked,
       insertContext: document.getElementById('insertContext').checked,
       isExpanded: this.stateManager.getExpanded(),
       panelMinimized: inputSection?.classList.contains('minimized') || false
@@ -50,24 +51,24 @@ export class CMIPLDViewer {
     URLManager.updateUrl(settings);
   }
 
-  // Main data loading workflow - updated to use substitute toggle
+  // Main data loading workflow - now delegated to workflow manager
   async loadData() {
     this.uiManager.showLoading(true);
 
     try {
       // Extract and validate parameters
-      const { uri, substituteLinkedFiles } = this.dataLoadingManager.extractFormParameters();
+      const { uri, depth, followLinks } = this.dataLoadingManager.extractFormParameters();
       const validatedUri = this.dataLoadingManager.validateInput(uri);
       
-      // Configure enhanced link substitution manager
-      this.enhancedLinkSubstitution.setEnabled(substituteLinkedFiles);
+      // Configure auto-substitution manager with current depth
+      this.autoSubstitutionManager.setMaxDepth(depth);
       
       // Clear previous data
       this.clearData();
       this.updateUrl();
       
       // Execute the complete load and display workflow
-      await this.workflowManager.executeLoadAndDisplayWorkflow(validatedUri, substituteLinkedFiles);
+      await this.workflowManager.executeLoadAndDisplayWorkflow(validatedUri, depth, followLinks);
       
       // Set up reference manager with the merged context
       this.referenceManager.setResolvedContext(this.stateManager.getMergedContext());
@@ -108,16 +109,6 @@ export class CMIPLDViewer {
     );
   }
 
-  // Copy the resolved file URL to clipboard
-  async copyFileUrl() {
-    await this.exportManager.copyFileUrl();
-  }
-
-  // Open GitHub repository for the current file
-  openGithubRepo() {
-    this.exportManager.openGithubRepo();
-  }
-
   // Clear all data and reset state
   clearData() {
     this.stateManager.clearData();
@@ -125,7 +116,7 @@ export class CMIPLDViewer {
     this.jsonldProcessor.clear();
     this.jsonRenderer.setOriginalContext(null);
     this.inlineDocumentManager.clearCache();
-    this.enhancedLinkSubstitution.clearAll();
+    this.autoSubstitutionManager.clearCache();
   }
 
   // Getters for backward compatibility and access by event manager

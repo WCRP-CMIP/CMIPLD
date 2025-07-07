@@ -269,76 +269,10 @@ export class UIManager {
     // This will be connected to the main viewer
   }
 
-  // Show loading state with optional progress
-  showLoading(show, progressInfo = null) {
-    const loadingElement = document.getElementById('loading');
-    const loadBtn = document.getElementById('loadBtn');
-    
-    loadingElement.style.display = show ? 'block' : 'none';
-    if (loadBtn) loadBtn.disabled = show;
-    
-    // Update loading text with progress information
-    if (show && progressInfo) {
-      const { current, total, message } = progressInfo;
-      if (current !== undefined && total !== undefined && total > 0) {
-        const percentage = Math.round((current / total) * 100);
-        loadingElement.innerHTML = `
-          <div class="spinner"></div>
-          <div class="loading-text">
-            <div>Loading and processing data...</div>
-            <div class="progress-info">
-              <div class="progress-text">${message || `Downloading ${current} of ${total} files`}</div>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${percentage}%"></div>
-              </div>
-              <div class="progress-percentage">${percentage}%</div>
-            </div>
-          </div>
-        `;
-      } else if (message) {
-        loadingElement.innerHTML = `
-          <div class="spinner"></div>
-          <div class="loading-text">
-            <div>Loading and processing data...</div>
-            <div class="progress-info">
-              <div class="progress-text">${message}</div>
-            </div>
-          </div>
-        `;
-      }
-    } else if (show) {
-      // Default loading without progress
-      loadingElement.innerHTML = `
-        <div class="spinner"></div>
-        Loading and processing data...
-      `;
-    }
-    
-    // Clear/hide the result section when loading starts
-    if (show) {
-      const resultSection = document.getElementById('resultSection');
-      if (resultSection) {
-        resultSection.style.display = 'none';
-      }
-      
-      // Clear the JSON viewer content
-      const jsonViewer = document.getElementById('jsonViewer');
-      if (jsonViewer) {
-        jsonViewer.innerHTML = '';
-      }
-      
-      // Clear field toggles
-      const fieldToggles = document.getElementById('fieldToggles');
-      if (fieldToggles) {
-        fieldToggles.innerHTML = '';
-      }
-      
-      // Clear result stats
-      const resultStats = document.getElementById('resultStats');
-      if (resultStats) {
-        resultStats.textContent = '';
-      }
-    }
+  // Show loading state
+  showLoading(show) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+    document.getElementById('loadBtn').disabled = show;
   }
 
   // Show error message
