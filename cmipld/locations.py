@@ -5,7 +5,7 @@ import re
 mapping = {
     # 'wcrp':'https://wcrp-cmip.github.io/',
     'universal': 'https://wcrp-cmip.github.io/WCRP-universe/',
-    'variables': 'https://wcrp-cmip.github.io/MIP-variables/',
+    'vr': 'https://wcrp-cmip.github.io/Variable-Registry/',
     'cmip6plus': 'https://wcrp-cmip.github.io/CMIP6Plus_CVs/',
     'cmip7': 'https://wcrp-cmip.github.io/CMIP7-CVs/',
     'cf': 'https://wcrp-cmip.github.io/CF/',

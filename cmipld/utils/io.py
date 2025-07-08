@@ -17,13 +17,23 @@ def shell(cmd,print_result=True):
         print(stdout)
     return stdout
 
-def jr(file):
-    """JSON read"""
-    return json.load(open(file, 'r'))
+def json_read(file):
+    """Read JSON file"""
+    with open(file, 'r') as f:
+        return json.load(f)
 
-def jw(data, file):
-    """JSON write"""
-    return json.dump(data, open(file, 'w'), indent=4)
+
+jr = json_read
+read_jsn=json_read
+rjsn = json_read
+
+def json_write(data, file):
+    """Write JSON file"""
+    with open(file, 'w') as f:
+        json.dump(data, f, indent=4,ensure_ascii=False)
+    return file
+
+jw = json_write
 
 def getfile(fileend):
     """Get files with specific ending"""
@@ -42,11 +52,6 @@ def ldpath(path=''):
     return loc
 
 
-def read_jsn(f):
-    return json.load(open(f, 'r'))
-
-
-rjsn = read_jsn
 
 
 def read_url(url):
