@@ -7,10 +7,10 @@ from .gh_utils import GitHubUtils,json
 def list_repo_files(owner, repo, branch='main', path=''):
     
     utils = GitHubUtils()
-    _ , result = utils.run_gh_cmd_safe(['api', f'/repos/{owner}/{repo}/contents/{path}?ref={branch}'])
+    returncode, result, stderr = utils.run_gh_cmd_safe(['api', f'/repos/{owner}/{repo}/contents/{path}?ref={branch}'])
     
-    if not _:
-        raise Exception(f"Failed to list files in repository {owner}/{repo} on branch {branch}: {result}")
+    if returncode != 0:
+        raise Exception(f"Failed to list files in repository {owner}/{repo} on branch {branch}: {stderr}")
     
     # result = subprocess.run(cmd, capture_output=True, text=True, check=True)
     items = json.loads(result)
