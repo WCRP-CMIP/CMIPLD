@@ -1,58 +1,40 @@
-site_name: {{ project_name }} Documentation
+site_name: {{ project_name }}
 site_url: {{ site_url }}
 repo_url: {{ repo_url }}
-repo_name: {{ project_name }}
+
+docs_dir: ../../docs
+site_dir: build
 
 theme:
   name: material
-  logo: {{ production_docs_path }}/assets/CMIP_Icon_CMYK_negative.svg
-  custom_dir: {{ production_docs_path }}/overrides
+  logo: assets/CMIP_Icon_CMYK_negative.svg
+  custom_dir: overrides
   features:
     - navigation.footer
-    - navigation.tabs
-    - navigation.top
-    - navigation.sections
     - search.suggest
-    - search.highlight
     - header.autohide
-    - content.code.copy
-    - content.code.annotate
+  plugins:
+    - search
+    - optimize
+
+  copyright: CCBY04 2023+ Daniel Ellis for the CMIP-IPO
   palette: 
     # Palette toggle for light mode
     - scheme: default
-      primary: blue
-      accent: blue
       toggle:
         icon: material/toggle-switch
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      primary: blue
-      accent: blue
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to light mode
 
-plugins:
-  - search:
-      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - minify:
-      minify_html: true
-      minify_js: true
-      minify_css: true
-      htmlmin_opts:
-          remove_comments: true
-  - git-revision-date-localized:
-      type: date
-      fallback_to_build_date: true
-
-{% if enable_custom_styles %}
 extra_css: 
-  - {{ production_docs_path }}/stylesheets/extra.css
+  - stylesheets/extra.css
 
 extra_javascript:
-  - {{ production_docs_path }}/scripts/embed.js
-{% endif %}
+  - scripts/embed.js
 
 markdown_extensions:
   - admonition
@@ -64,55 +46,6 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - toc:
-      permalink: true
 
-copyright: CCBY04 2023+ Daniel Ellis for the CMIP-IPO
-
-nav:
-  - Home: index.md
-  - Explore the Data:
-    - Types of Data: Explore_the_data/The_different_types.md
-    - Network View: Explore_the_data/Network.md
-    - Treemap View: Explore_the_data/treemap.md
-  - Interact with the Data:
-    - Introduction: Interact_with_the_data/_Introduction.md
-    - Direct Interaction: Interact_with_the_data/Direct_Interaction.md
-    - Command Line Interface: Interact_with_the_data/Command_line_interface.md
-    - PyLD: Interact_with_the_data/PyLD.md
-    - Web Viewer: Interact_with_the_data/cmipLD_web_viewer.md
-    - CMIP-LD:
-      - Overview: Interact_with_the_data/CMIP-LD/CMIP-LD.md
-      - Downloading Repositories: Interact_with_the_data/CMIP-LD/Downloading_all_Repos.md
-      - Framing: Interact_with_the_data/CMIP-LD/Framing.md
-  - Understanding JSON-LD:
-    - Background: What_is_JSONLD?/Background.md
-    - Defining Context: What_is_JSONLD?/Defining_the_context.md
-    - Example Usage: What_is_JSONLD?/Example_usage/Defining_the_context.md
-  - Repository Structure:
-    - Context: Repository_Structure_and_automations/Context.md
-    - Schema: Repository_Structure_and_automations/Schema.md
-    - Processing Functions: Repository_Structure_and_automations/Processing_functions.md
-    - New Data Workflow: Repository_Structure_and_automations/New_Data_Workflow.md
-    - Issue Templates: Repository_Structure_and_automations/Issue_templates.md
-    - GitHub Actions:
-      - JSON-LD Updates: Repository_Structure_and_automations/Github_Actions/JSONLD_update.md
-  - CMIP-LD Introduction: CMIP-LD/Introduction.md
-  - Repository Status: repository_status.md
-
-extra:
-  generator: false
-  social:
-    - icon: fontawesome/brands/github
-      link: {{ repo_url }}
-    - icon: fontawesome/solid/paper-plane
-      link: mailto:cmip-ipo@wcrp-cmip.org
+# Navigation will be auto-generated or use mipcvs-wiki defaults
+# Generated pages from JSON will be added to docs/generated/
