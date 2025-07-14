@@ -1,0 +1,24 @@
+# Minimal Copier template for MkDocs publishing from mipcvs-wiki
+_templates_suffix: .jinja
+
+# Template metadata
+_metadata:
+  name: "MkDocs Publisher (Minimal)"
+  description: "Minimal template using mipcvs-wiki content"
+  version: "1.0.0"
+
+# Simple questions
+project_name:
+  type: str
+  default: "CMIP-LD Documentation"
+  help: "Name of the documentation project"
+
+site_url:
+  type: str
+  default: "https://cmip-ipo.github.io/CMIP-LD/"
+  help: "Production site URL"
+
+repo_url:
+  type: str
+  default: "https://github.com/cmip-ipo/CMIP-LD"
+  help: "Repository URL"

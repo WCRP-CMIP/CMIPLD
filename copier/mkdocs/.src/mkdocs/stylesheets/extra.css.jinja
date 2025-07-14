@@ -1,0 +1,212 @@
+{% if enable_custom_styles %}
+/* Custom styles for CMIP-LD Documentation */
+
+:root {
+  --md-primary-fg-color: #1976d2;
+  --md-primary-fg-color--light: #42a5f5;
+  --md-primary-fg-color--dark: #1565c0;
+  --md-accent-fg-color: #03dac6;
+}
+
+/* Logo and branding */
+.md-header__button.md-logo img {
+  height: 2.4rem;
+  width: auto;
+}
+
+/* Navigation enhancements */
+.md-nav__title {
+  font-weight: 600;
+}
+
+.md-nav__item--nested > .md-nav__link {
+  font-weight: 500;
+}
+
+/* Content styling */
+.md-content__button {
+  color: var(--md-primary-fg-color);
+}
+
+/* Code blocks */
+.md-typeset code {
+  background-color: var(--md-code-bg-color);
+  color: var(--md-code-fg-color);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25em;
+  font-size: 0.85em;
+}
+
+/* Admonitions */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.5rem;
+  border-left: 0.25rem solid var(--md-primary-fg-color);
+}
+
+.md-typeset .admonition > .admonition-title,
+.md-typeset details > summary {
+  font-weight: 600;
+  background-color: var(--md-primary-fg-color--light);
+  color: white;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+/* Table styling */
+.md-typeset table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.md-typeset table th {
+  background-color: var(--md-primary-fg-color);
+  color: white;
+  font-weight: 600;
+}
+
+.md-typeset table tr:nth-child(even) {
+  background-color: var(--md-default-bg-color);
+}
+
+/* Search highlighting */
+.md-search-result__teaser mark {
+  background-color: var(--md-accent-fg-color);
+  color: var(--md-default-fg-color);
+}
+
+/* Footer */
+.md-footer {
+  background-color: var(--md-primary-fg-color--dark);
+}
+
+/* Custom classes for specific content */
+.cmip-logo {
+  max-height: 3rem;
+  width: auto;
+  vertical-align: middle;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-active {
+  background-color: #4caf50;
+  color: white;
+}
+
+.status-deprecated {
+  background-color: #ff9800;
+  color: white;
+}
+
+.status-planned {
+  background-color: #2196f3;
+  color: white;
+}
+
+/* Network graph container */
+.network-container {
+  width: 100%;
+  height: 600px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+/* Treemap container */
+.treemap-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+/* JSON-LD code blocks */
+.jsonld-example {
+  position: relative;
+  margin: 1rem 0;
+}
+
+.jsonld-example::before {
+  content: "JSON-LD";
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background-color: var(--md-accent-fg-color);
+  color: var(--md-default-bg-color);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Interactive elements */
+.interactive-demo {
+  border: 2px solid var(--md-primary-fg-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  background-color: var(--md-default-bg-color);
+}
+
+.interactive-demo h4 {
+  color: var(--md-primary-fg-color);
+  margin-top: 0;
+}
+
+/* Responsive design improvements */
+@media screen and (max-width: 768px) {
+  .md-header__title {
+    font-size: 1rem;
+  }
+  
+  .network-container,
+  .treemap-container {
+    height: 400px;
+  }
+}
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] {
+  --md-code-bg-color: #2d3748;
+  --md-code-fg-color: #e2e8f0;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table th {
+  background-color: var(--md-primary-fg-color--dark);
+}
+
+[data-md-color-scheme="slate"] .interactive-demo {
+  background-color: var(--md-default-bg-color);
+  border-color: var(--md-primary-fg-color--light);
+}
+
+/* Print styles */
+@media print {
+  .md-header,
+  .md-tabs,
+  .md-footer,
+  .md-sidebar {
+    display: none !important;
+  }
+  
+  .md-content {
+    margin: 0 !important;
+  }
+  
+  .md-typeset a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--md-default-fg-color--light);
+  }
+}
+{% endif %}
