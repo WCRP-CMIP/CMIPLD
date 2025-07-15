@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""
+Run this BEFORE mkdocs build/serve to generate navigation
+Usage: python prebuild.py && mkdocs serve
+"""
+
+import os
+from pathlib import Path
+import re
+
+# Configuration
+DOCS_DIR = "../../docs"  # Adjust this path as needed
+
+def main():
+    docs_path = Path(DOCS_DIR)
+    if not docs_path.exists():
+        print(f"Error: Docs directory not found: {docs_path.absolute()}")
+        return
+    
+    # List of files from error message
+    expected_files = [
+        "80-fdsoj.md",
+        "99-acknowlegements.md", 
+        "z_acknowlegements.md",
+        "zee_acknowlegements.md",
+        "adding_new_content/general.md"
+    ]
+    
+    nav_lines = []
+    
+    # Add index if exists
+    if (docs_path / "index.md").exists():
+        nav_lines.append("- [Home](index.md)")
+    
+    # Add the files that MkDocs is complaining about
+    for file_path in expected_files:
+        full_path = docs_path / file_path
+        if full_path.exists():
+            # Clean title
+            name = Path(file_path).stem
+            name = re.sub(r'^\d+[-_.](?=\w)', '', name)
+            title = name.replace('-', ' ').replace('_', ' ').title()
+            
+            nav_lines.append(f"- [{title}]({file_path})")
+    
+    # Write SUMMARY.md
+    summary_path = docs_path / "SUMMARY.md"
+    with open(summary_path, 'w') as f:
+        f.write('\n'.join(nav_lines))
+    
+    print(f"✅ Created {summary_path}")
+    print("Navigation:")
+    for line in nav_lines:
+        print(f"  {line}")
+
+if __name__ == "__main__":
+    main()

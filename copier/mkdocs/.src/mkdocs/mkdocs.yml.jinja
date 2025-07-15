@@ -32,11 +32,13 @@ theme:
 
 plugins:
   - search
-  - gen-files:
-      scripts:
-        - scripts/gen_wcrp_content.py
   - literate-nav:
       nav_file: SUMMARY.md
+      implicit_index: true
+      tab_length: 2
+
+hooks:
+  - hooks/generate_nav.py
 
 extra_css: 
   - stylesheets/extra.css

@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""
+MkDocs hook to ensure SUMMARY.md is written to the docs directory
+where literate-nav can find it.
+"""
+
+import os
+import shutil
+from pathlib import Path
+
+def on_nav(nav, config, files):
+    """Hook that runs after navigation is created."""
+    # Get the docs directory
+    docs_dir = config['docs_dir']
+    
+    # Look for generated SUMMARY.md in the temp build
+    site_dir = config.get('site_dir', 'site')
+    
+    # Try to find the generated SUMMARY.md
+    possible_locations = [
+        Path(site_dir) / 'SUMMARY.md',
+        Path('SUMMARY.md'),
+        Path(docs_dir) / 'SUMMARY.md'
+    ]
+    
+    summary_content = None
+    for loc in possible_locations:
+        if loc.exists():
+            with open(loc, 'r') as f:
+                summary_content = f.read()
+            break
+    
+    if summary_content:
+        # Write to docs directory
+        summary_path = Path(docs_dir) / 'SUMMARY.md'
+        with open(summary_path, 'w') as f:
+            f.write(summary_content)
+        print(f"✅ Copied SUMMARY.md to {summary_path}")
+    
+    return nav
+
+def on_post_build(config):
+    """Ensure SUMMARY.md persists after build."""
+    docs_dir = config['docs_dir']
+    summary_path = Path(docs_dir) / 'SUMMARY.md'
+    
+    if summary_path.exists():
+        print(f"✅ SUMMARY.md exists at {summary_path}")
