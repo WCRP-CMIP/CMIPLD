@@ -18,8 +18,8 @@ def install_dependencies():
     try:
         # pip uninstall copier pydantic typing_extensions typing_inspection
 # pip install copier
-        subprocess.run('pip uninstall copier pydantic typing_extensions typing_inspection'.split(), check=True)
-        subprocess.run(["pip", "install", "copier", "pyyaml", 'y'], check=True)
+        subprocess.run('pip uninstall copier pydantic typing_extensions typing_inspection '.split(), check=True)
+        subprocess.run(["pip", "install", "copier", "pyyaml", 'mkdocs-literate-nav','y'], check=True)
         print("✅ Dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Error installing dependencies: {e}")
@@ -75,16 +75,33 @@ def get_remote_info():
     
     # Parse GitHub URL
     if 'github.com' in remote_url:
-        if remote_url.startswith('https://github.com/'):
-            repo_path = remote_url.replace('https://github.com/', '').replace('.git', '')
-        elif remote_url.startswith('git@github.com:'):
-            repo_path = remote_url.replace('git@github.com:', '').replace('.git', '')
-        else:
-            return None, None
+        # Remove common prefixes and suffixes
+        repo_path = remote_url
         
+        # Handle HTTPS URLs
+        if remote_url.startswith('https://github.com/'):
+            repo_path = remote_url.replace('https://github.com/', '')
+        # Handle SSH URLs
+        elif remote_url.startswith('git@github.com:'):
+            repo_path = remote_url.replace('git@github.com:', '')
+        # Handle HTTPS with credentials
+        elif 'https://' in remote_url and '@github.com/' in remote_url:
+            repo_path = remote_url.split('@github.com/')[-1]
+        
+        # Remove .git suffix
+        repo_path = repo_path.replace('.git', '')
+        
+        # Extract username and repo
         if '/' in repo_path:
-            username, repo = repo_path.split('/', 1)
-            return username, repo
+            parts = repo_path.split('/')
+            if len(parts) >= 2:
+                username = parts[0]
+                repo = parts[1]
+                # Clean up any extra characters
+                username = username.strip()
+                repo = repo.strip()
+                if username and repo:
+                    return username, repo
     
     return None, None
 
@@ -318,9 +335,16 @@ def detect_and_run_copier(answers_file):
     print("   Checking git remote...")
     remote_username, remote_repo = get_remote_info()
     
-    # Determine final values
-    username = github_username or remote_username or git_user.lower().replace(' ', '') or 'your-username'
-    repo_name = remote_repo or get_current_dir_name()
+    # If we have remote info, prioritize it for repo name
+    if remote_username and remote_repo:
+        print(f"   ✅ Detected from git remote: {remote_username}/{remote_repo}")
+        username = remote_username
+        repo_name = remote_repo
+    else:
+        # Fallback to GitHub username or other methods
+        username = github_username or remote_username or git_user.lower().replace(' ', '') or 'your-username'
+        repo_name = get_current_dir_name()
+    
     project_name = repo_name.replace('-', ' ').replace('_', ' ').title()
     
     # Read README content
@@ -341,7 +365,7 @@ def detect_and_run_copier(answers_file):
         print("   python auto-setup.py  # (tries to auto-detect)")
         sys.exit(1)
     
-    # Build data dictionary
+    # Build data dictionary with corrected repository info
     data = {
         'project_name': f"{project_name} Documentation",
         'repo_name': repo_name,
@@ -353,8 +377,10 @@ def detect_and_run_copier(answers_file):
         'json_data_folder': 'json_data',
         'description': f"Documentation for {project_name}",
         'readme_content': readme_content,
-        # f'...{len(readme_content)} characters',
-        'template_path': template_path
+        'template_path': template_path,
+        'header_color': 'blue',
+        'generate_static_files': True,
+        'static_files_folder': 'static_output'
     }
     
     print("\n📋 Detected information:")

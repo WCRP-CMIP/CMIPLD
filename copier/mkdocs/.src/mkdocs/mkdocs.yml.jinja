@@ -3,7 +3,7 @@ site_url: {{ site_url }}
 repo_url: {{ repo_url }}
 
 docs_dir: ../../docs
-site_dir: build
+site_dir: site
 
 theme:
   name: material
@@ -13,22 +13,30 @@ theme:
     - navigation.footer
     - search.suggest
     - header.autohide
-  plugins:
-    - search
-    - optimize
-
   copyright: CCBY04 2023+ Daniel Ellis for the CMIP-IPO
   palette: 
     # Palette toggle for light mode
     - scheme: default
+      primary: {{ header_color }}
+      accent: {{ header_color }}
       toggle:
         icon: material/toggle-switch
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
+      primary: {{ header_color }}
+      accent: {{ header_color }}
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to light mode
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - scripts/gen_wcrp_content.py
+  - literate-nav:
+      nav_file: SUMMARY.md
 
 extra_css: 
   - stylesheets/extra.css

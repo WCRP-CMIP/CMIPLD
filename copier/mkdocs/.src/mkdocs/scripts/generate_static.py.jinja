@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""
+Static files generator for MkDocs build process.
+Generates static files from JSON data and other sources during the build.
+"""
+
+import json
+import os
+import shutil
+from pathlib import Path
+from datetime import datetime
+import xml.etree.ElementTree as ET
+
+
+def generate_api_manifest(output_dir):
+    """Generate API manifest file."""
+    manifest = {
+        "version": "1.0.0",
+        "generated": datetime.now().isoformat(),
+        "endpoints": {
+            "documentation": "{{ site_url }}",
+            "repository": "{{ repo_url }}",
+            "json_data": "{{ json_data_folder }}/"
+        },
+        "metadata": {
+            "project": "{{ project_name }}",
+            "author": "{{ author_name }}",
+            "description": "{{ description }}"
+        }
+    }
+    
+    manifest_path = output_dir / "api_manifest.json"
+    with open(manifest_path, 'w') as f:
+        json.dump(manifest, f, indent=2)
+    
+    print(f"✅ Generated API manifest: {manifest_path}")
+
+
+def generate_sitemap_xml(output_dir, docs_dir):
+    """Generate XML sitemap for the documentation."""
+    base_url = "{{ site_url }}".rstrip('/')
+    
+    # Create sitemap XML
+    urlset = ET.Element("urlset")
+    urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
+    
+    # Add pages from docs directory
+    for md_file in Path(docs_dir).rglob("*.md"):
+        if md_file.name.startswith('.'):
+            continue
+            
+        # Convert markdown file to URL
+        rel_path = md_file.relative_to(docs_dir)
+        url_path = str(rel_path).replace('.md', '.html').replace('\\', '/')
+        
+        if url_path == 'index.html':
+            url_path = ''
+        
+        # Create URL element
+        url_elem = ET.SubElement(urlset, "url")
+        loc_elem = ET.SubElement(url_elem, "loc")
+        loc_elem.text = f"{base_url}/{url_path}"
+        
+        # Add metadata
+        lastmod_elem = ET.SubElement(url_elem, "lastmod")
+        lastmod_elem.text = datetime.now().strftime("%Y-%m-%d")
+        
+        changefreq_elem = ET.SubElement(url_elem, "changefreq")
+        changefreq_elem.text = "weekly"
+        
+        priority_elem = ET.SubElement(url_elem, "priority")
+        priority_elem.text = "0.8" if url_path == '' else "0.6"
+    
+    # Write sitemap
+    sitemap_path = output_dir / "sitemap.xml"
+    tree = ET.ElementTree(urlset)
+    tree.write(sitemap_path, encoding="utf-8", xml_declaration=True)
+    
+    print(f"✅ Generated sitemap: {sitemap_path}")
+
+
+def generate_robots_txt(output_dir):
+    """Generate robots.txt file."""
+    robots_content = f"""User-agent: *
+Allow: /
+
+Sitemap: {{ site_url }}sitemap.xml
+"""
+    
+    robots_path = output_dir / "robots.txt"
+    with open(robots_path, 'w') as f:
+        f.write(robots_content)
+    
+    print(f"✅ Generated robots.txt: {robots_path}")
+
+
+def generate_json_index(output_dir, json_data_folder):
+    """Generate index of all JSON files."""
+    json_folder = Path(json_data_folder)
+    if not json_folder.exists():
+        return
+    
+    json_index = {
+        "generated": datetime.now().isoformat(),
+        "files": []
+    }
+    
+    for json_file in json_folder.glob("*.json"):
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+            
+            file_info = {
+                "filename": json_file.name,
+                "size": json_file.stat().st_size,
+                "type": type(data).__name__,
+                "documentation_url": f"{{ site_url }}generated/{json_file.stem}.html"
+            }
+            
+            if isinstance(data, dict):
+                file_info["keys"] = list(data.keys())[:10]  # First 10 keys
+                file_info["key_count"] = len(data)
+            elif isinstance(data, list):
+                file_info["item_count"] = len(data)
+                if data:
+                    file_info["item_types"] = list(set(type(item).__name__ for item in data[:10]))            
+            json_index["files"].append(file_info)
+            
+        except Exception as e:
+            print(f"⚠️  Error indexing {json_file}: {e}")
+    
+    index_path = output_dir / "json_index.json"
+    with open(index_path, 'w') as f:
+        json.dump(json_index, f, indent=2)
+    
+    print(f"✅ Generated JSON index: {index_path}")
+
+
+def generate_build_info(output_dir):
+    """Generate build information file."""
+    build_info = {
+        "build_time": datetime.now().isoformat(),
+        "project": "{{ project_name }}",
+        "version": "1.0.0",
+        "repository": "{{ repo_url }}",
+        "site_url": "{{ site_url }}",
+        "static_files_folder": "{{ static_files_folder }}",
+        "header_color": "{{ header_color }}",
+        "generator": "MkDocs Publisher Template"
+    }
+    
+    build_path = output_dir / "build_info.json"
+    with open(build_path, 'w') as f:
+        json.dump(build_info, f, indent=2)
+    
+    print(f"✅ Generated build info: {build_path}")
+
+
+def generate_css_variables(output_dir):
+    """Generate CSS variables file for the selected color theme."""
+    color_mappings = {
+        "blue": {"primary": "#1976d2", "accent": "#2196f3"},
+        "indigo": {"primary": "#3f51b5", "accent": "#3f51b5"},
+        "purple": {"primary": "#9c27b0", "accent": "#9c27b0"},
+        "pink": {"primary": "#e91e63", "accent": "#e91e63"},
+        "red": {"primary": "#f44336", "accent": "#f44336"},
+        "deep-orange": {"primary": "#ff5722", "accent": "#ff5722"},
+        "orange": {"primary": "#ff9800", "accent": "#ff9800"},
+        "amber": {"primary": "#ffc107", "accent": "#ffc107"},
+        "yellow": {"primary": "#ffeb3b", "accent": "#ffeb3b"},
+        "lime": {"primary": "#cddc39", "accent": "#cddc39"},
+        "green": {"primary": "#4caf50", "accent": "#4caf50"},
+        "teal": {"primary": "#009688", "accent": "#009688"},
+        "cyan": {"primary": "#00bcd4", "accent": "#00bcd4"},
+        "light-blue": {"primary": "#03a9f4", "accent": "#03a9f4"},
+        "blue-grey": {"primary": "#607d8b", "accent": "#607d8b"},
+        "brown": {"primary": "#795548", "accent": "#795548"},
+        "grey": {"primary": "#9e9e9e", "accent": "#9e9e9e"},
+        "deep-purple": {"primary": "#673ab7", "accent": "#673ab7"}
+    }
+    
+    color_theme = "{{ header_color }}"
+    colors = color_mappings.get(color_theme, color_mappings["blue"])
+    
+    css_content = """/* Generated CSS variables for %s theme */
+:root {
+  --theme-primary: %s;
+  --theme-accent: %s;
+  --theme-name: "%s";
+}
+
+/* Theme-specific overrides */
+.md-header {
+  background-color: var(--theme-primary);
+}
+
+.md-tabs {
+  background-color: var(--theme-primary);
+}
+
+.md-nav__link--active {
+  color: var(--theme-accent);
+}
+
+.md-nav__link:hover {
+  color: var(--theme-accent);
+}
+""" % (color_theme, colors["primary"], colors["accent"], color_theme)
+    
+    css_path = output_dir / "theme_colors.css"
+    with open(css_path, 'w') as f:
+        f.write(css_content)
+    
+    print(f"✅ Generated theme CSS: {css_path}")
+
+
+def main():
+    """Main function to generate all static files."""
+    # Check if static file generation is enabled
+    if not {{ generate_static_files | lower }}:
+        print("📋 Static file generation is disabled")
+        return
+    
+    print("🔧 Generating static files...")
+    
+    # Create output directory
+    output_dir = Path("{{ static_files_folder }}")
+    output_dir.mkdir(exist_ok=True)
+    
+    # Generate different types of static files
+    generate_api_manifest(output_dir)
+    generate_sitemap_xml(output_dir, "docs")
+    generate_robots_txt(output_dir)
+    generate_json_index(output_dir, "{{ json_data_folder }}")
+    generate_build_info(output_dir)
+    generate_css_variables(output_dir)
+    
+    print(f"✅ All static files generated in: {output_dir}")
+
+
+if __name__ == "__main__":
+    main()

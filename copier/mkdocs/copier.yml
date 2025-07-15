@@ -30,8 +30,8 @@ author_email:
 
 github_username:
   type: str
-  default: "your-username"
-  help: "GitHub username"
+  default: "WCRP-CMIP"
+  help: "GitHub username or organization"
 
 site_url:
   type: str
@@ -53,7 +53,39 @@ description:
   default: "Documentation for {{ project_name.replace(' Documentation', '') }}"
   help: "Project description"
 
-# enable_custom_styles:
-#   type: bool
-#   default: true
-#   help: "Enable custom styles for the documentation"
+# Color theme selection
+header_color:
+  type: str
+  default: "blue"
+  help: "Header color theme"
+  choices:
+    - "blue"
+    - "indigo"
+    - "purple"
+    - "pink"
+    - "red"
+    - "deep-orange"
+    - "orange"
+    - "amber"
+    - "yellow"
+    - "lime"
+    - "green"
+    - "teal"
+    - "cyan"
+    - "light-blue"
+    - "blue-grey"
+    - "brown"
+    - "grey"
+    - "deep-purple"
+
+# Static files generation
+generate_static_files:
+  type: bool
+  default: true
+  help: "Generate static files during build process"
+
+static_files_folder:
+  type: str
+  default: "static_output"
+  help: "Folder name for generated static files"
+  when: "{{ generate_static_files }}"
