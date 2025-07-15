@@ -7,6 +7,7 @@ with auto-generated literate navigation that includes existing docs.
 
 import mkdocs_gen_files
 import sys
+import re
 from pathlib import Path
 from datetime import datetime
 import json
@@ -51,24 +52,39 @@ def scan_existing_docs(docs_dir="../../docs"):
     """Scan existing documentation files and organize them hierarchically."""
     existing_files = {}
     
-    if not os.path.exists(docs_dir):
-        print(f"⚠️  Docs directory not found: {docs_dir}", file=sys.stderr)
+    # Convert to Path object
+    docs_path = Path(docs_dir)
+    
+    if not docs_path.exists():
+        print(f"⚠️  Docs directory not found: {docs_path.absolute()}", file=sys.stderr)
         return existing_files
     
-    print(f"📂 Scanning existing docs in: {docs_dir}", file=sys.stderr)
+    print(f"📂 Scanning existing docs in: {docs_path.absolute()}", file=sys.stderr)
     
-    # Scan all markdown files
-    for md_file in Path(docs_dir).rglob("*.md"):
-        if md_file.name.startswith('.'):
+    # Get all markdown files
+    md_files = list(docs_path.rglob("*.md"))
+    print(f"📄 Found {len(md_files)} markdown files", file=sys.stderr)
+    
+    # Process each file
+    for md_file in md_files:
+        # Skip hidden files
+        if any(part.startswith('.') for part in md_file.parts):
             continue
         
         # Get relative path from docs_dir
-        rel_path = md_file.relative_to(docs_dir)
+        try:
+            rel_path = md_file.relative_to(docs_path)
+        except ValueError:
+            continue
+            
         parts = list(rel_path.parts)
         
         # Skip generated content directory
         if parts and parts[0] == OUTPUT_BASE:
             continue
+        
+        # Debug output - show ALL files being processed
+        print(f"  - Processing: {rel_path} (parts: {parts})", file=sys.stderr)
         
         # Build hierarchy
         current = existing_files
@@ -79,105 +95,136 @@ def scan_existing_docs(docs_dir="../../docs"):
         
         # Add file
         filename = parts[-1]
-        title = filename.replace('.md', '').replace('-', ' ').replace('_', ' ').title()
+        title = clean_title_from_filename(filename)
         
         # Special case for common files
         if filename == 'index.md':
-            title = 'Home' if len(parts) == 1 else parts[-2].replace('-', ' ').title()
+            title = 'Home' if len(parts) == 1 else clean_title_from_filename(parts[-2])
         elif filename == 'README.md':
             title = 'Readme'
+        
+        # Debug: show what title we're using
+        print(f"    -> Title: '{title}' for file: {filename}", file=sys.stderr)
         
         current[filename] = {
             'title': title,
             'path': str(rel_path).replace('\\', '/')
         }
     
+    # Debug: show final structure
+    print(f"\n📊 Final structure has {len(existing_files)} top-level items", file=sys.stderr)
+    for key in existing_files.keys():
+        print(f"  - {key}", file=sys.stderr)
+    
     return existing_files
 
 
 def generate_literate_nav_with_existing(sections, existing_files):
     """Generate SUMMARY.md that includes both existing and generated files."""
-    nav_content = "# Navigation\n\n"
+    nav_lines = []
+    
+    print(f"\ud83d\uddfa\ufe0f  Building navigation with {len(existing_files)} top-level items", file=sys.stderr)
     
     # Add home if it exists
     if 'index.md' in existing_files:
-        nav_content += "* [Home](index.md)\n"
+        nav_lines.append("- [Home](index.md)")
+        print("  - Added Home page", file=sys.stderr)
     
-    # Add other top-level existing files
-    for name, data in sorted(existing_files.items()):
-        if name == 'index.md':
-            continue
+    # Process existing files
+    def process_items(items, level=0):
+        """Process items at current level."""
+        # Sort items by their sort key
+        sorted_items = sorted(items.items(), key=lambda x: get_sort_key(x[0]))
         
-        if isinstance(data, dict) and 'title' in data:
-            # It's a file
-            nav_content += f"* [{data['title']}]({data['path']})\n"
-        else:
-            # It's a directory
-            dir_title = name.replace('-', ' ').replace('_', ' ').title()
-            nav_content += f"* {dir_title}\n"
-            nav_content += render_nav_section(data, level=1)
+        print(f"\n  Processing {len(sorted_items)} items at level {level}", file=sys.stderr)
+        
+        for name, data in sorted_items:
+            if name == 'index.md' and level == 0:
+                continue  # Skip top-level index, already added as Home
+            
+            indent = "  " * level
+            
+            if isinstance(data, dict) and 'title' in data and 'path' in data:
+                # It's a file
+                line = f"{indent}- [{data['title']}]({data['path']})"
+                nav_lines.append(line)
+                print(f"    Added file: '{name}' -> '{data['title']}' at level {level}", file=sys.stderr)
+            elif isinstance(data, dict):
+                # It's a directory
+                dir_title = clean_title_from_filename(name)
+                print(f"    Processing directory: '{name}' -> '{dir_title}' at level {level}", file=sys.stderr)
+                
+                # Check if directory has an index
+                if 'index.md' in data:
+                    index_data = data['index.md']
+                    nav_lines.append(f"{indent}- [{dir_title}]({index_data['path']})")
+                    # Process other files in directory at next level
+                    sub_items = {k: v for k, v in data.items() if k != 'index.md'}
+                    if sub_items:
+                        process_items(sub_items, level + 1)
+                else:
+                    # Directory without index - just show as a section header
+                    nav_lines.append(f"{indent}- {dir_title}:")
+                    process_items(data, level + 1)
+    
+    # Process all existing files
+    print(f"\n🎯 Starting to process existing files...", file=sys.stderr)
+    process_items(existing_files)
+    print(f"\n✅ Processed existing files, nav has {len(nav_lines)} lines", file=sys.stderr)
     
     # Add generated WCRP content
     if sections:
-        nav_content += "* [WCRP Content](wcrp-content/index.md)\n"
+        nav_lines.append("- [WCRP Content](wcrp-content/index.md)")
         
         for section in sorted(sections.keys()):
             section_title = section.replace('_', ' ').title()
-            nav_content += f"    * [{section_title}](wcrp-content/{section}/index.md)\n"
+            nav_lines.append(f"  - [{section_title}](wcrp-content/{section}/index.md)")
             
             sorted_files = sorted(sections[section], key=lambda x: x[1])
             for filename, file_title in sorted_files:
-                nav_content += f"        * [{file_title}](wcrp-content/{section}/{filename})\n"
+                nav_lines.append(f"    - [{file_title}](wcrp-content/{section}/{filename})")
     
-    return nav_content
+    # Join with newlines
+    return "\n".join(nav_lines) + "\n"
 
 
-def render_nav_section(items, level=0):
-    """Recursively render navigation section."""
-    content = ""
-    indent = "    " * level
-    
-    for name, data in sorted(items.items()):
-        if isinstance(data, dict) and 'title' in data:
-            # It's a file
-            content += f"{indent}* [{data['title']}]({data['path']})\n"
-        else:
-            # It's a directory
-            if 'index.md' in data:
-                # Directory with index
-                index_data = data['index.md']
-                content += f"{indent}* [{index_data['title']}]({index_data['path']})\n"
-                
-                # Add other files in the directory
-                for sub_name, sub_data in sorted(data.items()):
-                    if sub_name != 'index.md':
-                        if isinstance(sub_data, dict) and 'title' in sub_data:
-                            content += f"{indent}    * [{sub_data['title']}]({sub_data['path']})\n"
-                        else:
-                            # Subdirectory
-                            dir_title = sub_name.replace('-', ' ').replace('_', ' ').title()
-                            content += f"{indent}    * {dir_title}\n"
-                            content += render_nav_section(sub_data, level + 2)
-            else:
-                # Directory without index
-                dir_title = name.replace('-', ' ').replace('_', ' ').title()
-                content += f"{indent}* {dir_title}\n"
-                content += render_nav_section(data, level + 1)
-    
-    return content
 
-
-def extract_title_from_filename(filename: str) -> str:
-    """Extract title from filename."""
+def clean_title_from_filename(filename: str) -> str:
+    """Extract and clean title from filename, removing leading numbers only if followed by separator."""
+    # Remove .md extension
     name = filename.replace('.md', '')
+    
+    # Only remove leading numbers if they're followed by a separator (-, _, .)
+    # This preserves files like "80_fdsoj" but cleans "01-intro" to "intro"
+    name = re.sub(r'^\d+[-_.](?=\w)', '', name)
+    
+    # Split by '-' and find where the title starts
     parts = name.split('-')
     
     if len(parts) > 1:
-        title_parts = parts[1:] if parts[0] in ['projects', 'news', 'activities', 'resources', 'publications', 'working'] else parts
+        # Check if first part is a known section prefix
+        if parts[0] in ['projects', 'news', 'activities', 'resources', 'publications', 'working']:
+            title_parts = parts[1:]
+        else:
+            title_parts = parts
+        
+        # Convert to title case and join
         title = ' '.join(word.capitalize() for word in title_parts)
         return title
     
-    return name.replace('-', ' ').title()
+    # For files without dashes, just clean up underscores and capitalize
+    return name.replace('_', ' ').title()
+
+
+def get_sort_key(filename: str) -> tuple:
+    """Extract sort key from filename for proper ordering."""
+    # Extract leading number if present
+    match = re.match(r'^(\d+)[-_.]', filename)
+    if match:
+        return (int(match.group(1)), filename)
+    else:
+        # No number prefix, treat as 0 for sorting
+        return (0, filename)
 
 
 def generate_content_file(section: str, item: dict, index: int) -> tuple[str, str]:
@@ -245,9 +292,30 @@ def main():
     """Main function to generate all content."""
     print("📥 Generating WCRP content...", file=sys.stderr)
     
+    # Quick test: list all .md files in ../../docs
+    test_path = Path("../../docs")
+    if test_path.exists():
+        print("\n🔍 Quick file check:", file=sys.stderr)
+        for f in sorted(test_path.glob("*.md")):
+            print(f"  - {f.name}", file=sys.stderr)
+        print("", file=sys.stderr)
+    
     # Scan existing documentation files
     existing_files = scan_existing_docs()
-    print(f"📚 Found {sum(1 for _ in Path('../../docs').rglob('*.md')) if os.path.exists('../../docs') else 0} existing files", file=sys.stderr)
+    
+    # Count total existing files recursively
+    def count_files(d):
+        count = 0
+        for k, v in d.items():
+            if isinstance(v, dict):
+                if 'path' in v and 'title' in v:
+                    count += 1
+                else:
+                    count += count_files(v)
+        return count
+    
+    existing_count = count_files(existing_files)
+    print(f"📚 Found {existing_count} existing files to include in navigation", file=sys.stderr)
     
     all_sections = {}
     
@@ -280,7 +348,7 @@ This section contains automatically generated content from WCRP-CMIP.org.
                 f.write(content)
             
             # Extract title for navigation
-            title = extract_title_from_filename(filename)
+            title = clean_title_from_filename(filename)
             section_files.append((filename, title))
         
         # Generate section index
@@ -303,8 +371,67 @@ This section contains automatically generated content from WCRP-CMIP.org.
     # Generate literate nav file that includes existing docs
     print("📝 Generating navigation file with existing docs...", file=sys.stderr)
     nav_content = generate_literate_nav_with_existing(all_sections, existing_files)
-    with mkdocs_gen_files.open("SUMMARY.md", "w") as f:
-        f.write(nav_content)
+    
+    # Write SUMMARY.md to the actual docs directory (NOT using mkdocs_gen_files)
+    # This ensures literate-nav can find it
+    
+    # Try multiple possible locations for docs directory
+    possible_docs_paths = [
+        Path("../../docs"),
+        Path("docs"),
+        Path("../docs"),
+        Path(".")
+    ]
+    
+    docs_path = None
+    for path in possible_docs_paths:
+        if path.exists() and path.is_dir():
+            # Check if this looks like the docs directory
+            if any(path.glob("*.md")):
+                docs_path = path
+                break
+    
+    if not docs_path:
+        docs_path = Path("../../docs")  # Fallback to expected location
+    
+    summary_path = docs_path / "SUMMARY.md"
+    
+    try:
+        with open(summary_path, 'w') as f:
+            f.write(nav_content)
+        print(f"✅ Wrote SUMMARY.md to {summary_path.absolute()}", file=sys.stderr)
+    except Exception as e:
+        print(f"⚠️  Failed to write SUMMARY.md: {e}", file=sys.stderr)
+        # Fallback: write using mkdocs_gen_files
+        with mkdocs_gen_files.open("SUMMARY.md", "w") as f:
+            f.write(nav_content)
+    
+    # Also write debug information
+    debug_content = f"""<!-- Navigation Debug Information -->
+<!-- Generated at: {datetime.now().isoformat()} -->
+<!-- Existing files found: {existing_count} -->
+<!-- Generated files: {sum(len(files) for files in all_sections.values())} -->
+<!-- Docs directory scanned: ../../docs -->
+<!-- SUMMARY.md location: {summary_path.absolute()} -->
+
+{nav_content}
+"""
+    
+    with mkdocs_gen_files.open("_nav_debug.md", "w") as f:
+        f.write(debug_content)
+    
+    # Also write a copy to see the exact content
+    print("\n📑 SUMMARY.md content preview:", file=sys.stderr)
+    print("-" * 40, file=sys.stderr)
+    for line in nav_content.split('\n')[:20]:  # Show first 20 lines
+        print(line, file=sys.stderr)
+    if nav_content.count('\n') > 20:
+        print("... (truncated)", file=sys.stderr)
+    print("-" * 40, file=sys.stderr)
+    
+    # Also save the existing files structure for debugging
+    with mkdocs_gen_files.open("_existing_files_debug.json", "w") as f:
+        json.dump(existing_files, f, indent=2)
     
     print(f"✅ Content generation complete! Generated {sum(len(files) for files in all_sections.values())} files", file=sys.stderr)
 

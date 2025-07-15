@@ -2,8 +2,8 @@ site_name: {{ project_name }}
 site_url: {{ site_url }}
 repo_url: {{ repo_url }}
 
-docs_dir: docs
-site_dir: site
+docs_dir: ../../docs
+site_dir: build
 
 theme:
   name: material
@@ -34,14 +34,12 @@ plugins:
   - search
   - gen-files:
       scripts:
-        - scripts/gen_wcrp_content.py
-
-# Manual navigation structure (without literate-nav)
-# This preserves existing files and adds generated content
-nav:
-  - Home: index.md
-  # Add your existing pages here
-  # The WCRP content will be auto-generated under wcrp-content/
+        # Use the simple version for debugging
+        - scripts/gen_wcrp_simple.py
+        # - scripts/gen_wcrp_content.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+      implicit_index: true
 
 extra_css: 
   - stylesheets/extra.css
