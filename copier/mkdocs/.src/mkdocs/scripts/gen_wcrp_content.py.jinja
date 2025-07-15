@@ -2,9 +2,7 @@
 """
 MkDocs Gen Files Script for WCRP-CMIP.org Content
 Fetches content from wcrp-cmip.org and generates documentation files
-with auto-generated literate navigation.
-
-This script is designed to work with the mkdocs-gen-files plugin.
+with auto-generated literate navigation that includes existing docs.
 """
 
 import mkdocs_gen_files
@@ -12,6 +10,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import json
+import os
 
 print("🚀 WCRP content generator script started", file=sys.stderr)
 
@@ -43,24 +42,129 @@ MOCK_DATA = {
             "summary": "The next planning meeting for CMIP7 will be held in June 2024.",
             "content": "Join us for the upcoming CMIP7 planning meeting where we'll discuss the future of climate modeling.",
             "author": "CMIP Panel"
-        },
-        {
-            "title": "New Data Standards Released",
-            "date": "2024-02-28",
-            "summary": "Updated data standards for model output have been published.",
-            "content": "The CMIP community has released new standards for formatting and documenting model output.",
-            "author": "WGCM Infrastructure Panel"
-        }
-    ],
-    "activities": [
-        {
-            "title": "Model Evaluation Workshop",
-            "description": "Annual workshop on climate model evaluation techniques.",
-            "timeline": "September 2024",
-            "contact": "workshop@wcrp-cmip.org"
         }
     ]
 }
+
+
+def scan_existing_docs(docs_dir="../../docs"):
+    """Scan existing documentation files and organize them hierarchically."""
+    existing_files = {}
+    
+    if not os.path.exists(docs_dir):
+        print(f"⚠️  Docs directory not found: {docs_dir}", file=sys.stderr)
+        return existing_files
+    
+    print(f"📂 Scanning existing docs in: {docs_dir}", file=sys.stderr)
+    
+    # Scan all markdown files
+    for md_file in Path(docs_dir).rglob("*.md"):
+        if md_file.name.startswith('.'):
+            continue
+        
+        # Get relative path from docs_dir
+        rel_path = md_file.relative_to(docs_dir)
+        parts = list(rel_path.parts)
+        
+        # Skip generated content directory
+        if parts and parts[0] == OUTPUT_BASE:
+            continue
+        
+        # Build hierarchy
+        current = existing_files
+        for i, part in enumerate(parts[:-1]):
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        
+        # Add file
+        filename = parts[-1]
+        title = filename.replace('.md', '').replace('-', ' ').replace('_', ' ').title()
+        
+        # Special case for common files
+        if filename == 'index.md':
+            title = 'Home' if len(parts) == 1 else parts[-2].replace('-', ' ').title()
+        elif filename == 'README.md':
+            title = 'Readme'
+        
+        current[filename] = {
+            'title': title,
+            'path': str(rel_path).replace('\\', '/')
+        }
+    
+    return existing_files
+
+
+def generate_literate_nav_with_existing(sections, existing_files):
+    """Generate SUMMARY.md that includes both existing and generated files."""
+    nav_content = "# Navigation\n\n"
+    
+    # Add home if it exists
+    if 'index.md' in existing_files:
+        nav_content += "* [Home](index.md)\n"
+    
+    # Add other top-level existing files
+    for name, data in sorted(existing_files.items()):
+        if name == 'index.md':
+            continue
+        
+        if isinstance(data, dict) and 'title' in data:
+            # It's a file
+            nav_content += f"* [{data['title']}]({data['path']})\n"
+        else:
+            # It's a directory
+            dir_title = name.replace('-', ' ').replace('_', ' ').title()
+            nav_content += f"* {dir_title}\n"
+            nav_content += render_nav_section(data, level=1)
+    
+    # Add generated WCRP content
+    if sections:
+        nav_content += "* [WCRP Content](wcrp-content/index.md)\n"
+        
+        for section in sorted(sections.keys()):
+            section_title = section.replace('_', ' ').title()
+            nav_content += f"    * [{section_title}](wcrp-content/{section}/index.md)\n"
+            
+            sorted_files = sorted(sections[section], key=lambda x: x[1])
+            for filename, file_title in sorted_files:
+                nav_content += f"        * [{file_title}](wcrp-content/{section}/{filename})\n"
+    
+    return nav_content
+
+
+def render_nav_section(items, level=0):
+    """Recursively render navigation section."""
+    content = ""
+    indent = "    " * level
+    
+    for name, data in sorted(items.items()):
+        if isinstance(data, dict) and 'title' in data:
+            # It's a file
+            content += f"{indent}* [{data['title']}]({data['path']})\n"
+        else:
+            # It's a directory
+            if 'index.md' in data:
+                # Directory with index
+                index_data = data['index.md']
+                content += f"{indent}* [{index_data['title']}]({index_data['path']})\n"
+                
+                # Add other files in the directory
+                for sub_name, sub_data in sorted(data.items()):
+                    if sub_name != 'index.md':
+                        if isinstance(sub_data, dict) and 'title' in sub_data:
+                            content += f"{indent}    * [{sub_data['title']}]({sub_data['path']})\n"
+                        else:
+                            # Subdirectory
+                            dir_title = sub_name.replace('-', ' ').replace('_', ' ').title()
+                            content += f"{indent}    * {dir_title}\n"
+                            content += render_nav_section(sub_data, level + 2)
+            else:
+                # Directory without index
+                dir_title = name.replace('-', ' ').replace('_', ' ').title()
+                content += f"{indent}* {dir_title}\n"
+                content += render_nav_section(data, level + 1)
+    
+    return content
 
 
 def extract_title_from_filename(filename: str) -> str:
@@ -137,26 +241,13 @@ def generate_section_index(section: str, files: list[tuple[str, str]]) -> str:
     return content
 
 
-def generate_literate_nav(sections: dict[str, list[tuple[str, str]]]) -> str:
-    """Generate SUMMARY.md for literate-nav plugin."""
-    nav_content = "# Navigation\n\n"
-    nav_content += "* [Home](index.md)\n"
-    nav_content += "* [WCRP Content](wcrp-content/index.md)\n"
-    
-    for section in sorted(sections.keys()):
-        section_title = section.replace('_', ' ').title()
-        nav_content += f"    * [{section_title}](wcrp-content/{section}/index.md)\n"
-        
-        sorted_files = sorted(sections[section], key=lambda x: x[1])
-        for filename, file_title in sorted_files:
-            nav_content += f"        * [{file_title}](wcrp-content/{section}/{filename})\n"
-    
-    return nav_content
-
-
 def main():
     """Main function to generate all content."""
     print("📥 Generating WCRP content...", file=sys.stderr)
+    
+    # Scan existing documentation files
+    existing_files = scan_existing_docs()
+    print(f"📚 Found {sum(1 for _ in Path('../../docs').rglob('*.md')) if os.path.exists('../../docs') else 0} existing files", file=sys.stderr)
     
     all_sections = {}
     
@@ -209,9 +300,9 @@ This section contains automatically generated content from WCRP-CMIP.org.
     with mkdocs_gen_files.open(f"{OUTPUT_BASE}/index.md", "w") as f:
         f.write(main_index_content)
     
-    # Generate literate nav file
-    print("📝 Generating navigation file...", file=sys.stderr)
-    nav_content = generate_literate_nav(all_sections)
+    # Generate literate nav file that includes existing docs
+    print("📝 Generating navigation file with existing docs...", file=sys.stderr)
+    nav_content = generate_literate_nav_with_existing(all_sections, existing_files)
     with mkdocs_gen_files.open("SUMMARY.md", "w") as f:
         f.write(nav_content)
     

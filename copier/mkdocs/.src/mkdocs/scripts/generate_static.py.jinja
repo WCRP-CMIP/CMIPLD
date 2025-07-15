@@ -10,10 +10,18 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 import xml.etree.ElementTree as ET
+import html
 
 
 def generate_api_manifest(output_dir):
     """Generate API manifest file."""
+    manifest_path = output_dir / "api_manifest.json"
+    
+    # Check if file already exists
+    if manifest_path.exists():
+        print(f"⏭️  Skipping existing file: {manifest_path}")
+        return
+    
     manifest = {
         "version": "1.0.0",
         "generated": datetime.now().isoformat(),
@@ -29,7 +37,6 @@ def generate_api_manifest(output_dir):
         }
     }
     
-    manifest_path = output_dir / "api_manifest.json"
     with open(manifest_path, 'w') as f:
         json.dump(manifest, f, indent=2)
     
@@ -37,12 +44,23 @@ def generate_api_manifest(output_dir):
 
 
 def generate_sitemap_xml(output_dir, docs_dir):
-    """Generate XML sitemap for the documentation."""
+    """Generate XML sitemap and visual HTML representation."""
+    sitemap_path = output_dir / "sitemap.xml"
+    visual_path = output_dir / "sitemap.html"
+    
+    # Check if files already exist
+    if sitemap_path.exists() and visual_path.exists():
+        print(f"⏭️  Skipping existing sitemap files")
+        return
+    
     base_url = "{{ site_url }}".rstrip('/')
     
-    # Create sitemap XML
+    # Create sitemap XML and collect page data
     urlset = ET.Element("urlset")
     urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
+    
+    # Collect page hierarchy for visual representation
+    page_hierarchy = {}
     
     # Add pages from docs directory
     for md_file in Path(docs_dir).rglob("*.md"):
@@ -70,24 +88,193 @@ def generate_sitemap_xml(output_dir, docs_dir):
         
         priority_elem = ET.SubElement(url_elem, "priority")
         priority_elem.text = "0.8" if url_path == '' else "0.6"
+        
+        # Build hierarchy for visual sitemap
+        parts = str(rel_path).split('/')
+        current = page_hierarchy
+        for i, part in enumerate(parts):
+            if i == len(parts) - 1:
+                # Leaf node
+                current[part] = {
+                    'url': f"{base_url}/{url_path}",
+                    'title': part.replace('.md', '').replace('-', ' ').title(),
+                    'is_file': True
+                }
+            else:
+                # Directory
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
     
-    # Write sitemap
-    sitemap_path = output_dir / "sitemap.xml"
-    tree = ET.ElementTree(urlset)
-    tree.write(sitemap_path, encoding="utf-8", xml_declaration=True)
+    # Write XML sitemap
+    if not sitemap_path.exists():
+        tree = ET.ElementTree(urlset)
+        tree.write(sitemap_path, encoding="utf-8", xml_declaration=True)
+        print(f"✅ Generated sitemap: {sitemap_path}")
     
-    print(f"✅ Generated sitemap: {sitemap_path}")
+    # Generate visual HTML sitemap
+    if not visual_path.exists():
+        generate_visual_sitemap(visual_path, page_hierarchy, base_url)
+        print(f"✅ Generated visual sitemap: {visual_path}")
+
+
+def generate_visual_sitemap(output_path, hierarchy, base_url):
+    """Generate visual HTML representation of the sitemap."""
+    
+    def render_hierarchy(items, level=0):
+        """Recursively render the page hierarchy."""
+        html_parts = []
+        indent = "  " * level
+        
+        for name, data in sorted(items.items()):
+            if isinstance(data, dict) and data.get('is_file'):
+                # File entry
+                url = data['url']
+                title = data['title']
+                html_parts.append(f'{indent}<li class="file">')
+                html_parts.append(f'{indent}  <a href="{html.escape(url)}">{html.escape(title)}</a>')
+                html_parts.append(f'{indent}</li>')
+            else:
+                # Directory entry
+                dir_name = name.replace('-', ' ').title()
+                html_parts.append(f'{indent}<li class="directory">')
+                html_parts.append(f'{indent}  <span class="folder">{html.escape(dir_name)}</span>')
+                if data:
+                    html_parts.append(f'{indent}  <ul>')
+                    html_parts.extend(render_hierarchy(data, level + 2))
+                    html_parts.append(f'{indent}  </ul>')
+                html_parts.append(f'{indent}</li>')
+        
+        return html_parts
+    
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Sitemap - {{ project_name }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: {{ header_color }};
+            border-bottom: 3px solid {{ header_color }};
+            padding-bottom: 10px;
+        }
+        .sitemap-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+        ul.root {
+            padding-left: 0;
+        }
+        li {
+            margin: 5px 0;
+            position: relative;
+        }
+        li.directory > span.folder {
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            user-select: none;
+        }
+        li.directory > span.folder::before {
+            content: "📁 ";
+            margin-right: 5px;
+        }
+        li.directory.collapsed > span.folder::before {
+            content: "📂 ";
+        }
+        li.file::before {
+            content: "📄 ";
+            margin-right: 5px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .collapsed > ul {
+            display: none;
+        }
+        .stats {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .stats span {
+            margin-right: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visual Sitemap</h1>
+    <div class="sitemap-container">
+        <div class="stats">
+            <span>Site URL: <a href="{{ site_url }}">{{ site_url }}</a></span>
+            <span>Generated: """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</span>
+        </div>
+        <ul class="root">
+"""
+    
+    # Add home link
+    html_content += f'    <li class="file"><a href="{base_url}/">Home</a></li>\n'
+    
+    # Render the hierarchy
+    html_lines = render_hierarchy(hierarchy)
+    html_content += '\n'.join(html_lines)
+    
+    html_content += """
+        </ul>
+    </div>
+    <script>
+        // Make directories collapsible
+        document.querySelectorAll('li.directory > span.folder').forEach(folder => {
+            folder.addEventListener('click', function() {
+                this.parentElement.classList.toggle('collapsed');
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+    
+    with open(output_path, 'w') as f:
+        f.write(html_content)
 
 
 def generate_robots_txt(output_dir):
     """Generate robots.txt file."""
+    robots_path = output_dir / "robots.txt"
+    
+    # Check if file already exists
+    if robots_path.exists():
+        print(f"⏭️  Skipping existing file: {robots_path}")
+        return
+    
     robots_content = f"""User-agent: *
 Allow: /
 
 Sitemap: {{ site_url }}sitemap.xml
 """
     
-    robots_path = output_dir / "robots.txt"
     with open(robots_path, 'w') as f:
         f.write(robots_content)
     
@@ -96,6 +283,13 @@ Sitemap: {{ site_url }}sitemap.xml
 
 def generate_json_index(output_dir, json_data_folder):
     """Generate index of all JSON files."""
+    index_path = output_dir / "json_index.json"
+    
+    # Check if file already exists
+    if index_path.exists():
+        print(f"⏭️  Skipping existing file: {index_path}")
+        return
+    
     json_folder = Path(json_data_folder)
     if not json_folder.exists():
         return
@@ -129,7 +323,6 @@ def generate_json_index(output_dir, json_data_folder):
         except Exception as e:
             print(f"⚠️  Error indexing {json_file}: {e}")
     
-    index_path = output_dir / "json_index.json"
     with open(index_path, 'w') as f:
         json.dump(json_index, f, indent=2)
     
@@ -138,6 +331,13 @@ def generate_json_index(output_dir, json_data_folder):
 
 def generate_build_info(output_dir):
     """Generate build information file."""
+    build_path = output_dir / "build_info.json"
+    
+    # Check if file already exists
+    if build_path.exists():
+        print(f"⏭️  Skipping existing file: {build_path}")
+        return
+    
     build_info = {
         "build_time": datetime.now().isoformat(),
         "project": "{{ project_name }}",
@@ -149,7 +349,6 @@ def generate_build_info(output_dir):
         "generator": "MkDocs Publisher Template"
     }
     
-    build_path = output_dir / "build_info.json"
     with open(build_path, 'w') as f:
         json.dump(build_info, f, indent=2)
     
@@ -158,6 +357,13 @@ def generate_build_info(output_dir):
 
 def generate_css_variables(output_dir):
     """Generate CSS variables file for the selected color theme."""
+    css_path = output_dir / "theme_colors.css"
+    
+    # Check if file already exists
+    if css_path.exists():
+        print(f"⏭️  Skipping existing file: {css_path}")
+        return
+    
     color_mappings = {
         "blue": {"primary": "#1976d2", "accent": "#2196f3"},
         "indigo": {"primary": "#3f51b5", "accent": "#3f51b5"},
@@ -207,7 +413,6 @@ def generate_css_variables(output_dir):
 }
 """ % (color_theme, colors["primary"], colors["accent"], color_theme)
     
-    css_path = output_dir / "theme_colors.css"
     with open(css_path, 'w') as f:
         f.write(css_content)
     
