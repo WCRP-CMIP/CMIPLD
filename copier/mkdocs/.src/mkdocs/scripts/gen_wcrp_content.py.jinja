@@ -1,0 +1,222 @@
+#!/usr/bin/env python3
+"""
+MkDocs Gen Files Script for WCRP-CMIP.org Content
+Fetches content from wcrp-cmip.org and generates documentation files
+with auto-generated literate navigation.
+
+This script is designed to work with the mkdocs-gen-files plugin.
+"""
+
+import mkdocs_gen_files
+import sys
+from pathlib import Path
+from datetime import datetime
+import json
+
+print("🚀 WCRP content generator script started", file=sys.stderr)
+
+# Configuration
+OUTPUT_BASE = "wcrp-content"
+USE_MOCK_DATA = True  # Set to False when WCRP API is available
+
+# Mock data for testing
+MOCK_DATA = {
+    "projects": [
+        {
+            "title": "CMIP6 Data Portal",
+            "description": "The Coupled Model Intercomparison Project Phase 6 data portal provides access to climate model output.",
+            "content": "CMIP6 represents a major international effort to improve our understanding of climate change.",
+            "website": "https://esgf-node.llnl.gov/search/cmip6/",
+            "category": "Data Access"
+        },
+        {
+            "title": "DECK Experiments",
+            "description": "Diagnostic, Evaluation and Characterization of Klima experiments.",
+            "content": "The DECK consists of a set of baseline experiments that all CMIP6 models must complete.",
+            "category": "Core Experiments"
+        }
+    ],
+    "news": [
+        {
+            "title": "CMIP7 Planning Meeting Announced",
+            "date": "2024-03-15",
+            "summary": "The next planning meeting for CMIP7 will be held in June 2024.",
+            "content": "Join us for the upcoming CMIP7 planning meeting where we'll discuss the future of climate modeling.",
+            "author": "CMIP Panel"
+        },
+        {
+            "title": "New Data Standards Released",
+            "date": "2024-02-28",
+            "summary": "Updated data standards for model output have been published.",
+            "content": "The CMIP community has released new standards for formatting and documenting model output.",
+            "author": "WGCM Infrastructure Panel"
+        }
+    ],
+    "activities": [
+        {
+            "title": "Model Evaluation Workshop",
+            "description": "Annual workshop on climate model evaluation techniques.",
+            "timeline": "September 2024",
+            "contact": "workshop@wcrp-cmip.org"
+        }
+    ]
+}
+
+
+def extract_title_from_filename(filename: str) -> str:
+    """Extract title from filename."""
+    name = filename.replace('.md', '')
+    parts = name.split('-')
+    
+    if len(parts) > 1:
+        title_parts = parts[1:] if parts[0] in ['projects', 'news', 'activities', 'resources', 'publications', 'working'] else parts
+        title = ' '.join(word.capitalize() for word in title_parts)
+        return title
+    
+    return name.replace('-', ' ').title()
+
+
+def generate_content_file(section: str, item: dict, index: int) -> tuple[str, str]:
+    """Generate markdown content file for an item."""
+    # Create filename
+    title = item.get('title', item.get('name', f'Item {index}'))
+    slug = title.lower()
+    slug = ''.join(c if c.isalnum() or c == ' ' else '' for c in slug)
+    slug = '-'.join(slug.split())
+    filename = f"{section}-{slug}.md"
+    
+    # Generate content
+    content = f"# {title}\n\n"
+    
+    # Add metadata section
+    if any(key in item for key in ['date', 'author', 'category', 'tags']):
+        content += "---\n"
+        for key in ['date', 'author', 'category', 'tags']:
+            if key in item:
+                content += f"{key}: {item[key]}\n"
+        content += "---\n\n"
+    
+    # Add description/summary
+    for key in ['description', 'summary']:
+        if key in item:
+            content += f"{item[key]}\n\n"
+    
+    # Add main content
+    for key in ['content', 'body']:
+        if key in item:
+            content += f"{item[key]}\n\n"
+    
+    # Add additional fields
+    for field in ['objectives', 'participants', 'timeline', 'deliverables', 'contact']:
+        if field in item:
+            content += f"## {field.capitalize()}\n\n{item[field]}\n\n"
+    
+    # Add links section
+    if any(key in item for key in ['website', 'repository', 'documentation']):
+        content += "## Links\n\n"
+        for key in ['website', 'repository', 'documentation']:
+            if key in item:
+                content += f"- [{key.capitalize()}]({item[key]})\n"
+    
+    # Add source attribution
+    content += f"\n---\n*Generated on {datetime.now().strftime('%Y-%m-%d')}*\n"
+    
+    return filename, content
+
+
+def generate_section_index(section: str, files: list[tuple[str, str]]) -> str:
+    """Generate index page for a section."""
+    title = section.replace('_', ' ').title()
+    content = f"# {title}\n\n"
+    content += f"This section contains {len(files)} items.\n\n"
+    
+    content += "## Contents\n\n"
+    for filename, file_title in sorted(files, key=lambda x: x[1]):
+        content += f"- [{file_title}]({filename})\n"
+    
+    return content
+
+
+def generate_literate_nav(sections: dict[str, list[tuple[str, str]]]) -> str:
+    """Generate SUMMARY.md for literate-nav plugin."""
+    nav_content = "# Navigation\n\n"
+    nav_content += "* [Home](index.md)\n"
+    nav_content += "* [WCRP Content](wcrp-content/index.md)\n"
+    
+    for section in sorted(sections.keys()):
+        section_title = section.replace('_', ' ').title()
+        nav_content += f"    * [{section_title}](wcrp-content/{section}/index.md)\n"
+        
+        sorted_files = sorted(sections[section], key=lambda x: x[1])
+        for filename, file_title in sorted_files:
+            nav_content += f"        * [{file_title}](wcrp-content/{section}/{filename})\n"
+    
+    return nav_content
+
+
+def main():
+    """Main function to generate all content."""
+    print("📥 Generating WCRP content...", file=sys.stderr)
+    
+    all_sections = {}
+    
+    # Create main index
+    main_index_content = """# WCRP-CMIP Content
+
+This section contains automatically generated content from WCRP-CMIP.org.
+
+## Sections
+
+"""
+    
+    # Process mock data or real API data
+    data_source = MOCK_DATA if USE_MOCK_DATA else {}
+    
+    for section, items in data_source.items():
+        if not items:
+            continue
+            
+        print(f"✅ Processing {len(items)} items in {section}", file=sys.stderr)
+        
+        # Generate files for each item
+        section_files = []
+        for i, item in enumerate(items):
+            filename, content = generate_content_file(section, item, i + 1)
+            file_path = f"{OUTPUT_BASE}/{section}/{filename}"
+            
+            # Write the file using mkdocs-gen-files
+            with mkdocs_gen_files.open(file_path, "w") as f:
+                f.write(content)
+            
+            # Extract title for navigation
+            title = extract_title_from_filename(filename)
+            section_files.append((filename, title))
+        
+        # Generate section index
+        section_index = generate_section_index(section, section_files)
+        with mkdocs_gen_files.open(f"{OUTPUT_BASE}/{section}/index.md", "w") as f:
+            f.write(section_index)
+        
+        # Store for navigation
+        all_sections[section] = section_files
+        
+        # Add to main index
+        section_title = section.replace('_', ' ').title()
+        main_index_content += f"- [{section_title}]({section}/index.md) - {len(section_files)} items\n"
+    
+    # Write main index
+    main_index_content += f"\n---\n*Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n"
+    with mkdocs_gen_files.open(f"{OUTPUT_BASE}/index.md", "w") as f:
+        f.write(main_index_content)
+    
+    # Generate literate nav file
+    print("📝 Generating navigation file...", file=sys.stderr)
+    nav_content = generate_literate_nav(all_sections)
+    with mkdocs_gen_files.open("SUMMARY.md", "w") as f:
+        f.write(nav_content)
+    
+    print(f"✅ Content generation complete! Generated {sum(len(files) for files in all_sections.values())} files", file=sys.stderr)
+
+
+# Call main function when module is loaded
+main()

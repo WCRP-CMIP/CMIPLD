@@ -431,6 +431,24 @@ This section contains pages automatically generated from JSON files in the `{jso
     print(f"📋 Generated index page: {index_file}")
 
 
+def generate_static_files():
+    """Generate static files if enabled."""
+    if {{ generate_static_files | lower }}:
+        print("🔧 Generating static files...")
+        try:
+            import subprocess
+            result = subprocess.run(["python", "scripts/generate_static.py"], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                print("✅ Static files generated successfully")
+            else:
+                print(f"⚠️  Static file generation failed: {result.stderr}")
+        except Exception as e:
+            print(f"⚠️  Error generating static files: {e}")
+    else:
+        print("📋 Static file generation is disabled")
+
+
 def main():
     """Main function with git detection and README integration."""
     import sys
@@ -453,10 +471,13 @@ def main():
             generate_pages_from_json(json_folder)
         elif command == "index":
             create_index_page()
+        elif command == "static":
+            generate_static_files()
         elif command == "all":
             sync_from_mipcvs_wiki()
             json_folder = sys.argv[2] if len(sys.argv) > 2 else "{{ json_data_folder }}"
             generate_pages_from_json(json_folder)
+            generate_static_files()
         elif command == "info":
             print("📊 Repository information:")
             if git_info:
@@ -469,13 +490,15 @@ def main():
             print("  python sync.py sync                    # Sync from mipcvs-wiki")
             print("  python sync.py generate [folder]      # Generate pages from JSON")
             print("  python sync.py index                  # Create index.md from README")
-            print("  python sync.py all [folder]           # Do both sync and generate")
+            print("  python sync.py static                 # Generate static files")
+            print("  python sync.py all [folder]           # Do sync, generate, and static")
             print("  python sync.py info                   # Show git repository info")
             sys.exit(1)
     else:
         # Default: do both
         sync_from_mipcvs_wiki()
         generate_pages_from_json()
+        generate_static_files()
 
 
 if __name__ == "__main__":
