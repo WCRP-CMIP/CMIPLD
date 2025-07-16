@@ -1,0 +1,344 @@
+#!/usr/bin/env python3
+"""
+Process JSON files at the same level as docs dir and create pretty table documentation
+"""
+
+import os
+import sys
+import json
+from pathlib import Path
+import mkdocs_gen_files
+from datetime import datetime
+
+# Flag to prevent multiple runs
+_has_run = False
+docs_path = mkdocs_gen_files.config.docs_dir
+
+def process_json_files():
+    """Process JSON files and generate documentation with tables."""
+    global _has_run
+    
+    if _has_run:
+        return
+    _has_run = True
+    
+    # Find JSON files at the project root
+
+    json_dir = Path(docs_path).parent
+    json_files = list(json_dir.glob("*.json"))
+    if json_files:
+        print(f"      Found {len(json_files)} JSON files", file=sys.stderr)
+    else:
+        print("ℹ️  No JSON files found at the same level as docs directory", file=sys.stderr)
+        return
+    
+    print(f"📁 Found {len(json_files)} JSON files at: {json_dir.absolute()}", file=sys.stderr)
+    
+    output_base = "data-summaries"
+    
+    # Create index page
+    index_content = """# Data Summaries
+
+This section contains formatted views of JSON data files.
+
+## Available Data Files
+
+| File | Description | View | Git |
+|------|-------------|------|-----|
+"""
+    
+    # Process each JSON file
+    for json_file in sorted(json_files):
+        try:
+            print(f"  📄 Processing: {json_file.name}", file=sys.stderr)
+            
+            # Read JSON content
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Generate page content
+            page_content = generate_json_page(json_file, data)
+            
+            # Write page
+            page_name = json_file.stem  # filename without extension
+            with mkdocs_gen_files.open(f"{output_base}/{page_name}.md", "w") as f:
+                f.write(page_content)
+            
+            # Get description from Header if available
+            description = "JSON data file"
+            if isinstance(data, dict) and 'Header' in data:
+                header = data['Header']
+                if isinstance(header, dict):
+                    # Try to find a description-like field
+                    for key in ['description', 'Description', 'title', 'Title', 'name', 'Name']:
+                        if key in header:
+                            description = str(header[key])[:60]
+                            if len(str(header[key])) > 60:
+                                description += "..."
+                            break
+            
+            # Add to index
+            index_content += f"| {json_file.name} | {description} | [View]({page_name}.md) | [View in Git](../../{json_file.name}) |\n"
+            
+        except Exception as e:
+            print(f"  ⚠️  Error processing {json_file.name}: {e}", file=sys.stderr)
+            # Still add to index but mark as error
+            index_content += f"| {json_file.name} | *Error processing file* | - | [View in Git](../../{json_file.name}) |\n"
+    
+    # Complete index page
+    index_content += f"""
+
+## About
+
+These pages are automatically generated from JSON files located two directories up from the mkdocs.yml file (../../). Each page displays the data in a formatted table view.
+
+### Features
+
+- **Header Information**: Displayed as a formatted table at the top of each page
+- **Data Tables**: Main data content displayed in organized tables
+- **Git Integration**: Direct links to view the source files
+
+---
+
+*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+"""
+    
+    # Write index page
+    with mkdocs_gen_files.open(f"{output_base}/index.md", "w") as f:
+        f.write(index_content)
+    
+    print(f"✅ Processed {len(json_files)} JSON files", file=sys.stderr)
+
+
+def generate_json_page(json_file, data):
+    """Generate a formatted page for a JSON file."""
+    page_content = f"""# {json_file.stem}
+
+<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+    <strong>File Path:</strong> <code>{json_file.name}</code><br>
+    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
+    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+</div>
+
+"""
+    
+    # Process Header if it exists
+    if isinstance(data, dict) and 'Header' in data:
+        header = data['Header']
+        page_content += "## Header Information\n\n"
+        
+        if isinstance(header, dict):
+            page_content += format_dict_as_table(header)
+        else:
+            page_content += f"```\n{header}\n```\n\n"
+    
+    # Find and process the main data
+    # Look for the non-Header key that contains the main data
+    if isinstance(data, dict):
+        data_keys = [k for k in data.keys() if k != 'Header']
+        
+        if len(data_keys) == 1:
+            # Single data key - this is likely the main data
+            data_key = data_keys[0]
+            main_data = data[data_key]
+            
+            page_content += f"## {format_key_name(data_key).title()}\n\n"
+            
+            # Process the main data based on its type
+            if isinstance(main_data, list):
+                page_content += format_list_as_table(main_data)
+            elif isinstance(main_data, dict):
+                page_content += format_dict_as_table(main_data)
+            else:
+                page_content += f"```\n{json.dumps(main_data, indent=2)}\n```\n\n"
+        
+        elif len(data_keys) > 1:
+            # Multiple data keys - display each one
+            page_content += "## Data Sections\n\n"
+            for key in data_keys:
+                page_content += f"### {format_key_name(key)}\n\n"
+                
+                value = data[key]
+                if isinstance(value, list):
+                    page_content += format_list_as_table(value)
+                elif isinstance(value, dict):
+                    page_content += format_dict_as_table(value)
+                else:
+                    page_content += f"```\n{json.dumps(value, indent=2)}\n```\n\n"
+    
+    elif isinstance(data, list):
+        # The entire file is a list
+        page_content += "## Data\n\n"
+        page_content += format_list_as_table(data)
+    
+    else:
+        # Fallback for other data types
+        page_content += "## Data\n\n"
+        page_content += f"```json\n{json.dumps(data, indent=2)}\n```\n\n"
+    
+    # Add footer
+    page_content += f"""
+---
+
+<div style="text-align: center; margin-top: 40px;">
+    <a href="index.md" class="md-button">← Back to Data Summaries</a>
+</div>
+"""
+    
+    return page_content
+
+
+def format_dict_as_table(data):
+    """Format a dictionary as a markdown table."""
+    if not data:
+        return "*No data*\n\n"
+    
+    # Check if all values are simple types
+    all_simple = all(isinstance(v, (str, int, float, bool, type(None))) for v in data.values())
+    
+    if all_simple:
+        # Simple key-value table
+        table = "| Property | Value |\n"
+        table += "|----------|-------|\n"
+        
+        for key, value in data.items():
+            # Format the key
+            formatted_key = format_key_name(key)
+            
+            # Format the value
+            if value is None:
+                formatted_value = "*None*"
+            elif isinstance(value, bool):
+                formatted_value = "✓" if value else "✗"
+            else:
+                formatted_value = str(value)
+                # Escape pipe characters
+                formatted_value = formatted_value.replace('|', '\\|')
+                # Truncate long values
+                if len(formatted_value) > 100:
+                    formatted_value = formatted_value[:100] + "..."
+            
+            table += f"| {formatted_key} | {formatted_value} |\n"
+    else:
+        # Complex nested data - show type and summary
+        table = "| Property | Type | Summary |\n"
+        table += "|----------|------|----------|\n"
+        
+        for key, value in data.items():
+            formatted_key = format_key_name(key)
+            
+            if isinstance(value, dict):
+                summary = f"{len(value)} properties"
+            elif isinstance(value, list):
+                summary = f"{len(value)} items"
+            elif isinstance(value, (str, int, float)):
+                summary = str(value)[:50] + ("..." if len(str(value)) > 50 else "")
+            else:
+                summary = str(type(value).__name__)
+            
+            summary = summary.replace('|', '\\|')
+            table += f"| {formatted_key} | {type(value).__name__} | {summary} |\n"
+    
+    return table + "\n"
+
+
+def format_list_as_table(data):
+    """Format a list as a markdown table."""
+    if not data:
+        return "*Empty list*\n\n"
+    
+    # Check if all items are dictionaries with the same keys
+    if all(isinstance(item, dict) for item in data):
+        # Get all unique keys from all dictionaries
+        all_keys = set()
+        for item in data:
+            all_keys.update(item.keys())
+        
+        # Sort keys for consistent ordering
+        keys = sorted(list(all_keys))
+        
+        # If too many columns, limit to most common ones
+        if len(keys) > 8:
+            # Count frequency of keys
+            key_counts = {}
+            for key in keys:
+                key_counts[key] = sum(1 for item in data if key in item)
+            # Sort by frequency and take top 8
+            keys = sorted(keys, key=lambda k: key_counts[k], reverse=True)[:8]
+        
+        # Create table header
+        table = "| # | " + " | ".join(format_key_name(k) for k in keys) + " |\n"
+        table += "|---|" + "|".join("---" for _ in keys) + "|\n"
+        
+        # Add rows (limit to first 100 for very large lists)
+        for i, item in enumerate(data[:100]):
+            row = f"| {i+1} |"
+            for key in keys:
+                value = item.get(key, "")
+                if value is None:
+                    formatted_value = "*None*"
+                elif isinstance(value, bool):
+                    formatted_value = "✓" if value else "✗"
+                elif isinstance(value, (list, dict)):
+                    formatted_value = f"*{type(value).__name__}*"
+                else:
+                    formatted_value = str(value)[:30]
+                    if len(str(value)) > 30:
+                        formatted_value += "..."
+                
+                formatted_value = formatted_value.replace('|', '\\|')
+                row += f" {formatted_value} |"
+            
+            table += row + "\n"
+        
+        if len(data) > 100:
+            table += f"\n*Showing first 100 of {len(data)} items*\n"
+    
+    else:
+        # List of non-dictionary items
+        table = "| # | Value | Type |\n"
+        table += "|---|-------|------|\n"
+        
+        for i, item in enumerate(data[:100]):
+            if isinstance(item, (str, int, float, bool)):
+                value_str = str(item)[:100]
+                if len(str(item)) > 100:
+                    value_str += "..."
+            else:
+                value_str = f"*{type(item).__name__} object*"
+            
+            value_str = value_str.replace('|', '\\|')
+            table += f"| {i+1} | {value_str} | {type(item).__name__} |\n"
+        
+        if len(data) > 100:
+            table += f"\n*Showing first 100 of {len(data)} items*\n"
+    
+    return table + "\n"
+
+
+def format_key_name(key):
+    """Format a key name for display."""
+    # Convert snake_case or camelCase to Title Case
+    # Handle snake_case
+    if '_' in key:
+        return ' '.join(word.capitalize() for word in key.split('_'))
+    # Handle camelCase
+    elif key[0].islower() and any(c.isupper() for c in key):
+        # Insert spaces before capital letters
+        result = key[0].upper()
+        for c in key[1:]:
+            if c.isupper():
+                result += ' ' + c
+            else:
+                result += c
+        return result
+    else:
+        return key
+
+
+# # Call the main function
+# if __name__ == "__main__":
+#     process_json_files()
+
+# Also call when imported by mkdocs-gen-files
+process_json_files()

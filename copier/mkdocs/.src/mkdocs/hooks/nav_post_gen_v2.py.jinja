@@ -42,6 +42,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
     # First, detect src-data virtual files from gen-files
     src_data_sections = {}
     has_src_data = False
+    data_summaries_files = []
+    has_data_summaries = False
     
     for file_obj in mkdocs_files:
         src_path = str(file_obj.src_path)
@@ -65,11 +67,26 @@ def generate_final_navigation(docs_path, mkdocs_files):
                         src_data_sections[section] = {'has_main': True}
                     else:
                         src_data_sections[section]['has_main'] = True
+        elif src_path.startswith('data-summaries/'):
+            has_data_summaries = True
+            # Parse the path
+            parts = src_path.split('/')
+            if len(parts) >= 2:
+                filename = parts[1]
+                if filename != 'index.md' and filename.endswith('.md'):
+                    data_summaries_files.append(filename[:-3])  # Remove .md
     
     if has_src_data:
         print(f"✅ Found src-data virtual files: {len(src_data_sections)} sections")
         for section, info in src_data_sections.items():
             print(f"   - {section}: main={info.get('has_main', False)}, contents={info.get('has_contents', False)}")
+    
+    if has_data_summaries:
+        print(f"✅ Found data summaries virtual files: {len(data_summaries_files)} files")
+        for file in data_summaries_files[:5]:  # Show first 5
+            print(f"   - {file}")
+        if len(data_summaries_files) > 5:
+            print(f"   ... and {len(data_summaries_files) - 5} more")
     
     # Collect real files from docs directory
     files_by_dir = {}
@@ -148,6 +165,16 @@ def generate_final_navigation(docs_path, mkdocs_files):
                 if info.get('has_contents', False):
                     nav_lines.append(f'    - [Contents](src-data-docs/{section}_contents.md)')
     
+    # Add data summaries from virtual files
+    if has_data_summaries:
+        nav_lines.append('- Data Summaries:')
+        nav_lines.append('  - [Overview](data-summaries/index.md)')
+        
+        # Add each data file in alphabetical order
+        for data_file in sorted(data_summaries_files):
+            title = clean_title(data_file)
+            nav_lines.append(f'  - [{title}](data-summaries/{data_file}.md)')
+    
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)
     summary_path = docs_path / 'SUMMARY.md'
@@ -158,3 +185,5 @@ def generate_final_navigation(docs_path, mkdocs_files):
     print(f"✅ Generated {summary_path} with {len(nav_lines)} entries")
     if has_src_data:
         print(f"📋 Included {len(src_data_sections)} src-data sections")
+    if has_data_summaries:
+        print(f"📋 Included {len(data_summaries_files)} data summary files")
