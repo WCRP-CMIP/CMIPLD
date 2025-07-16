@@ -13,6 +13,10 @@ theme:
     - navigation.footer
     - search.suggest
     - header.autohide
+    - navigation.instant
+    - navigation.tracking
+    - navigation.instant.progress
+
   copyright: CCBY04 2023+ Daniel Ellis for the CMIP-IPO
   palette: 
     # Palette toggle for light mode
@@ -43,6 +47,10 @@ plugins:
 hooks:
   - hooks/nav_post_gen_v2.py  # Updated to detect virtual files
 
+extra:
+  version:
+    provider: mike
+    
 extra_css: 
   - stylesheets/extra.css
 
