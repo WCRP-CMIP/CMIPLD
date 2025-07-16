@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""
+Diagnostic script to test if gen-files is working
+"""
+
+import mkdocs_gen_files
+import sys
+from pathlib import Path
+
+print("🚀 TEST: Gen-files diagnostic script running...", file=sys.stderr)
+
+# Test 1: Create a simple test file
+try:
+    with mkdocs_gen_files.open("test-file.md", "w") as f:
+        f.write("# Test File\n\nIf you see this, gen-files is working!")
+    print("✅ TEST: Created test-file.md", file=sys.stderr)
+except Exception as e:
+    print(f"❌ TEST: Failed to create test file: {e}", file=sys.stderr)
+
+# Test 2: Check if src-data exists
+src_data_path = Path("src-data")
+print(f"📁 TEST: Checking for src-data at: {src_data_path.absolute()}", file=sys.stderr)
+print(f"   Exists: {src_data_path.exists()}", file=sys.stderr)
+print(f"   Is directory: {src_data_path.is_dir() if src_data_path.exists() else 'N/A'}", file=sys.stderr)
+
+if src_data_path.exists() and src_data_path.is_dir():
+    subdirs = [d for d in src_data_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
+    print(f"   Subdirectories: {[d.name for d in subdirs]}", file=sys.stderr)
+    
+    # Test 3: Try to create src-data-docs files
+    try:
+        with mkdocs_gen_files.open("src-data-docs/test.md", "w") as f:
+            f.write("# Src-Data Test\n\nThis is a test file in src-data-docs")
+        print("✅ TEST: Created src-data-docs/test.md", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ TEST: Failed to create src-data-docs file: {e}", file=sys.stderr)
+else:
+    print("⚠️  TEST: No src-data directory found", file=sys.stderr)
+
+# Test 4: List all files being tracked
+print("\n📋 TEST: Files created by gen-files:", file=sys.stderr)
+# This will show what files gen-files knows about

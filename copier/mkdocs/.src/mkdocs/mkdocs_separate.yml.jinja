@@ -3,7 +3,7 @@ site_url: {{ site_url }}
 repo_url: {{ repo_url }}
 
 docs_dir: ../../docs
-site_dir: site
+site_dir: build
 
 theme:
   name: material
@@ -34,15 +34,12 @@ plugins:
   - search
   - gen-files:
       scripts:
-        - scripts/test_gen_files.py      # Test if gen-files works
-        - scripts/process_src_data_debug.py  # Debug version with logging
+        - scripts/process_src_data.py  # Runs first
+        - scripts/generate_nav_after.py  # Runs second
   - literate-nav:
       nav_file: SUMMARY.md
       implicit_index: true
       tab_length: 2
-
-hooks:
-  - hooks/nav_post_gen_v2.py  # Updated to detect virtual files
 
 extra_css: 
   - stylesheets/extra.css
@@ -60,6 +57,3 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-
-# Navigation will be auto-generated or use mipcvs-wiki defaults
-# Generated pages from JSON will be added to docs/generated/
