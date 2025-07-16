@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Process src-data folder to extract READMEs and create content pages
+Fixed version with proper README handling and JSON file links
 """
 
 import os
@@ -50,8 +51,8 @@ This section contains documentation extracted from the `src-data` folder.
 
 ## Available Sections
 
-| Section | Description | Files | Has README | Has Context |
-|---------|-------------|-------|------------|-------------|
+| Section | Description | Files | JSON Files | Has README | Has Context |
+|---------|-------------|-------|------------|------------|-------------|
 """
     
     # Process each subfolder
@@ -70,7 +71,21 @@ This section contains documentation extracted from the `src-data` folder.
         if readme_path.exists():
             try:
                 with open(readme_path, 'r', encoding='utf-8') as f:
-                    readme_content = f.read()
+                    # Read the raw content
+                    raw_content = f.read()
+                    
+                    # Add proper header if the README starts without one
+                    if not raw_content.strip().startswith('#'):
+                        readme_content = f"# {folder_name}\n\n{raw_content}"
+                    else:
+                        # Check if first line needs fixing (like "Experiment\n# Experiment")
+                        lines = raw_content.split('\n')
+                        if len(lines) > 1 and lines[0].strip() and lines[1].startswith('#'):
+                            # Skip the first line if it's just a title without #
+                            readme_content = '\n'.join(lines[1:])
+                        else:
+                            readme_content = raw_content
+                    
                 has_readme = True
                 print(f"    ✅ Found README.md", file=sys.stderr)
             except Exception as e:
@@ -125,6 +140,7 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
         contents_page += "|------|------|------|-------------|------|\n"
         
         files = []
+        json_files = []
         total_size = 0
         
         for file in sorted(subfolder.iterdir()):
@@ -150,6 +166,7 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
                     description = "Context information"
                 elif file.suffix == '.json':
                     description = "JSON data"
+                    json_files.append(file.name)
                 elif file.suffix == '.yaml' or file.suffix == '.yml':
                     description = "YAML configuration"
                 elif file.suffix == '.csv':
@@ -159,7 +176,8 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
                 else:
                     description = f"{file_type} file"
                 
-                # Create relative link
+                # Create relative link to the actual file
+                # The generated docs will be in site/src-data-docs/, so we need to go up and into src-data
                 link = f"[View](../../src-data/{subfolder.name}/{file.name})"
                 
                 contents_page += f"| {file.name} | {file_type} | {size_str} | {description} | {link} |\n"
@@ -168,9 +186,17 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
         if not files:
             contents_page += "| _No files found_ | - | - | - | - |\n"
         
+        # Add JSON files section if any exist
+        if json_files:
+            contents_page += f"\n### JSON Files\n\n"
+            contents_page += "The following JSON data files are available:\n\n"
+            for json_file in json_files:
+                contents_page += f"- [`{json_file}`](../../src-data/{subfolder.name}/{json_file})\n"
+        
         # Add summary
         contents_page += f"\n### Summary\n\n"
         contents_page += f"- **Total files**: {len(files)}\n"
+        contents_page += f"- **JSON files**: {len(json_files)}\n"
         contents_page += f"- **Total size**: "
         if total_size < 1024:
             contents_page += f"{total_size} B\n"
@@ -195,8 +221,12 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
             lines = readme_content.strip().split('\n')
             for line in lines:
                 line = line.strip()
-                if line and not line.startswith('#'):
-                    description = line[:60] + "..." if len(line) > 60 else line
+                # Skip headers and empty lines
+                if line and not line.startswith('#') and not line.startswith('|'):
+                    # Clean up the description
+                    description = line.replace('*', '').replace('_', '').strip()
+                    if len(description) > 60:
+                        description = description[:60] + "..."
                     break
         
         # Add to sections list
@@ -205,19 +235,34 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
             'has_readme': has_readme,
             'has_context': has_context,
             'file_count': len(files),
+            'json_count': len(json_files),
             'description': description
         })
         
         # Update index table
         readme_icon = "✅" if has_readme else "❌"
         context_icon = "✅" if has_context else "❌"
-        index_content += f"| [{folder_name}]({folder_name}.md) | {description} | {len(files)} | {readme_icon} | {context_icon} |\n"
+        index_content += f"| [{folder_name}]({folder_name}.md) | {description} | {len(files)} | {len(json_files)} | {readme_icon} | {context_icon} |\n"
     
     # Complete index page
     index_content += f"\n## Quick Links\n\n"
     for section in sections:
         index_content += f"- **{section['name']}**: [{section['name']} overview]({section['name']}.md) | "
-        index_content += f"[View contents]({section['name']}_contents.md)\n"
+        index_content += f"[View contents]({section['name']}_contents.md)"
+        if section['json_count'] > 0:
+            index_content += f" | {section['json_count']} JSON files"
+        index_content += "\n"
+    
+    # Add overview of all JSON files
+    index_content += f"\n## All JSON Data Files\n\n"
+    total_json = sum(s['json_count'] for s in sections)
+    index_content += f"Total JSON files across all sections: **{total_json}**\n\n"
+    
+    for section in sections:
+        if section['json_count'] > 0:
+            index_content += f"### {section['name']}\n"
+            index_content += f"- View in folder: [`src-data/{section['name']}/`](../src-data/{section['name']}/)\n"
+            index_content += f"- See all files: [{section['name']} contents]({section['name']}_contents.md#json-files)\n\n"
     
     index_content += f"\n---\n"
     index_content += f"*Generated from {len(sections)} subfolders in src-data*\n"
@@ -228,8 +273,6 @@ This page lists all files in the `{folder_name}` subfolder of src-data.
     
     print(f"✅ Processed {len(sections)} subfolders from src-data", file=sys.stderr)
     
-    # Note: Navigation is handled by hooks/generate_nav.py
-    # This script only generates the content files
     return len(sections) > 0
 
 

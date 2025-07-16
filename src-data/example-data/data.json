@@ -1,0 +1,21 @@
+{
+  "name": "Example Dataset",
+  "version": "1.0.0",
+  "description": "Sample data for CMIP-LD documentation",
+  "variables": [
+    {
+      "name": "temperature",
+      "units": "K",
+      "description": "Surface temperature"
+    },
+    {
+      "name": "precipitation",
+      "units": "mm/day",
+      "description": "Total precipitation"
+    }
+  ],
+  "metadata": {
+    "created": "2024-01-01",
+    "author": "CMIP-LD Team"
+  }
+}
