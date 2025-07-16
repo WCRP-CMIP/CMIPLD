@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""
+Process src-data folder to extract READMEs and create content pages
+"""
+
+import os
+import sys
+import json
+from pathlib import Path
+import mkdocs_gen_files
+
+# Flag to prevent multiple runs
+_has_run = False
+
+def process_src_data():
+    """Process src-data folder and generate documentation."""
+    global _has_run
+    
+    if _has_run:
+        return
+    _has_run = True
+    
+    src_data_path = Path("src-data")
+    
+    # Check if src-data exists
+    if not src_data_path.exists():
+        print("ℹ️  No src-data folder found, skipping", file=sys.stderr)
+        return
+    
+    print(f"📁 Processing src-data folder: {src_data_path.absolute()}", file=sys.stderr)
+    
+    # Output base path for generated content
+    output_base = "src-data-docs"
+    
+    # Create index page for src-data documentation
+    index_content = """# Source Data Documentation
+
+This section contains documentation extracted from the `src-data` folder.
+
+## Available Sections
+
+"""
+    
+    sections = []
+    
+    # Process each subfolder
+    for subfolder in sorted(src_data_path.iterdir()):
+        if not subfolder.is_dir():
+            continue
+        
+        if subfolder.name.startswith('.'):
+            continue
+            
+        folder_name = subfolder.name
+        print(f"  📂 Processing subfolder: {folder_name}", file=sys.stderr)
+        
+        # Extract README.md if exists
+        readme_path = subfolder / "README.md"
+        readme_content = ""
+        if readme_path.exists():
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                readme_content = f.read()
+            print(f"    ✅ Found README.md", file=sys.stderr)
+        else:
+            readme_content = f"# {folder_name}\n\nNo README.md found for this section."
+        
+        # Write the README content as the main page for this subfolder
+        with mkdocs_gen_files.open(f"{output_base}/{folder_name}.md", "w") as f:
+            f.write(readme_content)
+        
+        # Process context file and create contents page
+        context_content = ""
+        context_files = list(subfolder.glob("*context*"))
+        if context_files:
+            context_file = context_files[0]  # Use first context file found
+            try:
+                with open(context_file, 'r', encoding='utf-8') as f:
+                    context_content = f.read()
+                print(f"    ✅ Found context file: {context_file.name}", file=sys.stderr)
+            except Exception as e:
+                print(f"    ⚠️  Error reading context file: {e}", file=sys.stderr)
+        
+        # Create contents page
+        contents_page = f"""# {folder_name} - Contents
+
+## Context
+
+"""
+        
+        if context_content:
+            contents_page += "```\n" + context_content + "\n```\n\n"
+        else:
+            contents_page += "_No context file found._\n\n"
+        
+        # List all files in the subfolder
+        contents_page += "## Files\n\n"
+        contents_page += "| File | Type | Size | Link |\n"
+        contents_page += "|------|------|------|------|\n"
+        
+        files = []
+        for file in sorted(subfolder.iterdir()):
+            if file.is_file() and not file.name.startswith('.'):
+                # Get file info
+                file_size = file.stat().st_size
+                file_type = file.suffix[1:] if file.suffix else "file"
+                
+                # Format size
+                if file_size < 1024:
+                    size_str = f"{file_size} B"
+                elif file_size < 1024 * 1024:
+                    size_str = f"{file_size / 1024:.1f} KB"
+                else:
+                    size_str = f"{file_size / (1024 * 1024):.1f} MB"
+                
+                # Create relative link
+                if file.suffix == '.json':
+                    link = f"[View](../../{subfolder.name}/{file.name})"
+                else:
+                    link = f"[View](../../{subfolder.name}/{file.name})"
+                
+                contents_page += f"| {file.name} | {file_type} | {size_str} | {link} |\n"
+                files.append(file.name)
+        
+        if not files:
+            contents_page += "| _No files found_ | - | - | - |\n"
+        
+        contents_page += f"\n\n---\n_Total files: {len(files)}_\n"
+        
+        # Write contents page
+        with mkdocs_gen_files.open(f"{output_base}/{folder_name}_contents.md", "w") as f:
+            f.write(contents_page)
+        
+        # Add to sections list
+        sections.append({
+            'name': folder_name,
+            'has_readme': readme_path.exists(),
+            'has_context': bool(context_files),
+            'file_count': len(files)
+        })
+        
+        # Update index
+        index_content += f"- **[{folder_name}]({folder_name}.md)** - "
+        if readme_path.exists():
+            index_content += "✅ README "
+        if context_files:
+            index_content += "📄 Context "
+        index_content += f"({len(files)} files) "
+        index_content += f"[[View Contents]({folder_name}_contents.md)]\n"
+    
+    # Write index page
+    index_content += f"\n\n---\n_Total sections: {len(sections)}_\n"
+    with mkdocs_gen_files.open(f"{output_base}/index.md", "w") as f:
+        f.write(index_content)
+    
+    print(f"✅ Processed {len(sections)} subfolders from src-data", file=sys.stderr)
+    
+    # Note: Navigation is handled by hooks/generate_nav.py
+    # This script only generates the content files
+    return len(sections) > 0
+
+
+# Call this function from your main gen_files script
+if __name__ == "__main__":
+    process_src_data()
