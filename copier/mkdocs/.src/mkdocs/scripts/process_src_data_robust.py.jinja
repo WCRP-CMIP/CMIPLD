@@ -7,6 +7,9 @@ import os
 import sys
 from pathlib import Path
 import mkdocs_gen_files
+import re 
+
+section  = re.compile(r"</{0,1}section[^>]*>", re.IGNORECASE)
 
 print("\n" + "="*60, file=sys.stderr)
 print("SRC-DATA PROCESSOR - ROBUST VERSION", file=sys.stderr)
@@ -157,23 +160,29 @@ for subdir in sorted(subdirs):
     
     # Look for README
     readme_path = subdir / "README.md"
-    readme_content = f"# {folder_name}\n\nDocumentation for {folder_name}."
+    readme_content = f"# {folder_name.title()}\n\nDocumentation for {folder_name}."
     
     if readme_path.exists():
         try:
-            with open(readme_path, 'r', encoding='utf-8') as f:
+            # with open(readme_path, 'r', encoding='utf-8') as f:
+                # readme_content = f.read()
+            # readme_content = readme_path.read_text(encoding='utf-8')
+            with open(readme_path, 'r', encoding='utf-8', newline=None) as f:
                 readme_content = f.read()
+                readme_content = section.sub('',readme_content)    
+                print(readme_content, file=sys.stderr)
             print(f"   ✅ Found README.md", file=sys.stderr)
         except Exception as e:
             print(f"   ❌ Error reading README.md: {e}", file=sys.stderr)
     
     # Create main page
     with mkdocs_gen_files.open(f"{output_base}/{folder_name}.md", "w") as f:
-        f.write(readme_content)
+        # f.write(readme_content)
+        print(readme_content, file=f)
     print(f"   ✅ Created {folder_name}.md", file=sys.stderr)
     
     # Create contents page
-    contents = f"""# {folder_name} - Contents
+    contents = f"""# {folder_name.title()} - Contents
 
 ## Files in this section
 
@@ -185,7 +194,10 @@ for subdir in sorted(subdirs):
         size = file.stat().st_size
         size_str = f"{size:,} bytes"
         file_type = file.suffix or "no extension"
-        contents += f"| {file.name} | {size_str} | {file_type} |\n"
+        if file_type == 'json':
+            contents += f"| {file.name} | {size_str} | {file_type} |\n"
+        
+        
     
     with mkdocs_gen_files.open(f"{output_base}/{folder_name}_contents.md", "w") as f:
         f.write(contents)

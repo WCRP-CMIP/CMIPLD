@@ -1,0 +1,4 @@
+Context: Example Data Set
+Date: 2024
+Purpose: Demonstration of src-data structure
+Format: Various (JSON, YAML, CSV)
