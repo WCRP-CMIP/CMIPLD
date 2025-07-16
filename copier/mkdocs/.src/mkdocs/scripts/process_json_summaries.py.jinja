@@ -43,8 +43,8 @@ This section contains formatted views of JSON data files.
 
 ## Available Data Files
 
-| File | Description | View | Git |
-|------|-------------|------|-----|
+| File | Description | Summary | Detailed | Git |
+|------|-------------|---------|----------|-----|
 """
     
     # Process each JSON file
@@ -64,6 +64,11 @@ This section contains formatted views of JSON data files.
             with mkdocs_gen_files.open(f"{output_base}/{page_name}.md", "w") as f:
                 f.write(page_content)
             
+            # Generate detailed version with header at bottom
+            detailed_content = generate_detailed_json_page(json_file, data)
+            with mkdocs_gen_files.open(f"{output_base}/{page_name}_detailed.md", "w") as f:
+                f.write(detailed_content)
+            
             # Get description from Header if available
             description = "JSON data file"
             if isinstance(data, dict) and 'Header' in data:
@@ -78,12 +83,12 @@ This section contains formatted views of JSON data files.
                             break
             
             # Add to index
-            index_content += f"| {json_file.name} | {description} | [View]({page_name}.md) | [View in Git](../../{json_file.name}) |\n"
+            index_content += f"| {json_file.name} | {description} | [Summary]({page_name}.md) | [Detailed]({page_name}_detailed.md) | [View in Git](../../{json_file.name}) |\n"
             
         except Exception as e:
             print(f"  ⚠️  Error processing {json_file.name}: {e}", file=sys.stderr)
             # Still add to index but mark as error
-            index_content += f"| {json_file.name} | *Error processing file* | - | [View in Git](../../{json_file.name}) |\n"
+            index_content += f"| {json_file.name} | *Error processing file* | - | - | [View in Git](../../{json_file.name}) |\n"
     
     # Complete index page
     index_content += f"""
@@ -108,6 +113,107 @@ These pages are automatically generated from JSON files located two directories 
         f.write(index_content)
     
     print(f"✅ Processed {len(json_files)} JSON files", file=sys.stderr)
+
+
+def generate_detailed_json_page(json_file, data):
+    """Generate a detailed page with main data as table and header at bottom."""
+    page_content = f"""# {json_file.stem} - Detailed View
+
+<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+    <strong>File Path:</strong> <code>{json_file.name}</code><br>
+    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
+    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+</div>
+
+"""
+    
+    # Process main data first (non-Header keys)
+    if isinstance(data, dict):
+        data_keys = [k for k in data.keys() if k != 'Header']
+        
+        for data_key in data_keys:
+            main_data = data[data_key]
+            page_content += f"## {format_key_name(data_key)}\n\n"
+            
+            # Special handling for dict of dicts (like activity)
+            if isinstance(main_data, dict) and all(isinstance(v, dict) for v in main_data.values()):
+                # Create a table with ID column and columns for each dict key
+                # First, collect all possible keys from all entries
+                all_keys = set()
+                for item_data in main_data.values():
+                    if isinstance(item_data, dict):
+                        all_keys.update(item_data.keys())
+                
+                # Sort keys for consistent ordering
+                sorted_keys = sorted(list(all_keys))
+                
+                # Create table header
+                page_content += "| ID | " + " | ".join(format_key_name(k) for k in sorted_keys) + " |\n"
+                page_content += "|" + "---|" * (len(sorted_keys) + 1) + "\n"
+                
+                # Add rows
+                for item_id, item_data in sorted(main_data.items()):
+                    row = f"| **{item_id}** |"
+                    
+                    if isinstance(item_data, dict):
+                        for key in sorted_keys:
+                            value = item_data.get(key, "")
+                            if isinstance(value, str):
+                                # Handle URLs specially
+                                if value.startswith(('http://', 'https://')):
+                                    formatted_value = f"[Link]({value})"
+                                else:
+                                    formatted_value = value[:100] + ("..." if len(value) > 100 else "")
+                            elif isinstance(value, list):
+                                formatted_value = f"*{len(value)} items*"
+                            elif value is None or value == "":
+                                formatted_value = "-"
+                            else:
+                                formatted_value = str(value)
+                            
+                            formatted_value = formatted_value.replace('|', '\\|')
+                            row += f" {formatted_value} |"
+                    else:
+                        # Non-dict value, just show it as a single column
+                        value_str = str(item_data)[:100] + ("..." if len(str(item_data)) > 100 else "")
+                        row += f" {value_str} |" + " - |" * (len(sorted_keys) - 1)
+                    
+                    page_content += row + "\n"
+            
+            elif isinstance(main_data, list):
+                page_content += format_list_as_table(main_data)
+            elif isinstance(main_data, dict):
+                page_content += format_dict_as_table(main_data)
+            else:
+                page_content += f"```\n{json.dumps(main_data, indent=2)}\n```\n\n"
+    
+    elif isinstance(data, list):
+        # The entire file is a list
+        page_content += "## Data\n\n"
+        page_content += format_list_as_table(data)
+    
+    # Add Header information at the bottom
+    if isinstance(data, dict) and 'Header' in data:
+        header = data['Header']
+        page_content += "\n---\n\n## Version Information\n\n"
+        
+        if isinstance(header, dict):
+            page_content += '<details markdown="1">\n'
+            page_content += '<summary><strong>Click to expand version details</strong></summary>\n\n'
+            page_content += format_dict_as_table(header)
+            page_content += '\n</details>\n\n'
+        else:
+            page_content += f"```\n{header}\n```\n\n"
+    
+    # Add footer
+    page_content += f"""\n---\n
+<div style="text-align: center; margin-top: 40px;">
+    <a href="{json_file.stem}.md" class="md-button">← Back to Summary</a>
+    <a href="index.md" class="md-button">← Back to Data Summaries</a>
+</div>
+"""
+    
+    return page_content
 
 
 def generate_json_page(json_file, data):

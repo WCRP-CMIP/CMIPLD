@@ -74,7 +74,9 @@ def generate_final_navigation(docs_path, mkdocs_files):
             if len(parts) >= 2:
                 filename = parts[1]
                 if filename != 'index.md' and filename.endswith('.md'):
-                    data_summaries_files.append(filename[:-3])  # Remove .md
+                    # Only add non-detailed files to main list
+                    if not filename.endswith('_detailed.md'):
+                        data_summaries_files.append(filename[:-3])  # Remove .md
     
     if has_src_data:
         print(f"✅ Found src-data virtual files: {len(src_data_sections)} sections")
@@ -173,7 +175,9 @@ def generate_final_navigation(docs_path, mkdocs_files):
         # Add each data file in alphabetical order
         for data_file in sorted(data_summaries_files):
             title = clean_title(data_file)
-            nav_lines.append(f'  - [{title}](data-summaries/{data_file}.md)')
+            nav_lines.append(f'  - {title}:')
+            nav_lines.append(f'    - [Summary](data-summaries/{data_file}.md)')
+            nav_lines.append(f'    - [Detailed](data-summaries/{data_file}_detailed.md)')
     
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)
