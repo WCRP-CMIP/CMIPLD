@@ -295,26 +295,26 @@
 
 /* Table controls */
 .table-controls {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: var(--md-default-bg-color);
-  border-radius: 0.25rem;
-  border: 1px solid var(--md-default-fg-color--lightest);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  margin-bottom: 0.5rem;
 }
 
 .table-search {
-  width: 100%;
-  max-width: 300px;
-  padding: 0.5rem;
+  width: 200px;
+  padding: 0.25rem 0.5rem;
   border: 1px solid var(--md-default-fg-color--lighter);
   border-radius: 0.25rem;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  margin: 0;
 }
 
 .table-search:focus {
   outline: none;
   border-color: var(--md-primary-fg-color);
-  box-shadow: 0 0 0 2px var(--md-primary-fg-color--light);
+  box-shadow: 0 0 0 1px var(--md-primary-fg-color--light);
 }
 
 /* Table sorting */

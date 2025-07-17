@@ -39,9 +39,12 @@ function addFloatingExpandIcon() {
     
     // Add click handler to redirect to embed=true
     floatingBtn.addEventListener('click', function() {
-        const currentUrl = window.location.href;
-        const separator = currentUrl.includes('?') ? '&' : '?';
-        window.location.href = currentUrl + separator + 'embed=true';
+        const currentUrl = new URL(window.location.href);
+        // Clear any hash/fragment
+        currentUrl.hash = '';
+        // Add embed parameter
+        currentUrl.searchParams.set('embed', 'true');
+        window.location.href = currentUrl.toString();
     });
     
     // Add to page
@@ -91,6 +94,7 @@ function addEmbedCloseButton() {
     closeBtn.addEventListener('click', function() {
         const url = new URL(window.location);
         url.searchParams.delete('embed');
+        // Keep any existing hash
         window.location.href = url.toString();
     });
     
@@ -107,7 +111,17 @@ function enhanceTables() {
     console.log('Enhancing', tables.length, 'tables');
     
     tables.forEach(table => {
-        // Add table controls
+        // Skip tables that are inside details elements (like version info)
+        const parentDetails = table.closest('details');
+        if (parentDetails) {
+            console.log('Skipping table inside details element - no search needed');
+            // Still make it responsive and sortable, just no search
+            makeTableResponsive(table);
+            addTableSorting(table);
+            return;
+        }
+        
+        // Add table controls (includes search)
         addTableControls(table);
         
         // Make tables responsive
