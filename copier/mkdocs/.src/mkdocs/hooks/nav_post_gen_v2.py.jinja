@@ -99,8 +99,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
     if has_stats_page:
         print(f"✅ Found stats page")
     
-    # Collect real files from docs directory
-    files_by_dir = {}
+    # Collect all files and directories from docs directory
+    all_items = []
     
     for md_file in docs_path.rglob("*.md"):
         if any(part.startswith('.') for part in md_file.parts):
@@ -116,51 +116,103 @@ def generate_final_navigation(docs_path, mkdocs_files):
             continue
             
         if len(parts) == 1:
-            if 'ROOT' not in files_by_dir:
-                files_by_dir['ROOT'] = []
-            files_by_dir['ROOT'].append(md_file)
+            # Root level file
+            all_items.append({
+                'type': 'file',
+                'name': md_file.name,
+                'path': md_file,
+                'sort_key': get_sort_key(md_file.name)
+            })
         else:
+            # File in subdirectory - add directory info
             dir_name = parts[0]
-            if dir_name not in files_by_dir:
-                files_by_dir[dir_name] = []
-            files_by_dir[dir_name].append(md_file)
+            all_items.append({
+                'type': 'directory',
+                'name': dir_name,
+                'sort_key': get_sort_key(dir_name)
+            })
     
-    # Generate navigation
+    # Get unique directories for later processing
+    directories = {}
+    for md_file in docs_path.rglob("*.md"):
+        if any(part.startswith('.') for part in md_file.parts):
+            continue
+        if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
+            continue
+        
+        rel_path = md_file.relative_to(docs_path)
+        parts = list(rel_path.parts)
+        
+        # Skip src-data-docs
+        if parts and parts[0] == 'src-data-docs':
+            continue
+            
+        if len(parts) > 1:
+            dir_name = parts[0]
+            if dir_name not in directories:
+                directories[dir_name] = []
+            directories[dir_name].append(md_file)
+    
+    # Generate navigation with mixed ordering
     nav_lines = []
+    processed_dirs = set()
     
-    # Add top-level files
-    if 'ROOT' in files_by_dir:
-        root_files = sorted(files_by_dir['ROOT'], key=lambda f: get_sort_key(f.name))
-        
-        # Add index.md first
-        for f in root_files[:]:
-            if f.name == 'index.md':
+    # Get all unique items (files and directories) and sort them together
+    unique_items = []
+    
+    # Add root files
+    root_files = [item for item in all_items if item['type'] == 'file']
+    for item in root_files:
+        unique_items.append(item)
+    
+    # Add directories
+    for dir_name in directories.keys():
+        unique_items.append({
+            'type': 'directory',
+            'name': dir_name,
+            'sort_key': get_sort_key(dir_name)
+        })
+    
+    # Remove duplicates and sort all items together
+    seen = set()
+    unique_sorted_items = []
+    for item in sorted(unique_items, key=lambda x: x['sort_key']):
+        key = (item['type'], item['name'])
+        if key not in seen:
+            seen.add(key)
+            unique_sorted_items.append(item)
+    
+    # Generate navigation in sorted order
+    for item in unique_sorted_items:
+        if item['type'] == 'file':
+            # Handle root files
+            file_path = item['path']
+            if file_path.name == 'index.md':
                 nav_lines.append('- [Home](index.md)')
-                root_files.remove(f)
-                break
+            else:
+                title = clean_title(file_path.name)
+                nav_lines.append(f'- [{title}]({file_path.name})')
         
-        # Add other root files
-        for f in root_files:
-            title = clean_title(f.name)
-            nav_lines.append(f'- [{title}]({f.name})')
+        elif item['type'] == 'directory':
+            # Handle directories
+            dir_name = item['name']
+            if dir_name not in processed_dirs:
+                processed_dirs.add(dir_name)
+                
+                dir_title = clean_title(dir_name)
+                nav_lines.append(f'- {dir_title}:')
+                
+                # Add files in this directory
+                if dir_name in directories:
+                    dir_files = sorted(directories[dir_name], key=lambda f: get_sort_key(f.name))
+                    for f in dir_files:
+                        rel_path = f.relative_to(docs_path)
+                        title = clean_title(f.name)
+                        nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
     
     # Add stats page if it exists
     if has_stats_page:
         nav_lines.append('- [Repository Statistics](stats.md)')
-    
-    # Add subdirectories
-    for dir_name in sorted(files_by_dir.keys()):
-        if dir_name == 'ROOT':
-            continue
-            
-        dir_title = clean_title(dir_name)
-        nav_lines.append(f'- {dir_title}:')
-        
-        dir_files = sorted(files_by_dir[dir_name], key=lambda f: get_sort_key(f.name))
-        for f in dir_files:
-            rel_path = f.relative_to(docs_path)
-            title = clean_title(f.name)
-            nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:

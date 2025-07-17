@@ -22,14 +22,17 @@ HEADER_COLORS = [
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Auto-setup MkDocs Publisher template')
+    parser = argparse.ArgumentParser(
+        description='Auto-setup MkDocs Publisher template',
+        epilog='By default, previous configuration is automatically reused if found. Use --create-new for clean install.'
+    )
     parser.add_argument('template_path', nargs='?', help='Path to copier template')
     parser.add_argument('--create-new', action='store_true', 
-                       help='Create new configuration (bypass saved answers)')
+                       help='Create new configuration (clean install - ignores saved answers)')
     parser.add_argument('--color', choices=HEADER_COLORS, 
-                       help='Header color theme')
+                       help='Header color theme (overrides saved color)')
     parser.add_argument('--no-confirm', action='store_true',
-                       help='Skip confirmation prompts')
+                       help='Skip confirmation prompts (for automation)')
     return parser.parse_args()
 
 
@@ -418,7 +421,7 @@ def print_next_steps(data):
 
 
 def main():
-    """Enhanced main function with all improvements."""
+    """Enhanced main function with automatic answer reuse."""
     args = parse_arguments()
     
     print("🚀 MkDocs Publisher Auto-Setup v2.0")
@@ -429,35 +432,41 @@ def main():
     
     answers_file = ".copier-answers.yml"
     
-    # Check for create-new flag
+    # Check for create-new flag (clean install)
     if args.create_new:
-        print("🆕 Creating new configuration (--create-new)")
+        print("🆕 Creating new configuration (--create-new flag)")
         data = create_new_configuration(args)
     else:
-        # Try to load previous answers
+        # Try to load and auto-reuse previous answers
         previous_data = load_previous_answers(answers_file)
         
         if previous_data:
             data, metadata = previous_data
+            print("✅ Found previous configuration - auto-reusing")
             
-            if prompt_reuse_answers(data, metadata, args.no_confirm):
-                print("✅ Using previous configuration")
-                
-                # Override color if specified
-                if args.color and args.color != data.get('header_color'):
-                    print(f"🎨 Overriding color: {data.get('header_color')} → {args.color}")
-                    data['header_color'] = args.color
-                
-                # Update template path if provided
-                template_path = args.template_path or metadata.get('src_path') or detect_template_path()
-                if template_path:
-                    data['template_path'] = template_path
-                else:
-                    print("❌ Template path not found")
-                    sys.exit(1)
+            # Show what we're reusing
+            print(f"   📁 Project: {data.get('project_name', 'Unknown')}")
+            print(f"   🎨 Color: {data.get('header_color', 'blue')}")
+            print(f"   👤 GitHub: {data.get('github_username', 'Unknown')}/{data.get('repo_name', 'Unknown')}")
+            if metadata.get('timestamp'):
+                try:
+                    timestamp = datetime.fromisoformat(metadata['timestamp'])
+                    print(f"   🕐 Created: {timestamp.strftime('%Y-%m-%d %H:%M')}")
+                except:
+                    pass
+            
+            # Override color if specified
+            if args.color and args.color != data.get('header_color'):
+                print(f"🎨 Overriding color: {data.get('header_color')} → {args.color}")
+                data['header_color'] = args.color
+            
+            # Update template path if provided
+            template_path = args.template_path or metadata.get('src_path') or detect_template_path()
+            if template_path:
+                data['template_path'] = template_path
             else:
-                print("🔄 Creating new configuration")
-                data = create_new_configuration(args)
+                print("❌ Template path not found")
+                sys.exit(1)
         else:
             print("📝 No previous configuration found, creating new")
             data = create_new_configuration(args)

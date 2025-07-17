@@ -120,13 +120,9 @@ class StatsGenerator:
 
 ## Repository Overview
 
-| :star: Stars | :material-source-fork: Forks | :eyes: Watchers | :material-database: Size |
-|:-------------------------:|:--------------------------------:|:---------------------------:|:----------------------------:|
-| **{repo_stats.get('stargazerCount', 0):,}** | **{repo_stats.get('forkCount', 0):,}** | **{repo_stats.get('watchers', {}).get('totalCount', 0):,}** | **{repo_stats.get('size', 0) / 1024:.1f} MB** |
-
-| :material-source-branch: Default Branch | :material-shield: Visibility | :calendar: Created | :material-sync: Last Push |
-|:----------------------------------------:|:--------------------------------:|:-------------------------------:|:-----------------------------:|
-| **{repo_stats.get('defaultBranchRef', {}).get('name', 'main')}** | **{repo_stats.get('visibility', 'unknown').title()}** | **{repo_stats.get('createdAt', '')[:10]}** | **{repo_stats.get('pushedAt', '')[:10]}** |
+| :material-database: Size | :material-source-branch: Default Branch | :material-sync: Last Push |
+|:----------------------------:|:-----------------------------:|:-----------------------------:|
+| **{repo_stats.get('size', 0) / 1024:.1f} MB** | **{repo_stats.get('defaultBranchRef', {}).get('name', 'main')}** | **{repo_stats.get('pushedAt', '')[:10]}** |
 
 """
         
