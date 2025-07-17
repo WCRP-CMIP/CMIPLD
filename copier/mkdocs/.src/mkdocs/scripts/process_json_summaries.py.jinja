@@ -44,8 +44,8 @@ This section contains formatted views of JSON data files.
 
 ## Available Data Files
 
-| File | Description | Summary | Detailed | Git |
-|------|-------------|---------|----------|-----|
+| File | Description | Summary | Detailed | Raw File |
+|------|-------------|---------|----------|----------|
 """
     
     # Process each JSON file
@@ -84,12 +84,14 @@ This section contains formatted views of JSON data files.
                             break
             
             # Add to index
-            index_content += f"| {json_file.name} | {description} | [Summary]({page_name}.md) | [Detailed]({page_name}_detailed.md) | [View in Git](../../{json_file.name}) |\n"
+            github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
+            index_content += f"| {json_file.name} | {description} | [Summary]({page_name}.md) | [Detailed]({page_name}_detailed.md) | [Raw File]({github_url}) |\n"
             
         except Exception as e:
             print(f"  ⚠️  Error processing {json_file.name}: {e}", file=sys.stderr)
             # Still add to index but mark as error
-            index_content += f"| {json_file.name} | *Error processing file* | - | - | [View in Git](../../{json_file.name}) |\n"
+            github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
+            index_content += f"| {json_file.name} | *Error processing file* | - | - | [Raw File]({github_url}) |\n"
     
     # Complete index page
     index_content += f"""
@@ -118,12 +120,13 @@ These pages are automatically generated from JSON files located two directories 
 
 def generate_detailed_json_page(json_file, data):
     """Generate a detailed page with main data as table and header at bottom."""
+    github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
     page_content = f"""# {json_file.stem} - Detailed View
 
 <div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
     <strong>File Path:</strong> <code>{json_file.name}</code><br>
     <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
-    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+    <a href="{github_url}" class="md-button md-button--primary" style="margin-top: 10px;">View Raw File</a>
 </div>
 
 """
@@ -180,12 +183,13 @@ def generate_detailed_json_page(json_file, data):
 
 def generate_json_page(json_file, data):
     """Generate a formatted page for a JSON file."""
+    github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
     page_content = f"""# {json_file.stem}
 
 <div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
     <strong>File Path:</strong> <code>{json_file.name}</code><br>
     <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
-    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+    <a href="{github_url}" class="md-button md-button--primary" style="margin-top: 10px;">View Raw File</a>
 </div>
 
 """
