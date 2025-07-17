@@ -1,4 +1,3 @@
-
 /* Custom styles for CMIP-LD Documentation */
 
 :root {
@@ -20,7 +19,7 @@
 }
 
 .md-nav__item--nested > .md-nav__link {
-  font-weight: 500;w
+  font-weight: 500;
 }
 
 /* Content styling */
@@ -190,108 +189,108 @@
   border-color: var(--md-primary-fg-color--light);
 }
 
-/* Fullscreen functionality */
-.fullscreen-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
+/* EMBED MODE STYLES */
 
-.fullscreen-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: var(--md-primary-fg-color);
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  width: 2rem;
-  height: 2rem;
-  font-size: 1rem;
-  cursor: pointer;
-  z-index: 10;
-  transition: all 0.2s ease;
-}
-
-.fullscreen-btn:hover {
-  background: var(--md-primary-fg-color--dark);
-  transform: scale(1.1);
-}
-
-.fullscreen-active {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: var(--md-default-bg-color) !important;
-  z-index: 9999 !important;
-  padding: 2rem !important;
-  overflow: auto !important;
-  box-sizing: border-box !important;
-}
-
-.fullscreen-mode {
-  overflow: hidden !important;
-}
-
-/* Hide all MkDocs navigation and chrome when in fullscreen mode */
-.fullscreen-mode .md-header {
+/* Hide all MkDocs navigation and chrome when in embed mode */
+.embed-mode .md-header,
+.embed-mode .md-tabs,
+.embed-mode .md-footer,
+.embed-mode .md-sidebar,
+.embed-mode .md-sidebar--primary,
+.embed-mode .md-sidebar--secondary,
+.embed-mode .md-nav,
+.embed-mode .md-search {
   display: none !important;
-  visibility: hidden !important;
 }
 
-/* In .md-main, hide everything except .md-content */
-.fullscreen-mode .md-main > *:not(.md-content) {
+/* Hide everything in .md-main except .md-content and its children */
+.embed-mode .md-main > .md-sidebar,
+.embed-mode .md-main > .md-sidebar--primary,
+.embed-mode .md-main > .md-sidebar--secondary {
   display: none !important;
-  visibility: hidden !important;
 }
 
-/* Also hide specific navigation elements */
-.fullscreen-mode .md-tabs,
-.fullscreen-mode .md-footer,
-.fullscreen-mode .md-sidebar,
-.fullscreen-mode .md-sidebar--primary,
-.fullscreen-mode .md-sidebar--secondary,
-.fullscreen-mode .md-nav,
-.fullscreen-mode .md-search {
+/* Alternative: Hide common MkDocs layout elements */
+.embed-mode .md-skip,
+.embed-mode .md-announce,
+.embed-mode .md-banner {
   display: none !important;
-  visibility: hidden !important;
 }
 
-/* Ensure fullscreen content takes full viewport */
-.fullscreen-mode .md-container,
-.fullscreen-mode .md-main {
+/* Ensure embed content takes full viewport */
+.embed-mode .md-container,
+.embed-mode .md-main {
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
+  width: 100% !important;
 }
 
-/* Make .md-content fill the available space in fullscreen */
-.fullscreen-mode .md-content {
+/* Make .md-content and its variants fill the available space */
+.embed-mode .md-content,
+.embed-mode .md-content__inner,
+.embed-mode .md-typeset,
+.embed-mode article,
+.embed-mode main {
   max-width: none !important;
   margin: 0 !important;
   padding: 1rem !important;
   width: 100% !important;
 }
 
-/* Remove any inner content margins/padding */
-.fullscreen-mode .md-content__inner {
-  margin: 0 !important;
-  padding: 0 !important;
+/* Ensure content is visible and has a background */
+.embed-mode .md-content {
+  display: block !important;
+  visibility: visible !important;
+  background: var(--md-default-bg-color) !important;
+  min-height: 100vh !important;
 }
 
-.fullscreen-active table {
-  width: 100% !important;
-  max-width: none !important;
-  font-size: 0.9rem;
+/* Fallback: If standard selectors don't work, show everything and hide known nav elements */
+.embed-mode * {
+  /* Don't hide everything by default */
 }
 
-.fullscreen-active .fullscreen-btn {
+/* But specifically hide navigation elements */
+.embed-mode [class*="nav"],
+.embed-mode [class*="header"],
+.embed-mode [class*="footer"],
+.embed-mode [class*="sidebar"],
+.embed-mode [class*="menu"] {
+  display: none !important;
+}
+
+/* But make sure content areas are visible */
+.embed-mode [class*="content"],
+.embed-mode [class*="article"],
+.embed-mode [class*="main"] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Embed close button */
+.embed-close-btn {
   position: fixed;
   top: 1rem;
   right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  background: var(--md-primary-fg-color);
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  cursor: pointer;
   z-index: 10000;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.embed-close-btn:hover {
+  background: var(--md-primary-fg-color--dark);
+  transform: scale(1.1);
 }
 
 /* Table controls */
@@ -377,8 +376,8 @@
   transform: scale(0.95);
 }
 
-/* Hide floating button in fullscreen mode */
-.fullscreen-mode .floating-expand-btn {
+/* Hide floating button in embed mode */
+.embed-mode .floating-expand-btn {
   display: none !important;
 }
 
@@ -408,8 +407,9 @@
     color: var(--md-default-fg-color--light);
   }
   
-  .fullscreen-btn,
-  .table-controls {
+  .table-controls,
+  .floating-expand-btn,
+  .embed-close-btn {
     display: none !important;
   }
 }
