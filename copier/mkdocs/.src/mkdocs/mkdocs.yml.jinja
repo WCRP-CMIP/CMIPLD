@@ -40,6 +40,9 @@ plugins:
       scripts:
         - scripts/process_src_data_robust.py  # Robust path checking version
         - scripts/process_json_summaries.py  # Process JSON files for data summaries
+{% if generate_repo_stats %}
+        - scripts/generate_repo_stats.py  # Generate simple repository statistics
+{% endif %}
   - literate-nav:
       nav_file: SUMMARY.md
       implicit_index: true

@@ -1,0 +1,16 @@
+{% if generate_repo_stats %}
+# Repository Statistics
+
+!!! note "Statistics Not Yet Generated"
+    The repository statistics will be generated when the documentation is built.
+    
+    This page will be replaced with actual statistics including:
+    
+    - Repository overview (stars, forks, issues, etc.)
+    - Traffic analytics with popular files and referrers
+    - Contributor statistics
+    - Programming language distribution
+    - Commit activity
+    - Issues and pull request metrics
+
+{% endif %}

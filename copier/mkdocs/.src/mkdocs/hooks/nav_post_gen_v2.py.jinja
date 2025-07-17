@@ -44,9 +44,15 @@ def generate_final_navigation(docs_path, mkdocs_files):
     has_src_data = False
     data_summaries_files = []
     has_data_summaries = False
+    has_stats_page = False
     
     for file_obj in mkdocs_files:
         src_path = str(file_obj.src_path)
+        
+        # Check for stats page
+        if src_path == 'stats.md':
+            has_stats_page = True
+            
         if src_path.startswith('src-data-docs/'):
             has_src_data = True
             # Parse the path
@@ -89,6 +95,9 @@ def generate_final_navigation(docs_path, mkdocs_files):
             print(f"   - {file}")
         if len(data_summaries_files) > 5:
             print(f"   ... and {len(data_summaries_files) - 5} more")
+    
+    if has_stats_page:
+        print(f"✅ Found stats page")
     
     # Collect real files from docs directory
     files_by_dir = {}
@@ -134,6 +143,10 @@ def generate_final_navigation(docs_path, mkdocs_files):
         for f in root_files:
             title = clean_title(f.name)
             nav_lines.append(f'- [{title}]({f.name})')
+    
+    # Add stats page if it exists
+    if has_stats_page:
+        nav_lines.append('- [Repository Statistics](stats.md)')
     
     # Add subdirectories
     for dir_name in sorted(files_by_dir.keys()):
@@ -191,3 +204,5 @@ def generate_final_navigation(docs_path, mkdocs_files):
         print(f"📋 Included {len(src_data_sections)} src-data sections")
     if has_data_summaries:
         print(f"📋 Included {len(data_summaries_files)} data summary files")
+    if has_stats_page:
+        print(f"📋 Included repository statistics page")
