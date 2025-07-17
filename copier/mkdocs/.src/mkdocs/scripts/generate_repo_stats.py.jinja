@@ -116,7 +116,9 @@ class StatsGenerator:
         # Start building the content with prettier design
         content = f"""# Repository Statistics
 
-**Generated on:** {run_time}
+!!! info "Generation Information"
+    **Generated on:** {run_time}  
+    **Data source:** Real-time GitHub CLI extraction
 
 ## Repository Overview
 

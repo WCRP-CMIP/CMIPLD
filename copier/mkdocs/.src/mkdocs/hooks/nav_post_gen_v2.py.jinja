@@ -173,6 +173,11 @@ def generate_final_navigation(docs_path, mkdocs_files):
             'sort_key': get_sort_key(dir_name)
         })
     
+    # Always add Home first if index.md exists
+    index_file_exists = any(item['type'] == 'file' and item['path'].name == 'index.md' for item in unique_items)
+    if index_file_exists:
+        nav_lines.append('- [Home](index.md)')
+    
     # Remove duplicates and sort all items together
     seen = set()
     unique_sorted_items = []
@@ -182,13 +187,13 @@ def generate_final_navigation(docs_path, mkdocs_files):
             seen.add(key)
             unique_sorted_items.append(item)
     
-    # Generate navigation in sorted order
+    # Generate navigation in sorted order, but ensure Home comes first
     for item in unique_sorted_items:
         if item['type'] == 'file':
-            # Handle root files
+            # Handle root files - skip index.md here, we'll add it first
             file_path = item['path']
             if file_path.name == 'index.md':
-                nav_lines.append('- [Home](index.md)')
+                continue  # Skip here, will be added first
             else:
                 title = clean_title(file_path.name)
                 nav_lines.append(f'- [{title}]({file_path.name})')
