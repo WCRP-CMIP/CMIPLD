@@ -1,48 +1,74 @@
 #!/usr/bin/env python3
 """
-Auto-setup script for MkDocs Publisher template with answer reuse.
-Detects git/GitHub information and runs copier with smart defaults.
-Saves and reuses previous answers for convenience.
+Enhanced auto-setup script for MkDocs Publisher template.
+Features: answer reuse, random color selection, create-new flag, double-check validation.
 """
 import subprocess
 import os
 import json
 import sys
 import yaml
+import random
+import argparse
 from pathlib import Path
 from datetime import datetime
 
+# Available header colors
+HEADER_COLORS = [
+    'red', 'pink', 'purple', 'deep-purple', 'indigo', 'blue', 'light-blue', 
+    'cyan', 'teal', 'green', 'light-green', 'lime', 'yellow', 'amber', 
+    'orange', 'deep-orange', 'brown', 'grey', 'blue-grey'
+]
+
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='Auto-setup MkDocs Publisher template')
+    parser.add_argument('template_path', nargs='?', help='Path to copier template')
+    parser.add_argument('--create-new', action='store_true', 
+                       help='Create new configuration (bypass saved answers)')
+    parser.add_argument('--color', choices=HEADER_COLORS, 
+                       help='Header color theme')
+    parser.add_argument('--no-confirm', action='store_true',
+                       help='Skip confirmation prompts')
+    return parser.parse_args()
+
 
 def install_dependencies():
-    """Install required dependencies."""
+    """Install required dependencies if needed."""
     try:
-        # pip uninstall copier pydantic typing_extensions typing_inspection
-# pip install copier
-        subprocess.run('pip uninstall copier pydantic typing_extensions typing_inspection --yes'.split(), check=True)
-        subprocess.run(["pip", "install", "copier", "pyyaml", 'mkdocs-literate-nav','y'], check=True)
-        print("✅ Dependencies installed successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️  Error installing dependencies: {e}")
-        sys.exit(1)
+        import copier
+        import yaml
+        print("✅ Dependencies already available")
+        return True
+    except ImportError:
+        print("📦 Installing required dependencies...")
+        try:
+            subprocess.run([
+                "pip", "install", "copier", "pyyaml", "mkdocs-literate-nav"
+            ], check=True, capture_output=True)
+            print("✅ Dependencies installed successfully")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Error installing dependencies: {e}")
+            return False
 
 
 def run_command(cmd, capture=True, cwd=None):
     """Run a command and return output or success status."""
     try:
-        shell = True
         if capture:
-            result = subprocess.run(cmd, shell=shell, capture_output=True, text=True, cwd=cwd)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=cwd)
             return result.stdout.strip() if result.returncode == 0 else None
         else:
-            result = subprocess.run(cmd, shell=shell, cwd=cwd)
+            result = subprocess.run(cmd, shell=True, cwd=cwd)
             return result.returncode == 0
-    except:
+    except Exception as e:
+        print(f"⚠️  Command failed: {e}")
         return None
 
 
 def get_github_username():
     """Get GitHub username using gh CLI."""
-    # Try gh CLI first (most reliable)
     username = run_command("gh api user --jq .login")
     if username:
         return username
@@ -50,13 +76,11 @@ def get_github_username():
     # Fallback: try gh auth status
     auth_output = run_command("gh auth status 2>&1")
     if auth_output and "Logged in to github.com" in auth_output:
-        # Extract username from output like "Logged in to github.com as username"
-        for line in auth_output.split('\n'):
-            if 'as ' in line and 'github.com' in line:
+        for line in auth_output.split('\\n'):
+            if ' as ' in line and 'github.com' in line:
                 username = line.split(' as ')[-1].split(' ')[0]
                 if username and username != 'github.com':
                     return username
-    
     return None
 
 
@@ -70,45 +94,29 @@ def get_remote_info():
     """Get git remote information and extract GitHub username/repo."""
     remote_url = run_command("git remote get-url origin")
     
-    if not remote_url:
+    if not remote_url or 'github.com' not in remote_url:
         return None, None
     
     # Parse GitHub URL
-    if 'github.com' in remote_url:
-        # Remove common prefixes and suffixes
-        repo_path = remote_url
-        
-        # Handle HTTPS URLs
-        if remote_url.startswith('https://github.com/'):
-            repo_path = remote_url.replace('https://github.com/', '')
-        # Handle SSH URLs
-        elif remote_url.startswith('git@github.com:'):
-            repo_path = remote_url.replace('git@github.com:', '')
-        # Handle HTTPS with credentials
-        elif 'https://' in remote_url and '@github.com/' in remote_url:
-            repo_path = remote_url.split('@github.com/')[-1]
-        
-        # Remove .git suffix
-        repo_path = repo_path.replace('.git', '')
-        
-        # Extract username and repo
-        if '/' in repo_path:
-            parts = repo_path.split('/')
-            if len(parts) >= 2:
-                username = parts[0]
-                repo = parts[1]
-                # Clean up any extra characters
-                username = username.strip()
-                repo = repo.strip()
-                if username and repo:
-                    return username, repo
+    repo_path = remote_url
+    
+    # Handle different URL formats
+    if remote_url.startswith('https://github.com/'):
+        repo_path = remote_url.replace('https://github.com/', '')
+    elif remote_url.startswith('git@github.com:'):
+        repo_path = remote_url.replace('git@github.com:', '')
+    elif 'https://' in remote_url and '@github.com/' in remote_url:
+        repo_path = remote_url.split('@github.com/')[-1]
+    
+    # Clean up
+    repo_path = repo_path.replace('.git', '').strip()
+    
+    if '/' in repo_path:
+        parts = repo_path.split('/')
+        if len(parts) >= 2:
+            return parts[0].strip(), parts[1].strip()
     
     return None, None
-
-
-def get_current_dir_name():
-    """Get current directory name."""
-    return Path.cwd().name
 
 
 def read_readme_content():
@@ -120,64 +128,37 @@ def read_readme_content():
         if readme_path.exists():
             try:
                 with open(readme_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                    content = f.read().strip()
                 
-                # Clean up the README content for MkDocs
-                lines = content.split('\n')
-                cleaned_lines = []
-                skip_first_title = False
-                
-                for i, line in enumerate(lines):
-                    # Skip first H1 title if it looks like a project title
-                    if i == 0 and line.startswith('# '):
-                        title = line[2:].strip()
-                        if any(word in title.lower() for word in ['documentation', 'docs', 'project', 'readme']):
-                            skip_first_title = True
-                            continue
-                    
-                    # Skip empty lines after skipped title
-                    if skip_first_title and not line.strip():
-                        if not cleaned_lines:
-                            continue
-                    
-                    cleaned_lines.append(line)
-                
-                cleaned_content = '\n'.join(cleaned_lines).strip()
-                print(f"✅ Found and loaded README content from {readme_file}")
-                
-                print(f"   📄 Content length: {len(cleaned_content)} characters")
-                return cleaned_content
+                print(f"✅ Found README: {readme_file} ({len(content)} chars)")
+                return content
                 
             except Exception as e:
                 print(f"⚠️  Error reading {readme_file}: {e}")
                 continue
     
     print("⚠️  No README.md found")
-    return "Content not found, enter manually here"
+    return "Documentation content - please update this section"
 
 
 def save_answers(data, answers_file=".copier-answers.yml"):
-    """Save answers to a YAML file with metadata."""
+    """Save answers to YAML file with metadata."""
     try:
-        # Add metadata
         answers_with_meta = {
             '_src_path': data.get('template_path', ''),
             '_commit': 'HEAD',
             '_timestamp': datetime.now().isoformat(),
-            '_auto_generated': True
+            '_auto_generated': True,
+            '_script_version': '2.0'
         }
         
-        # Add the actual answers
-        answers_with_meta.update(data)
-        
-        # Remove template_path from answers (it's stored in _src_path)
-        if 'template_path' in answers_with_meta:
-            del answers_with_meta['template_path']
+        # Add actual answers (excluding template_path)
+        answers_with_meta.update({k: v for k, v in data.items() if k != 'template_path'})
         
         with open(answers_file, 'w') as f:
             yaml.dump(answers_with_meta, f, default_flow_style=False, sort_keys=False)
         
-        print(f"💾 Saved answers to {answers_file}")
+        print(f"💾 Saved configuration to {answers_file}")
         return True
         
     except Exception as e:
@@ -202,12 +183,12 @@ def load_previous_answers(answers_file=".copier-answers.yml"):
         # Extract metadata
         metadata = {
             'src_path': answers.get('_src_path', ''),
-            'commit': answers.get('_commit', ''),
             'timestamp': answers.get('_timestamp', ''),
-            'auto_generated': answers.get('_auto_generated', False)
+            'auto_generated': answers.get('_auto_generated', False),
+            'version': answers.get('_script_version', '1.0')
         }
         
-        # Remove metadata from answers
+        # Extract data (non-metadata)
         data = {k: v for k, v in answers.items() if not k.startswith('_')}
         
         return data, metadata
@@ -217,41 +198,35 @@ def load_previous_answers(answers_file=".copier-answers.yml"):
         return None
 
 
-def prompt_reuse_answers(data, metadata, answers_file):
+def prompt_reuse_answers(data, metadata, no_confirm=False):
     """Prompt user to reuse previous answers."""
-    print(f"\n📋 Found previous answers in {answers_file}")
-    print(f"   📁 Location: {Path(answers_file).absolute()}")
+    print(f"\\n📋 Found previous configuration:")
     
     if metadata.get('timestamp'):
         try:
             timestamp = datetime.fromisoformat(metadata['timestamp'])
-            print(f"   🕐 Generated: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"   🕐 Created: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
         except:
-            print(f"   🕐 Generated: {metadata['timestamp']}")
+            print(f"   🕐 Created: {metadata['timestamp']}")
     
-    if metadata.get('src_path'):
-        print(f"   📦 Template: {metadata['src_path']}")
+    print(f"   📦 Template: {metadata.get('src_path', 'Unknown')}")
+    print(f"   📄 Project: {data.get('project_name', 'Unknown')}")
+    print(f"   🎨 Color: {data.get('header_color', 'blue')}")
+    print(f"   👤 GitHub: {data.get('github_username', 'Unknown')}/{data.get('repo_name', 'Unknown')}")
     
-    print(f"   🤖 Auto-generated: {'Yes' if metadata.get('auto_generated') else 'No'}")
+    if no_confirm:
+        print("\\n✅ Using previous configuration (--no-confirm)")
+        return True
     
-    print("\n📄 Previous values:")
-    for key, value in data.items():
-        if key == 'readme_content':
-            print(f"   {key}: {str(value)[:60]}...")
-        else:
-            print(f"   {key}: {value}")
-    
-    print("\n🔄 Reuse these previous answers?")
+    print("\\n🔄 Reuse this configuration?")
     response = input("[Y/n]: ").strip().lower()
-    
     return response in ['', 'y', 'yes']
 
 
 def detect_template_path():
-    """Try to detect template path relative to this script."""
+    """Detect template path relative to this script."""
     script_path = Path(__file__).parent
     
-    # Common locations to check
     possible_paths = [
         script_path,
         script_path.parent / "copier" / "mkdocs",
@@ -261,111 +236,137 @@ def detect_template_path():
     
     for path in possible_paths:
         if (path / "copier.yml").exists():
-            return str(path)
+            return str(path.resolve())
     
     return None
 
 
-def run_copier_with_data(template_path, data):
+def select_random_color():
+    """Select a random header color."""
+    color = random.choice(HEADER_COLORS)
+    print(f"🎨 Selected random color: {color}")
+    return color
+
+
+def validate_configuration(data):
+    """Double-check and validate configuration."""
+    print("\\n🔍 Validating configuration...")
+    
+    issues = []
+    warnings = []
+    
+    # Required fields
+    required_fields = ['project_name', 'repo_name', 'github_username']
+    for field in required_fields:
+        if not data.get(field):
+            issues.append(f"Missing required field: {field}")
+    
+    # GitHub username validation
+    username = data.get('github_username', '')
+    if username and not username.replace('-', '').replace('_', '').isalnum():
+        warnings.append(f"GitHub username '{username}' contains special characters")
+    
+    # Repo name validation
+    repo_name = data.get('repo_name', '')
+    if repo_name and ' ' in repo_name:
+        warnings.append(f"Repository name '{repo_name}' contains spaces")
+    
+    # URL validation
+    site_url = data.get('site_url', '')
+    repo_url = data.get('repo_url', '')
+    if site_url and not site_url.startswith('https://'):
+        warnings.append("Site URL should start with https://")
+    if repo_url and not repo_url.startswith('https://github.com/'):
+        warnings.append("Repository URL should be a GitHub URL")
+    
+    # Template path validation
+    template_path = data.get('template_path', '')
+    if template_path and not Path(template_path).exists():
+        issues.append(f"Template path does not exist: {template_path}")
+    
+    # Report issues
+    if issues:
+        print("❌ Configuration issues found:")
+        for issue in issues:
+            print(f"   • {issue}")
+        return False
+    
+    if warnings:
+        print("⚠️  Configuration warnings:")
+        for warning in warnings:
+            print(f"   • {warning}")
+    else:
+        print("✅ Configuration looks good!")
+    
+    return True
+
+
+def run_copier_with_data(template_path, data, no_confirm=False):
     """Run copier with the provided data."""
-    # Build copier command with data arguments
     cmd_parts = ["copier", "copy", template_path, "."]
     
+    # Add data arguments
     for key, value in data.items():
-        if key != 'template_path':  # Skip template_path, it's already in the command
+        if key != 'template_path':
             cmd_parts.extend(["--data", f"{key}={value}"])
     
-    # Add additional flags
-    cmd_parts.extend(["--overwrite", "--quiet"])
+    # Add flags
+    cmd_parts.extend(["--overwrite"])
+    if no_confirm:
+        cmd_parts.append("--quiet")
     
-    # Run copier command
-    print(f"\n🔄 Running copier...")
-    cmd = " ".join(f'"{part}"' if " " in part else part for part in cmd_parts)
-    print(f"   {cmd[:100]}...") if len(cmd) > 100 else print(f"   {cmd}")
+    print(f"\\n🔄 Running copier...")
+    if not no_confirm:
+        print(f"   Command: copier copy {template_path} .")
+        confirm = input("\\nProceed with generation? [Y/n]: ").strip().lower()
+        if confirm and confirm not in ['y', 'yes', '']:
+            print("❌ Cancelled by user")
+            return False
     
-    return run_command(cmd, capture=False)
+    return run_command(" ".join(f'"{part}"' if " " in part else part for part in cmd_parts), capture=False)
 
 
-def print_next_steps(data):
-    """Print next steps after successful generation."""
-    print("\n✅ Project generated successfully!")
-    print("\n📝 Next steps:")
-    print("   1. python scripts/sync.py           # Sync content and generate JSON pages")
-    print("   2. mkdocs serve                     # Start development server")
-    print("   3. mkdocs gh-deploy                 # Deploy to GitHub Pages")
+def create_new_configuration(args):
+    """Create new configuration from scratch."""
+    print("🔍 Detecting project information...")
     
-    # Show generated files
-    generated_files = [
-        "scripts/sync.py",
-        "README.md", 
-        ".github/workflows/deploy.yml"
-    ]
-    
-    print(f"\n📄 Generated files:")
-    for file_path in generated_files:
-        if Path(file_path).exists():
-            print(f"   ✅ {file_path}")
-        else:
-            print(f"   ❓ {file_path}")
-    
-    # Check for JSON data folder
-    json_folder = data.get('json_data_folder', 'json_data')
-    if not Path(json_folder).exists():
-        print(f"\n💡 Tip: Create {json_folder}/ folder and add .json files to auto-generate pages")
-    
-    print(f"\n💾 Answers saved to .copier-answers.yml for future reuse")
-
-
-def detect_and_run_copier(answers_file):
-    """Detect values and run copier (original main logic)."""
-    # Detect GitHub username (prioritize gh CLI)
-    print("   Checking GitHub authentication...")
+    # Basic detection
     github_username = get_github_username()
     if github_username:
-        print(f"   ✅ GitHub user: {github_username}")
+        print(f"✅ GitHub user: {github_username}")
     else:
-        print("   ⚠️  GitHub CLI not authenticated (run 'gh auth login')")
+        print("⚠️  GitHub CLI not authenticated")
     
-    # Get git information
-    print("   Checking git configuration...")
     git_user = get_git_config('user.name', 'Your Name')
     git_email = get_git_config('user.email', 'your.email@example.com')
     
-    # Get remote information
-    print("   Checking git remote...")
     remote_username, remote_repo = get_remote_info()
-    
-    # If we have remote info, prioritize it for repo name
     if remote_username and remote_repo:
-        print(f"   ✅ Detected from git remote: {remote_username}/{remote_repo}")
+        print(f"✅ Git remote: {remote_username}/{remote_repo}")
         username = remote_username
         repo_name = remote_repo
     else:
-        # Fallback to GitHub username or other methods
-        username = github_username or remote_username or git_user.lower().replace(' ', '') or 'your-username'
-        repo_name = get_current_dir_name()
+        username = github_username or 'your-username'
+        repo_name = Path.cwd().name
     
     project_name = repo_name.replace('-', ' ').replace('_', ' ').title()
-    
-    # Read README content
-    print("   Reading README content...")
     readme_content = read_readme_content()
     
-    # Get template path
-    template_path = None
-    if len(sys.argv) > 1:
-        template_path = sys.argv[1]
+    # Select color
+    if args.color:
+        header_color = args.color
+        print(f"🎨 Using specified color: {header_color}")
     else:
-        template_path = detect_template_path()
+        header_color = select_random_color()
     
+    # Get template path
+    template_path = args.template_path or detect_template_path()
     if not template_path:
-        print("\n❌ Error: Template path not found!")
-        print("Usage:")
-        print("   python auto-setup.py /path/to/template")
-        print("   python auto-setup.py  # (tries to auto-detect)")
+        print("❌ Template path not found!")
+        print("Usage: python auto-setup.py /path/to/template")
         sys.exit(1)
     
-    # Build data dictionary with corrected repository info
+    # Build configuration
     data = {
         'project_name': f"{project_name} Documentation",
         'repo_name': repo_name,
@@ -378,85 +379,105 @@ def detect_and_run_copier(answers_file):
         'description': f"Documentation for {project_name}",
         'readme_content': readme_content,
         'template_path': template_path,
-        'header_color': 'blue',
+        'header_color': header_color,
         'generate_static_files': True,
         'static_files_folder': 'static_output'
     }
     
-    print("\n📋 Detected information:")
+    print("\\n📋 Configuration:")
     for key, value in data.items():
         if key == 'readme_content':
-            print(f"   {key}: {str(value)[:60]}...")
-        elif key == 'template_path':
-            print(f"   {key}: {value}")
+            print(f"   {key}: {str(value)[:50]}...")
         else:
             print(f"   {key}: {value}")
     
-    if not Path(template_path).exists():
-        print(f"\n❌ Error: Template path does not exist: {template_path}")
+    return data
+
+
+def print_next_steps(data):
+    """Print next steps after successful generation."""
+    print("\\n✅ Project generated successfully!")
+    print("\\n📝 Next steps:")
+    print("   1. mkdocs serve                     # Start development server")
+    print("   2. mkdocs gh-deploy                 # Deploy to GitHub Pages")
+    
+    # Check key files
+    key_files = ["mkdocs.yml", "docs/index.md", ".github/workflows"]
+    print("\\n📄 Generated files:")
+    for file_path in key_files:
+        if Path(file_path).exists():
+            print(f"   ✅ {file_path}")
+    
+    # Tips
+    json_folder = data.get('json_data_folder', 'json_data')
+    if not Path(json_folder).exists():
+        print(f"\\n💡 Tip: Create {json_folder}/ folder and add .json files for auto-generated pages")
+    
+    print(f"\\n🎨 Theme color: {data.get('header_color', 'blue')}")
+    print(f"💾 Configuration saved to .copier-answers.yml")
+
+
+def main():
+    """Enhanced main function with all improvements."""
+    args = parse_arguments()
+    
+    print("🚀 MkDocs Publisher Auto-Setup v2.0")
+    
+    # Install dependencies if needed
+    if not install_dependencies():
         sys.exit(1)
     
-    print(f"\n📁 Using template: {template_path}")
+    answers_file = ".copier-answers.yml"
     
-    # Ask for confirmation
-    print(f"\n🚀 Ready to generate project with detected values.")
-    confirm = input("Continue? [Y/n]: ").strip().lower()
+    # Check for create-new flag
+    if args.create_new:
+        print("🆕 Creating new configuration (--create-new)")
+        data = create_new_configuration(args)
+    else:
+        # Try to load previous answers
+        previous_data = load_previous_answers(answers_file)
+        
+        if previous_data:
+            data, metadata = previous_data
+            
+            if prompt_reuse_answers(data, metadata, args.no_confirm):
+                print("✅ Using previous configuration")
+                
+                # Override color if specified
+                if args.color and args.color != data.get('header_color'):
+                    print(f"🎨 Overriding color: {data.get('header_color')} → {args.color}")
+                    data['header_color'] = args.color
+                
+                # Update template path if provided
+                template_path = args.template_path or metadata.get('src_path') or detect_template_path()
+                if template_path:
+                    data['template_path'] = template_path
+                else:
+                    print("❌ Template path not found")
+                    sys.exit(1)
+            else:
+                print("🔄 Creating new configuration")
+                data = create_new_configuration(args)
+        else:
+            print("📝 No previous configuration found, creating new")
+            data = create_new_configuration(args)
     
-    if confirm and confirm not in ['y', 'yes', '']:
-        print("❌ Cancelled by user")
-        sys.exit(0)
+    # Validate configuration
+    if not validate_configuration(data):
+        print("❌ Configuration validation failed")
+        sys.exit(1)
     
-    # Save answers before running copier
+    # Save configuration
     save_answers(data, answers_file)
     
     # Run copier
-    success = run_copier_with_data(template_path, data)
+    success = run_copier_with_data(data['template_path'], data, args.no_confirm)
     
     if success:
         print_next_steps(data)
     else:
-        print("\n❌ Error running copier command")
-        print("   Check that copier is installed: pip install copier")
+        print("❌ Failed to generate project")
         sys.exit(1)
-
-
-def main():
-    """Main detection and copier execution with answer reuse."""
-    print("🔍 Auto-detecting project information...")
-    
-    # Check for previous answers first
-    answers_file = ".copier-answers.yml"
-    previous_data = load_previous_answers(answers_file)
-    
-    if previous_data:
-        data, metadata = previous_data
-        
-        # Prompt to reuse previous answers
-        if prompt_reuse_answers(data, metadata, answers_file):
-            print("\n✅ Using previous answers!")
-            
-            # Get template path
-            template_path = None
-            if len(sys.argv) > 1:
-                template_path = sys.argv[1]
-            else:
-                template_path = metadata.get('src_path') or detect_template_path()
-            
-            if template_path:
-                # Run copier with previous answers
-                success = run_copier_with_data(template_path, data)
-                if success:
-                    print_next_steps(data)
-                    return
-                else:
-                    print("\n⚠️  Failed to run copier with previous answers, detecting new values...")
-            else:
-                print("\n⚠️  Template path not found, detecting new values...")
-        else:
-            print("\n🔄 Detecting new values...")
-    
-    # Detect new values (original logic)
-    detect_and_run_copier(answers_file)
 
 
 if __name__ == "__main__":

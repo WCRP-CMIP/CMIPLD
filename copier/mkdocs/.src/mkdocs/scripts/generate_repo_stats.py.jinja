@@ -113,38 +113,22 @@ class StatsGenerator:
         releases = self.get_releases()
         issue_stats = self.get_issue_stats()
         
-        # Start building the content
+        # Start building the content with prettier design
         content = f"""# Repository Statistics
 
 **Generated on:** {run_time}
 
 ## Repository Overview
 
-| Metric | Value |
-|--------|-------|
-| Stars | {repo_stats.get('stargazerCount', 0):,} |
-| Forks | {repo_stats.get('forkCount', 0):,} |
-| Watchers | {repo_stats.get('watchers', {}).get('totalCount', 0):,} |
-| Repository Size | {repo_stats.get('size', 0) / 1024:.1f} MB |
-| Default Branch | {repo_stats.get('defaultBranchRef', {}).get('name', 'main')} |
-| Visibility | {repo_stats.get('visibility', 'unknown').title()} |
-| Created | {repo_stats.get('createdAt', '')[:10]} |
-| Last Updated | {repo_stats.get('updatedAt', '')[:10]} |
-| Last Push | {repo_stats.get('pushedAt', '')[:10]} |
+| :star: Stars | :material-source-fork: Forks | :eyes: Watchers | :material-database: Size |
+|:-------------------------:|:--------------------------------:|:---------------------------:|:----------------------------:|
+| **{repo_stats.get('stargazerCount', 0):,}** | **{repo_stats.get('forkCount', 0):,}** | **{repo_stats.get('watchers', {}).get('totalCount', 0):,}** | **{repo_stats.get('size', 0) / 1024:.1f} MB** |
 
-## Contributors
+| :material-source-branch: Default Branch | :material-shield: Visibility | :calendar: Created | :material-sync: Last Push |
+|:----------------------------------------:|:--------------------------------:|:-------------------------------:|:-----------------------------:|
+| **{repo_stats.get('defaultBranchRef', {}).get('name', 'main')}** | **{repo_stats.get('visibility', 'unknown').title()}** | **{repo_stats.get('createdAt', '')[:10]}** | **{repo_stats.get('pushedAt', '')[:10]}** |
 
-**Total Contributors:** {len(contributors)}
-
-| Rank | Contributor | Contributions |
-|------|-------------|---------------|
 """
-        
-        # Add top 20 contributors
-        for i, contributor in enumerate(contributors[:20], 1):
-            username = contributor.get('login', 'Unknown')
-            contributions = contributor.get('contributions', 0)
-            content += f"| {i} | {username} | {contributions:,} |\n"
         
         # Traffic Statistics
         total_views = traffic_views.get('count', 0)
@@ -152,15 +136,11 @@ class StatsGenerator:
         total_clones = traffic_clones.get('count', 0)
         unique_cloners = traffic_clones.get('uniques', 0)
         
-        content += f"""
-## Traffic Statistics (Last 14 Days)
+        content += f"""## Traffic Statistics (Last 14 Days)
 
-| Metric | Count |
-|--------|-------|
-| Total Views | {total_views:,} |
-| Unique Visitors | {unique_visitors:,} |
-| Total Clones | {total_clones:,} |
-| Unique Cloners | {unique_cloners:,} |
+| :chart_with_upwards_trend: Total Views | :busts_in_silhouette: Unique Visitors | :arrow_down: Total Clones | :bust_in_silhouette: Unique Cloners |
+|:--------------------------------:|:-------------------------------------:|:------------------------------------:|:------------------------------------:|
+| **{total_views:,}** | **{unique_visitors:,}** | **{total_clones:,}** | **{unique_cloners:,}** |
 
 """
         
@@ -175,7 +155,7 @@ class StatsGenerator:
                 file_path = path.get('path', '')
                 views = path.get('count', 0)
                 uniques = path.get('uniques', 0)
-                content += f"| {i} | {file_path} | {views:,} | {uniques:,} |\n"
+                content += f"| {i} | `{file_path}` | {views:,} | {uniques:,} |\n"
         
         # Traffic Sources
         if referrers:
@@ -213,10 +193,9 @@ class StatsGenerator:
         content += f"""
 ## Issues and Pull Requests
 
-| Type | Open | Closed | Total | Close Rate |
-|------|------|--------|-------|------------|
-| Issues | {issue_stats['open_issues']:,} | {issue_stats['closed_issues']:,} | {total_issues:,} | {issue_close_rate:.1f}% |
-| Pull Requests | {issue_stats['open_prs']:,} | {issue_stats['closed_prs']:,} | {total_prs:,} | {pr_close_rate:.1f}% |
+| :green_circle: Open Issues | :red_circle: Closed Issues | :arrows_counterclockwise: Open PRs | :white_check_mark: Closed PRs |
+|:---------------------------------------:|:-----------------------------------------:|:----------------------------------------:|:--------------------------------------------------:|
+| **{issue_stats['open_issues']:,}** | **{issue_stats['closed_issues']:,}** ({issue_close_rate:.1f}% close rate) | **{issue_stats['open_prs']:,}** | **{issue_stats['closed_prs']:,}** ({pr_close_rate:.1f}% close rate) |
 
 """
         
@@ -233,7 +212,23 @@ class StatsGenerator:
                 name = release.get('name') or release.get('tag_name', 'Unnamed')
                 tag = release.get('tag_name', 'N/A')
                 published = release.get('published_at', '')[:10]
-                content += f"| {name} | {tag} | {published} |\n"
+                content += f"| {name} | `{tag}` | {published} |\n"
+        
+        # Contributors section - moved to bottom
+        content += f"""
+## Contributors
+
+**Total Contributors:** {len(contributors)}
+
+| Rank | Contributor | Contributions |
+|------|-------------|---------------|
+"""
+        
+        # Add top 20 contributors
+        for i, contributor in enumerate(contributors[:20], 1):
+            username = contributor.get('login', 'Unknown')
+            contributions = contributor.get('contributions', 0)
+            content += f"| {i} | {username} | {contributions:,} |\n"
         
         # Write the file
         with mkdocs_gen_files.open("stats.md", "w") as f:

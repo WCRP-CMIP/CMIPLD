@@ -16,6 +16,10 @@ theme:
     - navigation.instant
     - navigation.tracking
     - navigation.instant.progress
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
 
   copyright: CCBY04 2023+ Daniel Ellis for the CMIP-IPO
   palette: 
@@ -66,6 +70,12 @@ markdown_extensions:
   - pymdownx.details
   - attr_list
   - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
