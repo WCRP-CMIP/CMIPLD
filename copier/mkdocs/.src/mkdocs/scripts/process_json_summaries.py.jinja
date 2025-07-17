@@ -6,6 +6,7 @@ Process JSON files at the same level as docs dir and create pretty table documen
 import os
 import sys
 import json
+import re
 from pathlib import Path
 import mkdocs_gen_files
 from datetime import datetime
@@ -119,10 +120,11 @@ def generate_detailed_json_page(json_file, data):
     """Generate a detailed page with main data as table and header at bottom."""
     page_content = f"""# {json_file.stem} - Detailed View
 
-!!! info "File Information"
-    **File Path:** `{json_file.name}`  
-    **File Size:** {json_file.stat().st_size:,} bytes  
-    [View in Git](../../{json_file.name})
+<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+    <strong>File Path:</strong> <code>{json_file.name}</code><br>
+    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
+    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+</div>
 
 """
     
@@ -134,66 +136,23 @@ def generate_detailed_json_page(json_file, data):
             main_data = data[data_key]
             page_content += f"## {format_key_name(data_key)}\n\n"
             
-            # Special handling for dict of dicts (like activity)
+            # Handle different data structures
             if isinstance(main_data, dict) and all(isinstance(v, dict) for v in main_data.values()):
-                # Check if this is experiment_simplified structure
-                if all('description' in v for v in main_data.values() if isinstance(v, dict)):
-                    page_content += format_detailed_experiment_table(main_data)
-                else:
-                    # Create a table with ID column and columns for each dict key
-                    # First, collect all possible keys from all entries
-                    all_keys = set()
-                    for item_data in main_data.values():
-                        if isinstance(item_data, dict):
-                            all_keys.update(item_data.keys())
-                    
-                    # Sort keys for consistent ordering
-                    sorted_keys = sorted(list(all_keys))
-                    
-                    # Create table header
-                    page_content += "| ID | " + " | ".join(format_key_name(k) for k in sorted_keys) + " |\n"
-                    page_content += "|" + "---|" * (len(sorted_keys) + 1) + "\n"
-                    
-                    # Add rows
-                    for item_id, item_data in sorted(main_data.items()):
-                        row = f"| **{item_id}** |"
-                        
-                        if isinstance(item_data, dict):
-                            for key in sorted_keys:
-                                value = item_data.get(key, "")
-                                if isinstance(value, str):
-                                    # Handle URLs specially
-                                    if value.startswith(('http://', 'https://')):
-                                        formatted_value = f"[Link]({value})"
-                                    else:
-                                        formatted_value = value[:100] + ("..." if len(value) > 100 else "")
-                                elif isinstance(value, list):
-                                    formatted_value = f"*{len(value)} items*"
-                                elif value is None or value == "":
-                                    formatted_value = "-"
-                                else:
-                                    formatted_value = str(value)
-                                
-                                formatted_value = formatted_value.replace('|', '\\|')
-                                row += f" {formatted_value} |"
-                        else:
-                            # Non-dict value, just show it as a single column
-                            value_str = str(item_data)[:100] + ("..." if len(str(item_data)) > 100 else "")
-                            row += f" {value_str} |" + " - |" * (len(sorted_keys) - 1)
-                        
-                        page_content += row + "\n"
-            
+                # Case 1: Dictionary of objects - use specialized formatting
+                page_content += format_dict_of_objects_as_table(main_data)
             elif isinstance(main_data, list):
-                page_content += format_list_as_table(main_data)
+                # Case 2: List of objects
+                page_content += format_list_as_table(main_data, flatten_nested=True)
             elif isinstance(main_data, dict):
-                page_content += format_dict_as_table(main_data)
+                # Case 3: Regular dictionary
+                page_content += format_dict_as_table(main_data, flatten_nested=True)
             else:
                 page_content += f"```\n{json.dumps(main_data, indent=2)}\n```\n\n"
     
     elif isinstance(data, list):
         # The entire file is a list
         page_content += "## Data\n\n"
-        page_content += format_list_as_table(data)
+        page_content += format_list_as_table(data, flatten_nested=True)
     
     # Add Header information at the bottom
     if isinstance(data, dict) and 'Header' in data:
@@ -203,7 +162,7 @@ def generate_detailed_json_page(json_file, data):
         if isinstance(header, dict):
             page_content += '<details markdown="1">\n'
             page_content += '<summary><strong>Click to expand version details</strong></summary>\n\n'
-            page_content += format_dict_as_table(header)
+            page_content += format_dict_as_table(header, flatten_nested=True)
             page_content += '\n</details>\n\n'
         else:
             page_content += f"```\n{header}\n```\n\n"
@@ -223,37 +182,21 @@ def generate_json_page(json_file, data):
     """Generate a formatted page for a JSON file."""
     page_content = f"""# {json_file.stem}
 
-!!! info "File Information"
-    **File Path:** `{json_file.name}`  
-    **File Size:** {json_file.stat().st_size:,} bytes  
-    [View in Git](../../{json_file.name})
+<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+    <strong>File Path:</strong> <code>{json_file.name}</code><br>
+    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
+    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
+</div>
 
 """
     
     # Process Header if it exists
     if isinstance(data, dict) and 'Header' in data:
         header = data['Header']
-        
-        # Extract generation date and put in info box
-        generation_date = "Unknown"
-        if isinstance(header, dict):
-            # Look for date fields
-            date_fields = ['file_creation_date', 'creation_date', 'generated_date', 'date']
-            for field in date_fields:
-                if field in header:
-                    generation_date = str(header[field])
-                    break
-        
-        page_content += f"""!!! note "Generation Information"
-    **Generated on:** {generation_date}  
-    **File Version:** {header.get('version', 'Unknown') if isinstance(header, dict) else 'Unknown'}
-
-"""
-        
         page_content += "## Header Information\n\n"
         
         if isinstance(header, dict):
-            page_content += format_dict_as_table(header)
+            page_content += format_dict_as_table(header, flatten_nested=True)
         else:
             page_content += f"```\n{header}\n```\n\n"
     
@@ -269,14 +212,13 @@ def generate_json_page(json_file, data):
             
             page_content += f"## {format_key_name(data_key).title()}\n\n"
             
-            # Special handling for experiment_simplified structure
-            if isinstance(main_data, dict) and all(isinstance(v, dict) and 'description' in v for v in main_data.values()):
-                page_content += format_experiment_table(main_data)
-            # Process the main data based on its type
+            # Handle the main data - check if it's a dict of objects or list of objects
+            if isinstance(main_data, dict):
+                # Case 1: Dictionary of objects {'name': {col1:, col2:...}, 'name1': {}}
+                page_content += format_dict_of_objects_as_table(main_data)
             elif isinstance(main_data, list):
-                page_content += format_list_as_table(main_data)
-            elif isinstance(main_data, dict):
-                page_content += format_dict_as_table(main_data)
+                # Case 2: List of objects [{name1, col1:, col2:...}, {names...}]
+                page_content += format_list_as_table(main_data, flatten_nested=True)
             else:
                 page_content += f"```\n{json.dumps(main_data, indent=2)}\n```\n\n"
         
@@ -287,10 +229,12 @@ def generate_json_page(json_file, data):
                 page_content += f"### {format_key_name(key)}\n\n"
                 
                 value = data[key]
-                if isinstance(value, list):
-                    page_content += format_list_as_table(value)
-                elif isinstance(value, dict):
-                    page_content += format_dict_as_table(value)
+                if isinstance(value, dict):
+                    # Case 1: Dictionary of objects
+                    page_content += format_dict_of_objects_as_table(value)
+                elif isinstance(value, list):
+                    # Case 2: List of objects
+                    page_content += format_list_as_table(value, flatten_nested=True)
                 else:
                     page_content += f"```\n{json.dumps(value, indent=2)}\n```\n\n"
     
@@ -316,11 +260,144 @@ def generate_json_page(json_file, data):
     return page_content
 
 
-def format_dict_as_table(data):
+def format_dict_of_objects_as_table(data):
+    """Format a dictionary of objects as a table with names as first column.
+    
+    Handles structures like:
+    {
+        'name1': {'col1': 'val1', 'col2': 'val2'},
+        'name2': {'col1': 'val3', 'col2': 'val4'}
+    }
+    """
+    if not data:
+        return "*No data*\n\n"
+    
+    # Check if all values are dictionaries
+    if not all(isinstance(v, dict) for v in data.values()):
+        # Fall back to regular dict formatting if not all values are dicts
+        return format_dict_as_table(data, flatten_nested=True)
+    
+    # Collect all possible keys from all objects
+    all_keys = set()
+    flattened_objects = {}
+    
+    for name, obj in data.items():
+        if isinstance(obj, dict):
+            flattened = flatten_dict(obj)
+            flattened_objects[name] = flattened
+            all_keys.update(flattened.keys())
+    
+    # Sort keys for consistent ordering
+    keys = sorted(list(all_keys))
+    
+    # If too many columns, limit to most common ones
+    if len(keys) > 15:
+        # Count frequency of keys
+        key_counts = {}
+        for key in keys:
+            key_counts[key] = sum(1 for obj in flattened_objects.values() 
+                                 if key in obj and obj[key] is not None and str(obj[key]).strip())
+        # Sort by frequency and take top 15
+        keys = sorted(keys, key=lambda k: key_counts[k], reverse=True)[:15]
+    
+    # Create table header
+    table = "| Name | " + " | ".join(format_key_name(k) for k in keys) + " |\n"
+    table += "|---|" + "|".join("---" for _ in keys) + "|\n"
+    
+    # Add rows
+    for name in sorted(data.keys()):
+        obj = flattened_objects.get(name, {})
+        row = f"| **{name}** |"
+        
+        for key in keys:
+            value = obj.get(key, "")
+            formatted_value = format_cell_value(value)
+            row += f" {formatted_value} |"
+        
+        table += row + "\n"
+    
+    # Add summary info
+    table += f"\n*{len(data)} entries with {len(keys)} columns*\n"
+    
+    return table + "\n"
+
+
+def format_dict_as_table(data, flatten_nested=True):
     """Format a dictionary as a markdown table."""
     if not data:
         return "*No data*\n\n"
     
+    if flatten_nested:
+        # Flatten nested objects into columns
+        flattened = flatten_dict(data)
+        return format_flattened_dict_table(flattened)
+    else:
+        # Original behavior
+        return format_dict_as_table_original(data)
+
+def flatten_dict(data, parent_key='', sep='.'):
+    """Flatten a nested dictionary into a single level."""
+    items = []
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+        
+        if isinstance(value, dict):
+            items.extend(flatten_dict(value, new_key, sep=sep).items())
+        elif isinstance(value, list):
+            # Handle lists by creating indexed entries or summarizing
+            if len(value) > 0 and isinstance(value[0], dict):
+                # List of dicts - create summary
+                items.append((new_key, f"List of {len(value)} objects"))
+                # Optionally flatten first few items
+                for i, item in enumerate(value[:3]):
+                    if isinstance(item, dict):
+                        items.extend(flatten_dict(item, f"{new_key}[{i}]", sep=sep).items())
+            else:
+                # Simple list
+                items.append((new_key, str(value)))
+        else:
+            items.append((new_key, value))
+    
+    return dict(items)
+
+def format_flattened_dict_table(flattened_data):
+    """Format flattened dictionary data as a table."""
+    table = "| Property | Value |\n"
+    table += "|----------|-------|\n"
+    
+    for key, value in sorted(flattened_data.items()):
+        # Format the key
+        formatted_key = format_key_name(key)
+        
+        # Format the value using the same escaping as cells
+        if value is None:
+            formatted_value = "*None*"
+        elif isinstance(value, bool):
+            formatted_value = "✓" if value else "✗"
+        else:
+            str_value = str(value)
+            
+            # Handle URLs specially
+            if str_value.startswith(('http://', 'https://')):
+                if len(str_value) > 100:
+                    display_url = str_value[:97] + "..."
+                    formatted_value = f"[{display_url}]({str_value})"
+                else:
+                    formatted_value = f"[{str_value}]({str_value})"
+            else:
+                # Escape and clean the content
+                formatted_value = escape_markdown_content(str_value)
+                
+                # Truncate long values
+                if len(formatted_value) > 200:
+                    formatted_value = formatted_value[:200] + "..."
+        
+        table += f"| {formatted_key} | {formatted_value} |\n"
+    
+    return table + "\n"
+
+def format_dict_as_table_original(data):
+    """Original format_dict_as_table function."""
     # Check if all values are simple types
     all_simple = all(isinstance(v, (str, int, float, bool, type(None))) for v in data.values())
     
@@ -333,18 +410,28 @@ def format_dict_as_table(data):
             # Format the key
             formatted_key = format_key_name(key)
             
-            # Format the value
+            # Format the value with proper escaping
             if value is None:
                 formatted_value = "*None*"
             elif isinstance(value, bool):
                 formatted_value = "✓" if value else "✗"
             else:
-                formatted_value = str(value)
-                # Escape pipe characters
-                formatted_value = formatted_value.replace('|', '\\|')
-                # Truncate long values
-                if len(formatted_value) > 100:
-                    formatted_value = formatted_value[:100] + "..."
+                str_value = str(value)
+                
+                # Handle URLs specially
+                if str_value.startswith(('http://', 'https://')):
+                    if len(str_value) > 100:
+                        display_url = str_value[:97] + "..."
+                        formatted_value = f"[{display_url}]({str_value})"
+                    else:
+                        formatted_value = f"[{str_value}]({str_value})"
+                else:
+                    # Escape and clean the content
+                    formatted_value = escape_markdown_content(str_value)
+                    
+                    # Truncate long values
+                    if len(formatted_value) > 100:
+                        formatted_value = formatted_value[:100] + "..."
             
             table += f"| {formatted_key} | {formatted_value} |\n"
     else:
@@ -360,164 +447,235 @@ def format_dict_as_table(data):
             elif isinstance(value, list):
                 summary = f"{len(value)} items"
             elif isinstance(value, (str, int, float)):
-                summary = str(value)[:50] + ("..." if len(str(value)) > 50 else "")
+                str_value = str(value)
+                # Escape the summary content too
+                summary = escape_markdown_content(str_value)
+                if len(summary) > 50:
+                    summary = summary[:50] + "..."
             else:
                 summary = str(type(value).__name__)
             
-            summary = summary.replace('|', '\\|')
             table += f"| {formatted_key} | {type(value).__name__} | {summary} |\n"
     
     return table + "\n"
 
 
-def format_list_as_table(data):
+def format_list_as_table(data, flatten_nested=True):
     """Format a list as a markdown table."""
     if not data:
         return "*Empty list*\n\n"
     
-    # Check if all items are dictionaries with the same keys
+    # Check if all items are dictionaries
     if all(isinstance(item, dict) for item in data):
-        # Get all unique keys from all dictionaries
-        all_keys = set()
-        for item in data:
-            all_keys.update(item.keys())
-        
-        # Sort keys for consistent ordering
-        keys = sorted(list(all_keys))
-        
-        # If too many columns, limit to most common ones
-        if len(keys) > 8:
-            # Count frequency of keys
-            key_counts = {}
-            for key in keys:
-                key_counts[key] = sum(1 for item in data if key in item)
-            # Sort by frequency and take top 8
-            keys = sorted(keys, key=lambda k: key_counts[k], reverse=True)[:8]
-        
-        # Create table header
-        table = "| # | " + " | ".join(format_key_name(k) for k in keys) + " |\n"
-        table += "|---|" + "|".join("---" for _ in keys) + "|\n"
-        
-        # Add rows (limit to first 100 for very large lists)
-        for i, item in enumerate(data[:100]):
-            row = f"| {i+1} |"
-            for key in keys:
-                value = item.get(key, "")
-                if value is None:
-                    formatted_value = "*None*"
-                elif isinstance(value, bool):
-                    formatted_value = "✓" if value else "✗"
-                elif isinstance(value, (list, dict)):
-                    formatted_value = f"*{type(value).__name__}*"
-                else:
-                    formatted_value = str(value)[:30]
-                    if len(str(value)) > 30:
-                        formatted_value += "..."
-                
-                formatted_value = formatted_value.replace('|', '\\|')
-                row += f" {formatted_value} |"
-            
-            table += row + "\n"
-        
-        if len(data) > 100:
-            table += f"\n*Showing first 100 of {len(data)} items*\n"
-    
+        if flatten_nested:
+            return format_list_of_dicts_flattened(data)
+        else:
+            return format_list_of_dicts_original(data)
     else:
         # List of non-dictionary items
-        table = "| # | Value | Type |\n"
-        table += "|---|-------|------|\n"
-        
-        for i, item in enumerate(data[:100]):
-            if isinstance(item, (str, int, float, bool)):
-                value_str = str(item)[:100]
-                if len(str(item)) > 100:
-                    value_str += "..."
-            else:
-                value_str = f"*{type(item).__name__} object*"
-            
-            value_str = value_str.replace('|', '\\|')
-            table += f"| {i+1} | {value_str} | {type(item).__name__} |\n"
-        
-        if len(data) > 100:
-            table += f"\n*Showing first 100 of {len(data)} items*\n"
+        return format_simple_list_table(data)
+
+def format_list_of_dicts_flattened(data):
+    """Format list of dictionaries with flattened nested objects."""
+    # First, flatten all dictionaries and collect all possible keys
+    flattened_items = []
+    all_keys = set()
     
-    return table + "\n"
-
-
-def format_detailed_experiment_table(data):
-    """Format experiment data with full descriptions for detailed view."""
-    if not data:
-        return "*No data*\n\n"
+    for item in data:
+        flattened = flatten_dict(item)
+        flattened_items.append(flattened)
+        all_keys.update(flattened.keys())
+    
+    # Sort keys for consistent ordering
+    keys = sorted(list(all_keys))
+    
+    # If too many columns, limit to most common ones
+    if len(keys) > 12:
+        # Count frequency of keys
+        key_counts = {}
+        for key in keys:
+            key_counts[key] = sum(1 for item in flattened_items if key in item and item[key] is not None and str(item[key]).strip())
+        # Sort by frequency and take top 12
+        keys = sorted(keys, key=lambda k: key_counts[k], reverse=True)[:12]
     
     # Create table header
-    table = "| Experiment ID | Full Description |\n"
-    table += "|---------------|------------------|\n"
+    table = "| # | " + " | ".join(format_key_name(k) for k in keys) + " |\n"
+    table += "|---|" + "|".join("---" for _ in keys) + "|\n"
     
-    # Add rows
-    for exp_id, exp_data in sorted(data.items()):
-        if isinstance(exp_data, dict) and 'description' in exp_data:
-            description = exp_data['description']
-            
-            # Clean up the description but keep more detail for detailed view
-            if isinstance(description, str):
-                # Remove excessive newlines and clean formatting
-                clean_desc = ' '.join(description.split())
-                
-                # For detailed view, show more text (up to 500 chars)
-                if len(clean_desc) > 500:
-                    clean_desc = clean_desc[:500] + "..."
-                
-                # Escape pipe characters
-                clean_desc = clean_desc.replace('|', '\\|')
-            else:
-                clean_desc = str(description)
-            
-            table += f"| **{exp_id}** | {clean_desc} |\n"
-        else:
-            # Fallback for non-standard structure
-            table += f"| **{exp_id}** | *Complex data structure* |\n"
+    # Add rows (limit to first 100 for very large lists)
+    for i, item in enumerate(flattened_items[:100]):
+        row = f"| {i+1} |"
+        for key in keys:
+            value = item.get(key, "")
+            formatted_value = format_cell_value(value)
+            row += f" {formatted_value} |"
+        
+        table += row + "\n"
+    
+    if len(data) > 100:
+        table += f"\n*Showing first 100 of {len(data)} items*\n"
     
     return table + "\n"
 
-
-def format_experiment_table(data):
-    """Format experiment data with descriptions into a clean table."""
-    if not data:
-        return "*No data*\n\n"
+def format_list_of_dicts_original(data):
+    """Original format for list of dictionaries."""
+    # Get all unique keys from all dictionaries
+    all_keys = set()
+    for item in data:
+        all_keys.update(item.keys())
+    
+    # Sort keys for consistent ordering
+    keys = sorted(list(all_keys))
+    
+    # If too many columns, limit to most common ones
+    if len(keys) > 8:
+        # Count frequency of keys
+        key_counts = {}
+        for key in keys:
+            key_counts[key] = sum(1 for item in data if key in item)
+        # Sort by frequency and take top 8
+        keys = sorted(keys, key=lambda k: key_counts[k], reverse=True)[:8]
     
     # Create table header
-    table = "| Experiment ID | Description |\n"
-    table += "|---------------|-------------|\n"
+    table = "| # | " + " | ".join(format_key_name(k) for k in keys) + " |\n"
+    table += "|---|" + "|".join("---" for _ in keys) + "|\n"
     
-    # Add rows
-    for exp_id, exp_data in sorted(data.items()):
-        if isinstance(exp_data, dict) and 'description' in exp_data:
-            description = exp_data['description']
-            
-            # Clean up the description
-            if isinstance(description, str):
-                # Remove excessive newlines and clean formatting
-                clean_desc = ' '.join(description.split())
-                
-                # Truncate if too long for summary view
-                if len(clean_desc) > 200:
-                    clean_desc = clean_desc[:200] + "..."
-                
-                # Escape pipe characters
-                clean_desc = clean_desc.replace('|', '\\|')
-            else:
-                clean_desc = str(description)
-            
-            table += f"| **{exp_id}** | {clean_desc} |\n"
-        else:
-            # Fallback for non-standard structure
-            table += f"| **{exp_id}** | *Complex data structure* |\n"
+    # Add rows (limit to first 100 for very large lists)
+    for i, item in enumerate(data[:100]):
+        row = f"| {i+1} |"
+        for key in keys:
+            value = item.get(key, "")
+            formatted_value = format_cell_value(value)
+            row += f" {formatted_value} |"
+        
+        table += row + "\n"
+    
+    if len(data) > 100:
+        table += f"\n*Showing first 100 of {len(data)} items*\n"
     
     return table + "\n"
+
+def format_simple_list_table(data):
+    """Format a simple list (non-dictionary items) as a table."""
+    table = "| # | Value | Type |\n"
+    table += "|---|-------|------|\n"
+    
+    for i, item in enumerate(data[:100]):
+        if isinstance(item, (str, int, float, bool)):
+            str_value = str(item)
+            
+            # Handle URLs specially
+            if str_value.startswith(('http://', 'https://')):
+                if len(str_value) > 100:
+                    display_url = str_value[:97] + "..."
+                    value_str = f"[{display_url}]({str_value})"
+                else:
+                    value_str = f"[{str_value}]({str_value})"
+            else:
+                # Escape and clean the content
+                value_str = escape_markdown_content(str_value)
+                if len(value_str) > 100:
+                    value_str = value_str[:100] + "..."
+        else:
+            value_str = f"*{type(item).__name__} object*"
+        
+        table += f"| {i+1} | {value_str} | {type(item).__name__} |\n"
+    
+    if len(data) > 100:
+        table += f"\n*Showing first 100 of {len(data)} items*\n"
+    
+    return table + "\n"
+
+def format_cell_value(value):
+    """Format a single cell value for display in a table."""
+    if value is None or value == "":
+        return "*None*"
+    elif isinstance(value, bool):
+        return "✓" if value else "✗"
+    elif isinstance(value, (list, dict)):
+        return f"*{type(value).__name__}*"
+    else:
+        str_value = str(value)
+        
+        # Handle URLs specially - create clickable links
+        if str_value.startswith(('http://', 'https://')):
+            # Truncate very long URLs for display
+            if len(str_value) > 50:
+                display_url = str_value[:47] + "..."
+                return f"[{display_url}]({str_value})"
+            else:
+                return f"[{str_value}]({str_value})"
+        
+        # Escape and clean the content for markdown table display
+        formatted_value = escape_markdown_content(str_value)
+        
+        # Truncate long values
+        if len(formatted_value) > 50:
+            formatted_value = formatted_value[:50] + "..."
+        
+        return formatted_value
+
+def escape_markdown_content(text):
+    """Escape content for safe display in markdown tables."""
+    if not text:
+        return text
+    
+    # Convert to string if not already
+    content = str(text)
+    
+    # Replace newlines with spaces to prevent table breaking
+    content = content.replace('\n', ' ').replace('\r', ' ')
+    
+    # Replace multiple spaces with single space
+    content = re.sub(r'\s+', ' ', content)
+    
+    # Escape HTML tags by converting < and > to HTML entities
+    content = content.replace('<', '&lt;').replace('>', '&gt;')
+    
+    # Escape markdown special characters that could break tables
+    content = content.replace('|', '\\|')  # Pipe characters break table formatting
+    content = content.replace('`', '\\`')  # Backticks can start code blocks
+    content = content.replace('*', '\\*')  # Asterisks can start bold/italic
+    content = content.replace('_', '\\_')  # Underscores can start italic
+    content = content.replace('[', '\\[')  # Square brackets can start links
+    content = content.replace(']', '\\]')  # Square brackets can end links
+    content = content.replace('(', '\\(')  # Parentheses can be part of links
+    content = content.replace(')', '\\)')  # Parentheses can be part of links
+    content = content.replace('#', '\\#')  # Hash can start headers
+    content = content.replace('&', '&amp;')  # Ampersands should be escaped
+    
+    # Handle quotes that might interfere with markdown
+    content = content.replace('"', '&quot;')
+    content = content.replace("'", '&#39;')
+    
+    # Remove any remaining control characters
+    content = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', content)
+    
+    # Strip leading/trailing whitespace
+    content = content.strip()
+    
+    return content
 
 
 def format_key_name(key):
     """Format a key name for display."""
+    # Handle dot notation from flattened keys
+    if '.' in key:
+        # Split by dots and format each part
+        parts = key.split('.')
+        formatted_parts = []
+        for part in parts:
+            # Handle array indices like [0], [1]
+            if part.startswith('[') and part.endswith(']'):
+                formatted_parts.append(part)
+            else:
+                formatted_parts.append(format_single_key_name(part))
+        return ' → '.join(formatted_parts)
+    else:
+        return format_single_key_name(key)
+
+def format_single_key_name(key):
+    """Format a single key name (no dots)."""
     # Convert snake_case or camelCase to Title Case
     # Handle snake_case
     if '_' in key:
@@ -533,7 +691,7 @@ def format_key_name(key):
                 result += c
         return result
     else:
-        return key
+        return key.capitalize()
 
 
 # # Call the main function

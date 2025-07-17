@@ -170,8 +170,8 @@ for subdir in sorted(subdirs):
             with open(readme_path, 'r', encoding='utf-8', newline=None) as f:
                 readme_content = f.read()
                 readme_content = section.sub('',readme_content)    
-                print(readme_content, file=sys.stderr)
-            print(f"   ✅ Found README.md", file=sys.stderr)
+                # print(readme_content, file=sys.stderr)
+            # print(f"   ✅ Found README.md", file=sys.stderr)
         except Exception as e:
             print(f"   ❌ Error reading README.md: {e}", file=sys.stderr)
     

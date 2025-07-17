@@ -42,6 +42,7 @@ plugins:
   - search
   - gen-files:
       scripts:
+        - scripts/copy_static_assets.py  # Copy JavaScript and CSS files
         - scripts/process_src_data_robust.py  # Robust path checking version
         - scripts/process_json_summaries.py  # Process JSON files for data summaries
 {% if generate_repo_stats %}
@@ -63,6 +64,7 @@ extra_css:
   - stylesheets/extra.css
 
 extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
   - scripts/embed.js
 
 markdown_extensions:
