@@ -33,6 +33,8 @@ def parse_arguments():
                        help='Header color theme (overrides saved color)')
     parser.add_argument('--no-confirm', action='store_true',
                        help='Skip confirmation prompts (for automation)')
+    parser.add_argument('--quiet', action='store_true',
+                       help='Reduce output verbosity (no README content display)')
     return parser.parse_args()
 
 
@@ -122,7 +124,7 @@ def get_remote_info():
     return None, None
 
 
-def read_readme_content():
+def read_readme_content(quiet=False):
     """Read README.md content or return fallback message."""
     readme_files = ['./README.md', './readme.md', './Readme.md']
     
@@ -133,14 +135,17 @@ def read_readme_content():
                 with open(readme_path, 'r', encoding='utf-8') as f:
                     content = f.read().strip()
                 
-                print(f"✅ Found README: {readme_file} ({len(content)} chars)")
+                if not quiet:
+                    print(f"✅ Found README: {readme_file} ({len(content)} chars)")
                 return content
                 
             except Exception as e:
-                print(f"⚠️  Error reading {readme_file}: {e}")
+                if not quiet:
+                    print(f"⚠️  Error reading {readme_file}: {e}")
                 continue
     
-    print("⚠️  No README.md found")
+    if not quiet:
+        print("⚠️  No README.md found")
     return "Documentation content - please update this section"
 
 
@@ -353,7 +358,7 @@ def create_new_configuration(args):
         repo_name = Path.cwd().name
     
     project_name = repo_name.replace('-', ' ').replace('_', ' ').title()
-    readme_content = read_readme_content()
+    readme_content = read_readme_content(quiet=args.quiet)
     
     # Select color
     if args.color:
@@ -387,12 +392,13 @@ def create_new_configuration(args):
         'static_files_folder': 'static_output'
     }
     
-    print("\\n📋 Configuration:")
-    for key, value in data.items():
-        if key == 'readme_content':
-            print(f"   {key}: {str(value)[:50]}...")
-        else:
-            print(f"   {key}: {value}")
+    if not args.quiet:
+        print("\\n📋 Configuration:")
+        for key, value in data.items():
+            if key == 'readme_content':
+                print(f"   {key}: {str(value)[:50]}...")
+            else:
+                print(f"   {key}: {value}")
     
     return data
 
@@ -400,6 +406,11 @@ def create_new_configuration(args):
 def print_next_steps(data):
     """Print next steps after successful generation."""
     print("\\n✅ Project generated successfully!")
+    
+    # Show configuration info
+    print(f"   🎨 Theme color: {data.get('header_color', 'blue')}")
+    print(f"   👤 Repository: {data.get('github_username', 'unknown')}/{data.get('repo_name', 'unknown')}")
+    
     print("\\n📝 Next steps:")
     print("   1. mkdocs serve                     # Start development server")
     print("   2. mkdocs gh-deploy                 # Deploy to GitHub Pages")
@@ -416,8 +427,9 @@ def print_next_steps(data):
     if not Path(json_folder).exists():
         print(f"\\n💡 Tip: Create {json_folder}/ folder and add .json files for auto-generated pages")
     
-    print(f"\\n🎨 Theme color: {data.get('header_color', 'blue')}")
-    print(f"💾 Configuration saved to .copier-answers.yml")
+    print(f"\\n💾 Configuration saved to .copier-answers.yml")
+    print(f"   🔄 Next run will automatically reuse this configuration")
+    print(f"   🆕 Use --create-new flag to force clean install")
 
 
 def main():

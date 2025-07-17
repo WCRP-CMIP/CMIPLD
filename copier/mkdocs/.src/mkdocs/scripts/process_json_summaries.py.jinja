@@ -119,11 +119,10 @@ def generate_detailed_json_page(json_file, data):
     """Generate a detailed page with main data as table and header at bottom."""
     page_content = f"""# {json_file.stem} - Detailed View
 
-<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
-    <strong>File Path:</strong> <code>{json_file.name}</code><br>
-    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
-    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
-</div>
+!!! info "File Information"
+    **File Path:** `{json_file.name}`  
+    **File Size:** {json_file.stat().st_size:,} bytes  
+    [View in Git](../../{json_file.name})
 
 """
     
@@ -137,48 +136,52 @@ def generate_detailed_json_page(json_file, data):
             
             # Special handling for dict of dicts (like activity)
             if isinstance(main_data, dict) and all(isinstance(v, dict) for v in main_data.values()):
-                # Create a table with ID column and columns for each dict key
-                # First, collect all possible keys from all entries
-                all_keys = set()
-                for item_data in main_data.values():
-                    if isinstance(item_data, dict):
-                        all_keys.update(item_data.keys())
-                
-                # Sort keys for consistent ordering
-                sorted_keys = sorted(list(all_keys))
-                
-                # Create table header
-                page_content += "| ID | " + " | ".join(format_key_name(k) for k in sorted_keys) + " |\n"
-                page_content += "|" + "---|" * (len(sorted_keys) + 1) + "\n"
-                
-                # Add rows
-                for item_id, item_data in sorted(main_data.items()):
-                    row = f"| **{item_id}** |"
+                # Check if this is experiment_simplified structure
+                if all('description' in v for v in main_data.values() if isinstance(v, dict)):
+                    page_content += format_detailed_experiment_table(main_data)
+                else:
+                    # Create a table with ID column and columns for each dict key
+                    # First, collect all possible keys from all entries
+                    all_keys = set()
+                    for item_data in main_data.values():
+                        if isinstance(item_data, dict):
+                            all_keys.update(item_data.keys())
                     
-                    if isinstance(item_data, dict):
-                        for key in sorted_keys:
-                            value = item_data.get(key, "")
-                            if isinstance(value, str):
-                                # Handle URLs specially
-                                if value.startswith(('http://', 'https://')):
-                                    formatted_value = f"[Link]({value})"
+                    # Sort keys for consistent ordering
+                    sorted_keys = sorted(list(all_keys))
+                    
+                    # Create table header
+                    page_content += "| ID | " + " | ".join(format_key_name(k) for k in sorted_keys) + " |\n"
+                    page_content += "|" + "---|" * (len(sorted_keys) + 1) + "\n"
+                    
+                    # Add rows
+                    for item_id, item_data in sorted(main_data.items()):
+                        row = f"| **{item_id}** |"
+                        
+                        if isinstance(item_data, dict):
+                            for key in sorted_keys:
+                                value = item_data.get(key, "")
+                                if isinstance(value, str):
+                                    # Handle URLs specially
+                                    if value.startswith(('http://', 'https://')):
+                                        formatted_value = f"[Link]({value})"
+                                    else:
+                                        formatted_value = value[:100] + ("..." if len(value) > 100 else "")
+                                elif isinstance(value, list):
+                                    formatted_value = f"*{len(value)} items*"
+                                elif value is None or value == "":
+                                    formatted_value = "-"
                                 else:
-                                    formatted_value = value[:100] + ("..." if len(value) > 100 else "")
-                            elif isinstance(value, list):
-                                formatted_value = f"*{len(value)} items*"
-                            elif value is None or value == "":
-                                formatted_value = "-"
-                            else:
-                                formatted_value = str(value)
-                            
-                            formatted_value = formatted_value.replace('|', '\\|')
-                            row += f" {formatted_value} |"
-                    else:
-                        # Non-dict value, just show it as a single column
-                        value_str = str(item_data)[:100] + ("..." if len(str(item_data)) > 100 else "")
-                        row += f" {value_str} |" + " - |" * (len(sorted_keys) - 1)
-                    
-                    page_content += row + "\n"
+                                    formatted_value = str(value)
+                                
+                                formatted_value = formatted_value.replace('|', '\\|')
+                                row += f" {formatted_value} |"
+                        else:
+                            # Non-dict value, just show it as a single column
+                            value_str = str(item_data)[:100] + ("..." if len(str(item_data)) > 100 else "")
+                            row += f" {value_str} |" + " - |" * (len(sorted_keys) - 1)
+                        
+                        page_content += row + "\n"
             
             elif isinstance(main_data, list):
                 page_content += format_list_as_table(main_data)
@@ -220,17 +223,33 @@ def generate_json_page(json_file, data):
     """Generate a formatted page for a JSON file."""
     page_content = f"""# {json_file.stem}
 
-<div class="file-info" style="background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
-    <strong>File Path:</strong> <code>{json_file.name}</code><br>
-    <strong>File Size:</strong> {json_file.stat().st_size:,} bytes<br>
-    <a href="../../{json_file.name}" class="md-button md-button--primary" style="margin-top: 10px;">View in Git</a>
-</div>
+!!! info "File Information"
+    **File Path:** `{json_file.name}`  
+    **File Size:** {json_file.stat().st_size:,} bytes  
+    [View in Git](../../{json_file.name})
 
 """
     
     # Process Header if it exists
     if isinstance(data, dict) and 'Header' in data:
         header = data['Header']
+        
+        # Extract generation date and put in info box
+        generation_date = "Unknown"
+        if isinstance(header, dict):
+            # Look for date fields
+            date_fields = ['file_creation_date', 'creation_date', 'generated_date', 'date']
+            for field in date_fields:
+                if field in header:
+                    generation_date = str(header[field])
+                    break
+        
+        page_content += f"""!!! note "Generation Information"
+    **Generated on:** {generation_date}  
+    **File Version:** {header.get('version', 'Unknown') if isinstance(header, dict) else 'Unknown'}
+
+"""
+        
         page_content += "## Header Information\n\n"
         
         if isinstance(header, dict):
@@ -250,8 +269,11 @@ def generate_json_page(json_file, data):
             
             page_content += f"## {format_key_name(data_key).title()}\n\n"
             
+            # Special handling for experiment_simplified structure
+            if isinstance(main_data, dict) and all(isinstance(v, dict) and 'description' in v for v in main_data.values()):
+                page_content += format_experiment_table(main_data)
             # Process the main data based on its type
-            if isinstance(main_data, list):
+            elif isinstance(main_data, list):
                 page_content += format_list_as_table(main_data)
             elif isinstance(main_data, dict):
                 page_content += format_dict_as_table(main_data)
@@ -418,6 +440,78 @@ def format_list_as_table(data):
         
         if len(data) > 100:
             table += f"\n*Showing first 100 of {len(data)} items*\n"
+    
+    return table + "\n"
+
+
+def format_detailed_experiment_table(data):
+    """Format experiment data with full descriptions for detailed view."""
+    if not data:
+        return "*No data*\n\n"
+    
+    # Create table header
+    table = "| Experiment ID | Full Description |\n"
+    table += "|---------------|------------------|\n"
+    
+    # Add rows
+    for exp_id, exp_data in sorted(data.items()):
+        if isinstance(exp_data, dict) and 'description' in exp_data:
+            description = exp_data['description']
+            
+            # Clean up the description but keep more detail for detailed view
+            if isinstance(description, str):
+                # Remove excessive newlines and clean formatting
+                clean_desc = ' '.join(description.split())
+                
+                # For detailed view, show more text (up to 500 chars)
+                if len(clean_desc) > 500:
+                    clean_desc = clean_desc[:500] + "..."
+                
+                # Escape pipe characters
+                clean_desc = clean_desc.replace('|', '\\|')
+            else:
+                clean_desc = str(description)
+            
+            table += f"| **{exp_id}** | {clean_desc} |\n"
+        else:
+            # Fallback for non-standard structure
+            table += f"| **{exp_id}** | *Complex data structure* |\n"
+    
+    return table + "\n"
+
+
+def format_experiment_table(data):
+    """Format experiment data with descriptions into a clean table."""
+    if not data:
+        return "*No data*\n\n"
+    
+    # Create table header
+    table = "| Experiment ID | Description |\n"
+    table += "|---------------|-------------|\n"
+    
+    # Add rows
+    for exp_id, exp_data in sorted(data.items()):
+        if isinstance(exp_data, dict) and 'description' in exp_data:
+            description = exp_data['description']
+            
+            # Clean up the description
+            if isinstance(description, str):
+                # Remove excessive newlines and clean formatting
+                clean_desc = ' '.join(description.split())
+                
+                # Truncate if too long for summary view
+                if len(clean_desc) > 200:
+                    clean_desc = clean_desc[:200] + "..."
+                
+                # Escape pipe characters
+                clean_desc = clean_desc.replace('|', '\\|')
+            else:
+                clean_desc = str(description)
+            
+            table += f"| **{exp_id}** | {clean_desc} |\n"
+        else:
+            # Fallback for non-standard structure
+            table += f"| **{exp_id}** | *Complex data structure* |\n"
     
     return table + "\n"
 
