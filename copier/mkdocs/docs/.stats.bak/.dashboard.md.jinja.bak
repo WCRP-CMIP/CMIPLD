@@ -1,0 +1,132 @@
+# Repository Statistics Dashboard
+
+!!! info "About This Page"
+    This page provides an overview of repository statistics and metrics. 
+    {% if generate_repo_stats %}
+    Statistics are updated {{ stats_update_schedule }}.
+    {% endif %}
+
+## Quick Links
+
+<div class="grid cards" markdown>
+
+-   :octicons-star-24:{ .lg .middle } **Stars**
+
+    ---
+
+    Track the popularity of the repository through GitHub stars.
+
+    [:octicons-arrow-right-24: View Stargazers]({{ repo_url }}/stargazers)
+
+-   :octicons-git-branch-24:{ .lg .middle } **Contributors**
+
+    ---
+
+    See who's contributing to the project.
+
+    [:octicons-arrow-right-24: View Contributors]({{ repo_url }}/graphs/contributors)
+
+-   :octicons-issue-opened-24:{ .lg .middle } **Issues**
+
+    ---
+
+    Track open issues and feature requests.
+
+    [:octicons-arrow-right-24: View Issues]({{ repo_url }}/issues)
+
+-   :octicons-git-pull-request-24:{ .lg .middle } **Pull Requests**
+
+    ---
+
+    Review pending contributions.
+
+    [:octicons-arrow-right-24: View PRs]({{ repo_url }}/pulls)
+
+</div>
+
+## Repository Insights
+
+<div class="grid cards" markdown>
+
+-   :octicons-graph-24:{ .lg .middle } **Code Frequency**
+
+    ---
+
+    Visualize code additions and deletions over time.
+
+    [:octicons-arrow-right-24: View Graph]({{ repo_url }}/graphs/code-frequency)
+
+-   :octicons-pulse-24:{ .lg .middle } **Pulse**
+
+    ---
+
+    Get a summary of repository activity.
+
+    [:octicons-arrow-right-24: View Pulse]({{ repo_url }}/pulse)
+
+-   :octicons-people-24:{ .lg .middle } **Community**
+
+    ---
+
+    See community engagement metrics.
+
+    [:octicons-arrow-right-24: View Community]({{ repo_url }}/community)
+
+-   :octicons-shield-24:{ .lg .middle } **Security**
+
+    ---
+
+    Review security policies and advisories.
+
+    [:octicons-arrow-right-24: View Security]({{ repo_url }}/security)
+
+</div>
+
+{% if generate_repo_stats %}
+## Automated Statistics
+
+The following statistics are automatically generated and updated {{ stats_update_schedule }}:
+
+- [View Full Statistics Report](./index.md)
+
+### Available Metrics
+
+{% if include_traffic_stats %}
+- **Traffic Analytics**: Page views, unique visitors, and popular content
+- **Referrer Analysis**: Where visitors are coming from
+- **Popular Files**: Most viewed files and documentation
+{% endif %}
+- **Contributor Statistics**: Top contributors and contribution graphs
+- **Language Breakdown**: Programming language distribution
+- **Release Metrics**: Download counts and release frequency
+- **Issue & PR Metrics**: Open/closed ratios and response times
+- **Commit Activity**: Contribution patterns and trends
+
+{% endif %}
+
+## External Analytics
+
+### GitHub Insights
+
+- [Repository Insights]({{ repo_url }}/network/dependencies) - Dependency graph and insights
+- [Traffic Analytics]({{ repo_url }}/graphs/traffic) - Requires repository access
+- [Clone Analytics]({{ repo_url }}/graphs/clone-activity) - Git clone statistics
+
+### Third-Party Tools
+
+Consider these tools for additional insights:
+
+- [GitHub Star History](https://star-history.com/#{{ github_username }}/{{ repo_name }}) - Visualize star growth
+- [GitStats](https://gitstats.sourceforge.net/) - Detailed git statistics
+- [RepoBeats](https://repobeats.axiom.co/) - Beautiful analytics dashboards
+
+---
+
+!!! tip "Contribute to Statistics"
+    Help improve our repository metrics by:
+    
+    - ⭐ Starring the repository
+    - 🍴 Forking for your own use
+    - 📝 Opening issues for bugs or features
+    - 🔀 Submitting pull requests
+    - 📢 Sharing with others

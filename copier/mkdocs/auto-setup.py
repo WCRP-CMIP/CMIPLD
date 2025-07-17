@@ -18,7 +18,7 @@ def install_dependencies():
     try:
         # pip uninstall copier pydantic typing_extensions typing_inspection
 # pip install copier
-        subprocess.run('pip uninstall copier pydantic typing_extensions typing_inspection '.split(), check=True)
+        subprocess.run('pip uninstall copier pydantic typing_extensions typing_inspection --yes'.split(), check=True)
         subprocess.run(["pip", "install", "copier", "pyyaml", 'mkdocs-literate-nav','y'], check=True)
         print("✅ Dependencies installed successfully.")
     except subprocess.CalledProcessError as e:

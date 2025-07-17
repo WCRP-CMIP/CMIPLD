@@ -1,0 +1,252 @@
+{% if generate_repo_stats %}
+#!/usr/bin/env python3
+"""
+Repository statistics generator that creates a top-level stats page.
+Uses gh CLI commands to extract actual repository data.
+"""
+
+import json
+import subprocess
+import sys
+from datetime import datetime
+import mkdocs_gen_files
+
+class StatsGenerator:
+    def __init__(self, repo_owner="{{ github_username }}", repo_name="{{ repo_name }}"):
+        self.repo_owner = repo_owner
+        self.repo_name = repo_name
+        self.repo = f"{repo_owner}/{repo_name}"
+        
+    def run_gh_command(self, command):
+        """Run a gh command and return JSON result."""
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return json.loads(result.stdout.strip()) if result.stdout.strip() else {}
+        except (subprocess.CalledProcessError, json.JSONDecodeError):
+            return {}
+    
+    def run_gh_command_text(self, command):
+        """Run a gh command and return text result."""
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError:
+            return ""
+    
+    def get_repo_stats(self):
+        """Get basic repository statistics."""
+        return self.run_gh_command(f'gh repo view {self.repo} --json stargazerCount,forkCount,watchers,openIssues,createdAt,updatedAt,pushedAt,size,defaultBranchRef,licenseInfo,isPrivate,visibility')
+    
+    def get_contributors(self):
+        """Get contributor information."""
+        contributors = self.run_gh_command(f'gh api repos/{self.repo}/contributors --paginate')
+        return contributors if isinstance(contributors, list) else []
+    
+    def get_languages(self):
+        """Get programming languages."""
+        return self.run_gh_command(f'gh api repos/{self.repo}/languages')
+    
+    def get_traffic_views(self):
+        """Get traffic view statistics."""
+        return self.run_gh_command(f'gh api repos/{self.repo}/traffic/views')
+    
+    def get_traffic_clones(self):
+        """Get traffic clone statistics."""
+        return self.run_gh_command(f'gh api repos/{self.repo}/traffic/clones')
+    
+    def get_popular_paths(self):
+        """Get popular paths/files."""
+        paths = self.run_gh_command(f'gh api repos/{self.repo}/traffic/popular/paths')
+        return paths if isinstance(paths, list) else []
+    
+    def get_referrers(self):
+        """Get referrer statistics."""
+        referrers = self.run_gh_command(f'gh api repos/{self.repo}/traffic/popular/referrers')
+        return referrers if isinstance(referrers, list) else []
+    
+    def get_releases(self):
+        """Get release information."""
+        releases = self.run_gh_command(f'gh api repos/{self.repo}/releases --paginate')
+        return releases[:10] if isinstance(releases, list) else []  # Top 10 releases
+    
+    def get_issue_stats(self):
+        """Get issue and PR statistics."""
+        open_issues = self.run_gh_command_text(f'gh api search/issues -f q="repo:{self.repo} type:issue state:open" --jq ".total_count"')
+        closed_issues = self.run_gh_command_text(f'gh api search/issues -f q="repo:{self.repo} type:issue state:closed" --jq ".total_count"')
+        open_prs = self.run_gh_command_text(f'gh api search/issues -f q="repo:{self.repo} type:pr state:open" --jq ".total_count"')
+        closed_prs = self.run_gh_command_text(f'gh api search/issues -f q="repo:{self.repo} type:pr state:closed" --jq ".total_count"')
+        
+        return {
+            'open_issues': int(open_issues) if open_issues.isdigit() else 0,
+            'closed_issues': int(closed_issues) if closed_issues.isdigit() else 0,
+            'open_prs': int(open_prs) if open_prs.isdigit() else 0,
+            'closed_prs': int(closed_prs) if closed_prs.isdigit() else 0
+        }
+    
+    def generate_stats_page(self):
+        """Generate the statistics page."""
+        print("Extracting repository statistics via gh CLI...")
+        
+        # Get current timestamp
+        run_time = datetime.now().strftime('%Y-%m-%d at %H:%M:%S UTC')
+        
+        # Extract all statistics
+        repo_stats = self.get_repo_stats()
+        contributors = self.get_contributors()
+        languages = self.get_languages()
+        traffic_views = self.get_traffic_views()
+        traffic_clones = self.get_traffic_clones()
+        popular_paths = self.get_popular_paths()
+        referrers = self.get_referrers()
+        releases = self.get_releases()
+        issue_stats = self.get_issue_stats()
+        
+        # Start building the content
+        content = f"""# Repository Statistics
+
+**Generated on:** {run_time}
+
+## Repository Overview
+
+| Metric | Value |
+|--------|-------|
+| Stars | {repo_stats.get('stargazerCount', 0):,} |
+| Forks | {repo_stats.get('forkCount', 0):,} |
+| Watchers | {repo_stats.get('watchers', {}).get('totalCount', 0):,} |
+| Repository Size | {repo_stats.get('size', 0) / 1024:.1f} MB |
+| Default Branch | {repo_stats.get('defaultBranchRef', {}).get('name', 'main')} |
+| Visibility | {repo_stats.get('visibility', 'unknown').title()} |
+| Created | {repo_stats.get('createdAt', '')[:10]} |
+| Last Updated | {repo_stats.get('updatedAt', '')[:10]} |
+| Last Push | {repo_stats.get('pushedAt', '')[:10]} |
+
+## Contributors
+
+**Total Contributors:** {len(contributors)}
+
+| Rank | Contributor | Contributions |
+|------|-------------|---------------|
+"""
+        
+        # Add top 20 contributors
+        for i, contributor in enumerate(contributors[:20], 1):
+            username = contributor.get('login', 'Unknown')
+            contributions = contributor.get('contributions', 0)
+            content += f"| {i} | {username} | {contributions:,} |\n"
+        
+        # Traffic Statistics
+        total_views = traffic_views.get('count', 0)
+        unique_visitors = traffic_views.get('uniques', 0)
+        total_clones = traffic_clones.get('count', 0)
+        unique_cloners = traffic_clones.get('uniques', 0)
+        
+        content += f"""
+## Traffic Statistics (Last 14 Days)
+
+| Metric | Count |
+|--------|-------|
+| Total Views | {total_views:,} |
+| Unique Visitors | {unique_visitors:,} |
+| Total Clones | {total_clones:,} |
+| Unique Cloners | {unique_cloners:,} |
+
+"""
+        
+        # Popular Files
+        if popular_paths:
+            content += """## Most Popular Files
+
+| Rank | Path | Views | Unique Visitors |
+|------|------|-------|-----------------|
+"""
+            for i, path in enumerate(popular_paths[:15], 1):
+                file_path = path.get('path', '')
+                views = path.get('count', 0)
+                uniques = path.get('uniques', 0)
+                content += f"| {i} | {file_path} | {views:,} | {uniques:,} |\n"
+        
+        # Traffic Sources
+        if referrers:
+            content += """
+## Traffic Sources
+
+| Rank | Referrer | Views | Unique Visitors |
+|------|----------|-------|-----------------|
+"""
+            for i, referrer in enumerate(referrers[:15], 1):
+                source = referrer.get('referrer', 'Direct')
+                views = referrer.get('count', 0)
+                uniques = referrer.get('uniques', 0)
+                content += f"| {i} | {source} | {views:,} | {uniques:,} |\n"
+        
+        # Programming Languages
+        if languages:
+            total_bytes = sum(languages.values())
+            content += """
+## Programming Languages
+
+| Language | Bytes | Percentage |
+|----------|-------|------------|
+"""
+            for lang, bytes_count in sorted(languages.items(), key=lambda x: x[1], reverse=True):
+                percentage = (bytes_count / total_bytes * 100) if total_bytes > 0 else 0
+                content += f"| {lang} | {bytes_count:,} | {percentage:.1f}% |\n"
+        
+        # Issues and Pull Requests
+        total_issues = issue_stats['open_issues'] + issue_stats['closed_issues']
+        total_prs = issue_stats['open_prs'] + issue_stats['closed_prs']
+        issue_close_rate = (issue_stats['closed_issues'] / total_issues * 100) if total_issues > 0 else 0
+        pr_close_rate = (issue_stats['closed_prs'] / total_prs * 100) if total_prs > 0 else 0
+        
+        content += f"""
+## Issues and Pull Requests
+
+| Type | Open | Closed | Total | Close Rate |
+|------|------|--------|-------|------------|
+| Issues | {issue_stats['open_issues']:,} | {issue_stats['closed_issues']:,} | {total_issues:,} | {issue_close_rate:.1f}% |
+| Pull Requests | {issue_stats['open_prs']:,} | {issue_stats['closed_prs']:,} | {total_prs:,} | {pr_close_rate:.1f}% |
+
+"""
+        
+        # Releases
+        if releases:
+            content += f"""## Recent Releases
+
+**Total Releases:** {len(releases)}
+
+| Release | Tag | Published |
+|---------|-----|-----------|
+"""
+            for release in releases[:10]:
+                name = release.get('name') or release.get('tag_name', 'Unnamed')
+                tag = release.get('tag_name', 'N/A')
+                published = release.get('published_at', '')[:10]
+                content += f"| {name} | {tag} | {published} |\n"
+        
+        # Write the file
+        with mkdocs_gen_files.open("stats.md", "w") as f:
+            f.write(content)
+        
+        print(f"✅ Repository statistics generated successfully!")
+        print(f"📊 Found {len(contributors)} contributors")
+        print(f"👁️  {total_views:,} views, {unique_visitors:,} unique visitors")
+        print(f"📁 {len(popular_paths)} popular files tracked")
+        print(f"🔗 {len(referrers)} traffic sources")
+
+# Main execution
+print("Running repository statistics extraction...")
+generator = StatsGenerator()
+generator.generate_stats_page()
+{% endif %}

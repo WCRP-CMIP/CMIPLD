@@ -1,91 +1,83 @@
-# Minimal Copier template for MkDocs publishing from mipcvs-wiki
+# Minimal Copier template for MkDocs publishing
 _templates_suffix: .jinja
 
 # Template metadata
 _metadata:
-  name: "MkDocs Publisher (Minimal)"
-  description: "Minimal template using mipcvs-wiki content"
+  name: "MkDocs Publisher"
+  description: "MkDocs template with repository statistics"
   version: "1.0.0"
 
-# Questions (can be pre-filled with detect-defaults.py)
+# Essential questions only
 project_name:
   type: str
-  default: "CMIP-LD Documentation"
-  help: "Name of the documentation project"
+  default: "CMIP-LD"
+  help: "Project name"
 
 repo_name:
   type: str
-  default: "CMIP-LD"
-  help: "Repository name"
-
-author_name:
-  type: str
-  default: "Your Name"
-  help: "Author name"
-
-author_email:
-  type: str
-  default: "your.email@example.com"
-  help: "Author email"
+  default: "{{ project_name }}"
+  help: "GitHub repository name"
 
 github_username:
   type: str
   default: "WCRP-CMIP"
   help: "GitHub username or organization"
 
+# Derived values (no questions asked)
+_envops:
+  block_start_string: "{%"
+  block_end_string: "%}"
+  variable_start_string: "{{"
+  variable_end_string: "}}"
+  keep_trailing_newline: true
+
+# Fixed/derived values
+author_name:
+  type: str
+  default: "CMIP-IPO"
+  when: false
+
+author_email:
+  type: str
+  default: "cmip-ipo@example.com"
+  when: false
+
 site_url:
   type: str
   default: "https://{{ github_username }}.github.io/{{ repo_name }}/"
-  help: "Production site URL"
+  when: false
 
 repo_url:
   type: str
   default: "https://github.com/{{ github_username }}/{{ repo_name }}"
-  help: "Repository URL"
+  when: false
 
 json_data_folder:
   type: str
   default: "json_data"
-  help: "Folder containing JSON files to generate pages from"
+  when: false
 
 description:
   type: str
-  default: "Documentation for {{ project_name.replace(' Documentation', '') }}"
-  help: "Project description"
+  default: "Documentation for {{ project_name }}"
+  when: false
 
-# Color theme selection
 header_color:
   type: str
   default: "blue"
-  help: "Header color theme"
-  choices:
-    - "blue"
-    - "indigo"
-    - "purple"
-    - "pink"
-    - "red"
-    - "deep-orange"
-    - "orange"
-    - "amber"
-    - "yellow"
-    - "lime"
-    - "green"
-    - "teal"
-    - "cyan"
-    - "light-blue"
-    - "blue-grey"
-    - "brown"
-    - "grey"
-    - "deep-purple"
+  when: false
 
-# Static files generation
 generate_static_files:
   type: bool
   default: true
-  help: "Generate static files during build process"
+  when: false
 
 static_files_folder:
   type: str
   default: "static_output"
-  help: "Folder name for generated static files"
-  when: "{{ generate_static_files }}"
+  when: false
+
+generate_repo_stats:
+  type: bool
+  default: true
+  when: false
