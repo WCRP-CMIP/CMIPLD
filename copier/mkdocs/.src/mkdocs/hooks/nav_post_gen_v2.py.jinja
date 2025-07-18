@@ -75,7 +75,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
         src_path = str(file_obj.src_path)
         
         # Check for stats page in both root and auxiliary
-        if src_path == 'stats.md' or src_path == 'auxiliary/stats.md':
+        if src_path == 'stats.md' or src_path == 'auxiliary/stats.md' or src_path == 'auxillary/stats.md':
             has_stats_page = True
             
         if src_path.startswith('src-data-docs/'):
@@ -242,18 +242,22 @@ def generate_final_navigation(docs_path, mkdocs_files):
     
     # Add stats page if it exists
     if has_stats_page:
-        # Check if stats is in auxiliary directory
-        stats_path = 'auxiliary/stats.md'
-        stats_found_in_auxiliary = any(str(f.src_path) == stats_path for f in mkdocs_files)
+        # Check if stats is in auxiliary or auxillary directory (handling both spellings)
+        stats_path_auxiliary = 'auxiliary/stats.md'
+        stats_path_auxillary = 'auxillary/stats.md'
+        stats_found_in_auxiliary = any(str(f.src_path) == stats_path_auxiliary for f in mkdocs_files)
+        stats_found_in_auxillary = any(str(f.src_path) == stats_path_auxillary for f in mkdocs_files)
         
         if stats_found_in_auxiliary:
             nav_lines.append('- [Repository Statistics](auxiliary/stats.md)')
+        elif stats_found_in_auxillary:
+            nav_lines.append('- [Repository Statistics](auxillary/stats.md)')
         else:
             nav_lines.append('- [Repository Statistics](stats.md)')
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
-        nav_lines.append('- Source Data:')
+        nav_lines.append('- Data Content:')
         nav_lines.append('  - [Overview](src-data-docs/index.md)')
         
         # Add each section in alphabetical order

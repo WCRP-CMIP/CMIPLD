@@ -7,9 +7,10 @@ import os
 import sys
 from pathlib import Path
 import mkdocs_gen_files
-import re 
+import re
+import json
 
-section  = re.compile(r"</{0,1}section[^>]*>", re.IGNORECASE)
+section = re.compile(r"</{0,1}section[^>]*>", re.IGNORECASE)
 
 print("\n" + "="*60, file=sys.stderr)
 print("SRC-DATA PROCESSOR - ROBUST VERSION", file=sys.stderr)
@@ -76,7 +77,7 @@ if not src_data_path:
     
     # Create placeholder so navigation doesn't break
     with mkdocs_gen_files.open("src-data-docs/not-found.md", "w") as f:
-        f.write("""# Source Data Not Found
+        f.write("""# Data Content Not Found
 
 The `src-data` directory was not found in any of the expected locations.
 
@@ -126,7 +127,7 @@ print(f"\nFound {len(subdirs)} subdirectories to process:", file=sys.stderr)
 if not subdirs:
     print("⚠️  No subdirectories found in src-data!", file=sys.stderr)
     with mkdocs_gen_files.open("src-data-docs/empty.md", "w") as f:
-        f.write("""# Source Data - Empty
+        f.write("""# Data Content - Empty
 
 The `src-data` directory exists but contains no subdirectories.
 
@@ -138,9 +139,116 @@ Please create subdirectories in `src-data/` with your data files.
 output_base = "src-data-docs"
 sections = []
 
+# Create JavaScript for charts
+with mkdocs_gen_files.open("docs/scripts/src_data_charts.js", "w") as f:
+    f.write("""// Chart creation utilities for source data visualizations
+function createPieChart(containerId, data) {
+    const pieData = [{
+        type: 'pie',
+        labels: data.labels,
+        values: data.values,
+        textinfo: 'label+percent',
+        textposition: 'inside',
+        insidetextorientation: 'radial',
+        marker: {
+            colors: data.colors
+        },
+        hoverinfo: 'label+value+percent',
+        hole: 0.4
+    }];
+
+    const pieLayout = {
+        title: {
+            text: data.title,
+            font: {
+                size: 18
+            }
+        },
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            yanchor: 'bottom',
+            y: -0.2,
+            xanchor: 'center',
+            x: 0.5
+        },
+        margin: {t: 50, b: 50, l: 20, r: 20}
+    };
+
+    Plotly.newPlot(containerId, pieData, pieLayout);
+}
+
+function createWindRose(containerId, data) {
+    const windData = [{
+        type: 'scatterpolar',
+        mode: 'markers',
+        r: data.r || [1],
+        theta: data.theta,
+        marker: {
+            size: data.size,
+            sizemode: 'area',
+            sizeref: data.sizeref || 0.1,
+            sizemin: data.sizemin || 10,
+            color: data.colors,
+            line: {
+                color: 'white',
+                width: 1
+            }
+        },
+        text: data.text,
+        hovertemplate: '<b>%{text}</b><extra></extra>'
+    }];
+
+    const windLayout = {
+        title: {
+            text: data.title,
+            font: {
+                size: data.titleSize || 18
+            }
+        },
+        polar: {
+            radialaxis: {
+                visible: data.showRadialAxis || false,
+                range: data.range || [0, 1.5],
+                showticklabels: data.showRadialTicks || false,
+                ticks: data.ticks || ''
+            },
+            angularaxis: {
+                direction: 'clockwise',
+                showticklabels: true
+            }
+        },
+        showlegend: false,
+        margin: data.margin || {t: 50, b: 50, l: 50, r: 50},
+        paper_bgcolor: data.paperBg || 'rgba(0,0,0,0)',
+        plot_bgcolor: data.plotBg || 'rgba(0,0,0,0)'
+    };
+
+    Plotly.newPlot(containerId, windData, windLayout);
+}
+
+// Initialize all charts on the page
+function initCharts() {
+    document.querySelectorAll('[data-chart-type]').forEach(container => {
+        const chartType = container.getAttribute('data-chart-type');
+        const chartData = JSON.parse(container.getAttribute('data-chart'));
+        const chartId = container.id;
+        
+        if (chartType === 'pie') {
+            createPieChart(chartId, chartData);
+        } else if (chartType === 'windrose') {
+            createWindRose(chartId, chartData);
+        }
+    });
+}
+
+// Initialize charts when the page loads
+document.addEventListener('DOMContentLoaded', initCharts);
+""")
+
 # Create index
 print("\nCreating index page...", file=sys.stderr)
-index_content = """# Source Data Documentation
+index_content = """# Data Content Documentation
 
 This section contains documentation extracted from the `src-data` folder.
 
@@ -150,6 +258,7 @@ This section contains documentation extracted from the `src-data` folder.
 |---------|-------------|-------|
 """
 
+# Process each directory
 for subdir in sorted(subdirs):
     folder_name = subdir.name
     print(f"\n📂 Processing '{folder_name}'...", file=sys.stderr)
@@ -164,21 +273,15 @@ for subdir in sorted(subdirs):
     
     if readme_path.exists():
         try:
-            # with open(readme_path, 'r', encoding='utf-8') as f:
-                # readme_content = f.read()
-            # readme_content = readme_path.read_text(encoding='utf-8')
             with open(readme_path, 'r', encoding='utf-8', newline=None) as f:
                 readme_content = f.read()
-                readme_content = section.sub('',readme_content)    
-                # print(readme_content, file=sys.stderr)
-            # print(f"   ✅ Found README.md", file=sys.stderr)
+                readme_content = section.sub('', readme_content)
         except Exception as e:
             print(f"   ❌ Error reading README.md: {e}", file=sys.stderr)
     
     # Create main page
     with mkdocs_gen_files.open(f"{output_base}/{folder_name}.md", "w") as f:
-        # f.write(readme_content)
-        print(readme_content, file=f)
+        f.write(readme_content)
     print(f"   ✅ Created {folder_name}.md", file=sys.stderr)
     
     # Create contents page
@@ -194,10 +297,48 @@ for subdir in sorted(subdirs):
         size = file.stat().st_size
         size_str = f"{size:,} bytes"
         file_type = file.suffix or "no extension"
-        if file_type == 'json':
-            contents += f"| {file.name} | {size_str} | {file_type} |\n"
-        
-        
+        contents += f"| {file.name} | {size_str} | {file_type} |\n"
+    
+    # Create file type counts for visualization
+    file_extensions = {}
+    for file in files:
+        ext = file.suffix.lower() if file.suffix else "no extension"
+        file_extensions[ext] = file_extensions.get(ext, 0) + 1
+    
+    # Sort by count for better visualization
+    sorted_extensions = sorted(file_extensions.items(), key=lambda x: x[1], reverse=True)
+    
+    # Prepare pie chart data
+    ext_names = [ext[1:] if ext.startswith('.') else ext for ext, _ in sorted_extensions]
+    ext_counts = [count for _, count in sorted_extensions]
+    ext_colors = [f"hsl({i * 360 // len(sorted_extensions)}, 70%, 50%)" for i in range(len(sorted_extensions))]
+    
+    # Convert data to JSON for JavaScript
+    pie_data = {
+        'labels': ext_names,
+        'values': ext_counts,
+        'colors': ext_colors,
+        'title': f"File Types in {folder_name.title()}"
+    }
+    
+    wind_data = {
+        'r': [1],
+        'theta': [folder_name],
+        'size': [len(files)],
+        'sizeref': len(files)/100 if len(files) > 0 else 0.1,
+        'sizemin': 20,
+        'colors': [f"hsl({hash(folder_name) % 360}, 70%, 50%)"],
+        'text': [f"{folder_name} ({len(files)} files)"],
+        'title': f"Files in {folder_name.title()}"
+    }
+    
+    # Add visualization divs with JSON data in HTML attributes
+    contents += f"""
+## File Type Distribution
+
+<div id="filetype-pie-{folder_name}" data-chart-type="pie" data-chart='{json.dumps(pie_data)}' style="width:100%; height:400px;"></div>
+<div id="windrose-{folder_name}" data-chart-type="windrose" data-chart='{json.dumps(wind_data)}' style="width:100%; height:400px;"></div>
+"""
     
     with mkdocs_gen_files.open(f"{output_base}/{folder_name}_contents.md", "w") as f:
         f.write(contents)
@@ -207,6 +348,35 @@ for subdir in sorted(subdirs):
     desc = f"{len(files)} files"
     index_content += f"| [{folder_name}]({folder_name}.md) | {desc} | [View contents]({folder_name}_contents.md) |\n"
     sections.append(folder_name)
+
+# Add wind-rose plot for all directories
+# Calculate file counts for each directory
+file_counts = [len([f for f in (src_data_path / s).iterdir() if f.is_file() and not f.name.startswith('.')]) for s in sections]
+
+# Prepare data for the main directory visualization
+main_chart_data = {
+    'r': [1] * len(sections),
+    'theta': sections,
+    'size': file_counts,
+    'sizeref': max(file_counts) / 25 if file_counts else 0.1,
+    'sizemin': 10,
+    'colors': [f"hsl({i * 360 // len(sections)}, 70%, 50%)" for i in range(len(sections))],
+    'text': [f"{s} ({count} files)" for s, count in zip(sections, file_counts)],
+    'title': 'Data Content Directory Structure',
+    'titleSize': 20,
+    'showRadialAxis': True,
+    'margin': {'l': 80, 'r': 80, 't': 100, 'b': 80},
+    'paperBg': 'rgba(0,0,0,0)',
+    'plotBg': 'rgba(0,0,0,0)'
+}
+
+# Add main visualization to index
+index_content += f"""
+
+## Directory Structure Visualization
+
+<div id="windrose-all-dirs" data-chart-type="windrose" data-chart='{json.dumps(main_chart_data)}' style="width:100%; height:600px;"></div>
+"""
 
 # Write index
 with mkdocs_gen_files.open(f"{output_base}/index.md", "w") as f:
@@ -218,4 +388,8 @@ print("="*60, file=sys.stderr)
 
 # Also create a marker file to verify gen-files is working
 with mkdocs_gen_files.open("src-data-marker.md", "w") as f:
-    f.write("# Src-Data Marker\n\nThis file confirms gen-files processed src-data.")
+    f.write("# Data Content Marker\n\nThis file confirms gen-files processed src-data.")
+
+# Create global script include for MkDocs
+with mkdocs_gen_files.open("docs/_include_charts.html", "w") as f:
+    f.write("""<script src="{{ base_url }}/scripts/src_data_charts.js"></script>""")
