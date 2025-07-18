@@ -28,6 +28,19 @@ def clean_title(filename):
     name = re.sub(r'^\d+[-_.](?=\w)', '', name)
     return name.replace('_', ' ').replace('-', ' ').title()
 
+def clean_data_summary_title(filename):
+    """Clean data summary filename for display - use part after first underscore."""
+    name = filename.replace('.md', '')
+    # Remove numeric prefixes
+    name = re.sub(r'^\d+[-_.](?=\w)', '', name)
+    
+    # If there's an underscore, use only the part after the first one
+    if '_' in name:
+        parts = name.split('_', 1)  # Split on first underscore only
+        name = parts[1]  # Use everything after first underscore
+    
+    return name.replace('_', ' ').replace('-', ' ').title()
+
 def get_sort_key(filename):
     """Get sort key for ordering."""
     match = re.match(r'^(\d+)[-_.]', filename)
@@ -79,10 +92,10 @@ def generate_final_navigation(docs_path, mkdocs_files):
             parts = src_path.split('/')
             if len(parts) >= 2:
                 filename = parts[1]
-                if filename != 'index.md' and filename.endswith('.md'):
-                    # Only add non-detailed files to main list
-                    if not filename.endswith('_detailed.md'):
-                        data_summaries_files.append(filename[:-3])  # Remove .md
+                if filename != 'index.md' and filename.endswith('_detailed.md'):
+                    # Only add detailed files to main list
+                    base_name = filename[:-12]  # Remove _detailed.md
+                    data_summaries_files.append(base_name)
     
     if has_src_data:
         print(f"✅ Found src-data virtual files: {len(src_data_sections)} sections")
@@ -242,12 +255,10 @@ def generate_final_navigation(docs_path, mkdocs_files):
         nav_lines.append('- Data Summaries:')
         nav_lines.append('  - [Overview](data-summaries/index.md)')
         
-        # Add each data file in alphabetical order
+        # Add each data file directly to detailed page (not nested)
         for data_file in sorted(data_summaries_files):
-            title = clean_title(data_file)
-            nav_lines.append(f'  - {title}:')
-            nav_lines.append(f'    - [Summary](data-summaries/{data_file}.md)')
-            nav_lines.append(f'    - [Detailed](data-summaries/{data_file}_detailed.md)')
+            title = clean_data_summary_title(data_file)
+            nav_lines.append(f'  - [{title}](data-summaries/{data_file}_detailed.md)')
     
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)

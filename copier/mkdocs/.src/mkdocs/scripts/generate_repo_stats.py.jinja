@@ -229,7 +229,7 @@ class StatsGenerator:
             content += f"| {i} | {username} | {contributions:,} |\n"
         
         # Write the file
-        with mkdocs_gen_files.open("stats.md", "w") as f:
+        with mkdocs_gen_files.open("auxillary/stats.md", "w") as f:
             f.write(content)
         
         print(f"✅ Repository statistics generated successfully!")
