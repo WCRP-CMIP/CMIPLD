@@ -151,6 +151,220 @@ This section contains documentation extracted from the `src-data` folder.
 |---------|-------------|-------|
 """
 
+# Function to create a plotly data file for the wind rose
+def create_wind_rose_data(section_names, file_counts):
+    """Create a wind rose visualization with file counts as bar heights."""
+    # Create data for each section
+    data = []
+    
+    # Calculate the width based on number of sections
+    num_sections = len(section_names) if section_names else 1
+    # Generate theta values properly spaced around the circle
+    theta_values = [i * (360 / num_sections) for i in range(num_sections)]
+    
+    # Set bar width as a fraction of the angular spacing
+    section_width = 360 / num_sections
+    bar_width = min(section_width * 0.9, 120)  # 90% of section width, max 120 degrees
+    
+    # Create color scale based on file counts
+    max_count = max(file_counts) if file_counts else 1
+    min_count = min(file_counts) if file_counts else 0
+    
+    # Log for debugging - check what file counts we're working with
+    print(f"File counts: {file_counts}", file=sys.stderr)
+    print(f"Max count: {max_count}", file=sys.stderr)
+    
+    # Create bars for each section
+    for i, (theta, section_name, file_count) in enumerate(zip(theta_values, section_names, file_counts)):
+        # Print diagnostic info for each section
+        print(f"Section '{section_name}': {file_count} files", file=sys.stderr)
+        
+        # Define base colors
+        base_colors = [
+            "rgb(70, 102, 178)",   # Blue
+            "rgb(52, 168, 83)",    # Green
+            "rgb(142, 68, 173)",   # Purple
+            "rgb(230, 126, 34)",   # Orange
+            "rgb(217, 79, 79)"     # Red
+        ]
+        
+        # Select a color for this section
+        base_color = base_colors[i % len(base_colors)]
+        
+        # Split file count into segments of 5 files each
+        # Calculate how many complete segments of 5 and a possible remainder
+        full_segments = file_count // 5
+        remainder = file_count % 5
+        
+        # Print details of the segments
+        print(f"  - Splitting into {full_segments} full segments of 5 files, plus {remainder} remainder files", file=sys.stderr)
+        
+        # Create r values for each segment (stacked)
+        r_values = []
+        
+        # Add full segments of 5 files each
+        for seg in range(full_segments):
+            r_values.append(5)  # Each full segment is 5 files high
+        
+        # Add the remainder segment if there is one
+        if remainder > 0:
+            r_values.append(remainder)
+            
+        # Create arrays for theta, width, and text - same length as r_values
+        num_segments = len(r_values)
+        theta_values_repeated = [theta] * num_segments
+        width_values = [bar_width] * num_segments
+        text_values = [section_name] * num_segments
+        
+        # Generate colors with increasing opacity for each segment
+        # Each higher segment gets a more opaque color
+        opacities = [0.2 + (0.8 * seg / max(1, num_segments - 1)) for seg in range(num_segments)]
+        
+        # Format the colors properly based on the base color
+        # Extract RGB components from the base color string
+        rgb_parts = base_color.replace('rgb(', '').replace(')', '').split(',')
+        colors = [f"rgba({rgb_parts[0]}, {rgb_parts[1]}, {rgb_parts[2]}, {opacity})" for opacity in opacities]
+        
+        print(f"  - Created {len(r_values)} segments: {r_values}", file=sys.stderr)
+        print(f"  - Opacities: {opacities}", file=sys.stderr)
+        
+        # Create barpolar trace with stacked bands
+        data.append({
+            "type": "barpolar",
+            "r": r_values,  # Heights of each segment
+            "theta": theta_values_repeated,
+            "width": width_values,
+            "name": section_name,
+            "text": text_values,
+            "hoverinfo": "text+r",
+            "hovertemplate": f"<b>{section_name}</b><br>Files: {file_count}<extra></extra>",
+            "marker": {
+                "color": colors,
+                "line": {
+                    "width": 0.5,
+                    "color": "rgba(255, 255, 255, 0.3)"
+                }
+            },
+            "showlegend": False
+        })
+    
+    return {
+        "data": data,
+        "layout": {
+            "title": {
+                "text": "Data Content Directory Structure",
+                "font": {"size": 20, "color": "#333333"}
+            },
+            "polar": {
+                "radialaxis": {
+                    "visible": True,
+                    "range": [0, max_count * 1.05],  # Tighter range to ensure no overflow
+                    "showticklabels": True,
+                    "ticksuffix": " files",
+                    "tickangle": 45,
+                    "showline": True,
+                    "linecolor": "rgba(0,0,0,0.2)"
+                },
+                "angularaxis": {
+                    "direction": "clockwise",
+                    "showticklabels": True,
+                    "tickvals": theta_values,  # Use our calculated theta values
+                    "ticktext": section_names,  # Display section names at these points
+                    "tickfont": {"size": 12, "weight": "bold"}
+                },
+                "bargap": 0.03  # Reduced gap between bars for a more solid look
+            },
+            "showlegend": False,
+            "margin": {"l": 60, "r": 60, "t": 80, "b": 60},
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)",
+            "autosize": True,
+            "height": 500,
+            "width": 700
+        }
+    }
+
+# Function to create a pie chart data file
+def create_pie_chart_data(labels, values, title):
+    """Create a pie chart visualization."""
+    # Generate colors with better distribution and contrast
+    # Using fixed color scale for better appearance
+    color_scale = [
+        "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A", 
+        "#19D3F3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"
+    ]
+    
+    # Repeat colors if needed
+    colors = [color_scale[i % len(color_scale)] for i in range(len(labels))]
+    
+    return {
+        "data": [
+            {
+                "type": "pie",
+                "labels": labels,
+                "values": values,
+                "textinfo": "label+percent",
+                "textposition": "auto",  # Automatic positioning for better readability
+                "insidetextorientation": "radial",
+                "marker": {
+                    "colors": colors,
+                    "line": {
+                        "color": "#FFFFFF",
+                        "width": 1
+                    }
+                },
+                "hoverinfo": "label+value+percent",
+                "hole": 0.4,
+                "sort": False  # Keep original order
+            }
+        ],
+        "layout": {
+            "title": {
+                "text": title,
+                "font": {"size": 18}
+            },
+            "showlegend": True,
+            "legend": {
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": -0.2,
+                "xanchor": "center",
+                "x": 0.5
+            },
+            "margin": {"t": 50, "b": 80, "l": 20, "r": 20},
+            "autosize": True,
+            "height": 500,
+            "width": 700,
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(0,0,0,0)"
+        }
+    }
+
+# Function to create plotly code block without using curly braces directly
+def create_plotly_block(file_path):
+    """Create a plotly code block with file_path reference."""
+    # Use triple quotes to avoid issues with nested quotes
+    open_curly = "{"
+    close_curly = "}"
+    # Return the plotly code block with the file path and responsive config
+    return f"""```plotly
+{open_curly}
+  "file_path": "{file_path}",
+  "config": {open_curly}
+    "responsive": true,
+    "displayModeBar": true,
+    "displaylogo": false
+  {close_curly}
+{close_curly}
+```"""
+
+# Create assets directory if it doesn't exist
+try:
+    mkdocs_gen_files.open("assets/.gitkeep", "w").write("")
+    print("✅ Created assets directory", file=sys.stderr)
+except Exception as e:
+    print(f"⚠️ Could not create assets directory: {e}", file=sys.stderr)
+
 # Process each directory
 for subdir in sorted(subdirs):
     folder_name = subdir.name
@@ -158,7 +372,8 @@ for subdir in sorted(subdirs):
     
     # Count files
     files = [f for f in subdir.iterdir() if f.is_file() and not f.name.startswith('.')]
-    print(f"   Found {len(files)} files", file=sys.stderr)
+    file_count = len(files)
+    print(f"   Found {file_count} files", file=sys.stderr)
     
     # Look for README
     readme_path = subdir / "README.md"
@@ -204,95 +419,36 @@ for subdir in sorted(subdirs):
     # Prepare pie chart data
     ext_names = [ext[1:] if ext.startswith('.') else ext for ext, _ in sorted_extensions]
     ext_counts = [count for _, count in sorted_extensions]
-    ext_colors = [f"hsl({i * 360 // len(sorted_extensions)}, 70%, 50%)" for i in range(len(sorted_extensions))]
     
-    # Create plotly chart data directly as text strings to avoid Jinja parsing issues
-    pie_chart_data = """```plotly
-{
-  "data": [
-    {
-      "type": "pie",
-      "labels": """ + json.dumps(ext_names) + """,
-      "values": """ + json.dumps(ext_counts) + """,
-      "textinfo": "label+percent",
-      "textposition": "inside",
-      "insidetextorientation": "radial",
-      "marker": {
-        "colors": """ + json.dumps(ext_colors) + """
-      },
-      "hoverinfo": "label+value+percent",
-      "hole": 0.4
-    }
-  ],
-  "layout": {
-    "title": {
-      "text": """ + json.dumps(f"File Types in {folder_name.title()}") + """,
-      "font": { "size": 18 }
-    },
-    "showlegend": true,
-    "legend": {
-      "orientation": "h",
-      "yanchor": "bottom",
-      "y": -0.2,
-      "xanchor": "center",
-      "x": 0.5
-    },
-    "margin": { "t": 50, "b": 50, "l": 20, "r": 20 }
-  }
-}
-```"""
-
-    wind_rose_data = """```plotly
-{
-  "data": [
-    {
-      "type": "scatterpolar",
-      "mode": "markers",
-      "r": [1],
-      "theta": """ + json.dumps([folder_name]) + """,
-      "marker": {
-        "size": """ + json.dumps([len(files)]) + """,
-        "sizemode": "area",
-        "sizeref": """ + str(len(files)/100 if len(files) > 0 else 0.1) + """,
-        "sizemin": 20,
-        "color": """ + json.dumps([f"hsl({hash(folder_name) % 360}, 70%, 50%)"]) + """,
-        "line": {
-          "color": "white",
-          "width": 1
-        }
-      },
-      "text": """ + json.dumps([f"{folder_name} ({len(files)} files)"]) + """,
-      "hovertemplate": "<b>%{text}</b><extra></extra>"
-    }
-  ],
-  "layout": {
-    "title": {
-      "text": """ + json.dumps(f"Files in {folder_name.title()}") + """,
-      "font": { "size": 18 }
-    },
-    "polar": {
-      "radialaxis": {
-        "visible": false,
-        "range": [0, 1.5]
-      },
-      "angularaxis": {
-        "direction": "clockwise",
-        "showticklabels": true
-      }
-    },
-    "showlegend": false,
-    "margin": { "t": 50, "b": 50, "l": 50, "r": 50 }
-  }
-}
-```"""
+    # Create the pie chart data file
+    pie_chart_data = create_pie_chart_data(
+        ext_names, 
+        ext_counts, 
+        f"File Types in {folder_name.title()}"
+    )
+    pie_chart_file = f"pie_chart_{folder_name}.json"
+    
+    # Write the pie chart data file
+    with mkdocs_gen_files.open(f"assets/{pie_chart_file}", "w") as f:
+        f.write(json.dumps(pie_chart_data, indent=2))
+    
+    # Create the wind rose data for this folder
+    folder_wind_rose_data = create_wind_rose_data([folder_name], [file_count])
+    folder_wind_rose_file = f"wind_rose_{folder_name}.json"
+    
+    # Write the wind rose data file
+    with mkdocs_gen_files.open(f"assets/{folder_wind_rose_file}", "w") as f:
+        f.write(json.dumps(folder_wind_rose_data, indent=2))
     
     # Add visualizations using plotly plugin
     contents += f"""
 ## File Type Distribution
 
-{pie_chart_data}
+{create_plotly_block(f"../assets/{pie_chart_file}")}
 
-{wind_rose_data}
+## Directory Visualization
+
+{create_plotly_block(f"../assets/{folder_wind_rose_file}")}
 """
     
     with mkdocs_gen_files.open(f"{output_base}/{folder_name}_contents.md", "w") as f:
@@ -300,7 +456,7 @@ for subdir in sorted(subdirs):
     print(f"   ✅ Created {folder_name}_contents.md", file=sys.stderr)
     
     # Add to index
-    desc = f"{len(files)} files"
+    desc = f"{file_count} files"
     index_content += f"| [{folder_name}]({folder_name}.md) | {desc} | [View contents]({folder_name}_contents.md) |\n"
     sections.append(folder_name)
 
@@ -308,61 +464,20 @@ for subdir in sorted(subdirs):
 # Calculate file counts for each directory
 file_counts = [len([f for f in (src_data_path / s).iterdir() if f.is_file() and not f.name.startswith('.')]) for s in sections]
 
-# Create the main wind rose chart as a text string to avoid Jinja parsing issues
-main_chart_data = """```plotly
-{
-  "data": [
-    {
-      "type": "scatterpolar",
-      "mode": "markers",
-      "r": """ + json.dumps([1] * len(sections)) + """,
-      "theta": """ + json.dumps(sections) + """,
-      "marker": {
-        "size": """ + json.dumps(file_counts) + """,
-        "sizemode": "area",
-        "sizeref": """ + str(max(file_counts) / 25 if file_counts else 0.1) + """,
-        "sizemin": 10,
-        "color": """ + json.dumps([f"hsl({i * 360 // len(sections)}, 70%, 50%)" for i in range(len(sections))]) + """,
-        "line": {
-          "color": "white",
-          "width": 1
-        }
-      },
-      "text": """ + json.dumps([f"{s} ({count} files)" for s, count in zip(sections, file_counts)]) + """,
-      "hovertemplate": "<b>%{text}</b><extra></extra>"
-    }
-  ],
-  "layout": {
-    "title": {
-      "text": "Data Content Directory Structure",
-      "font": { "size": 20 }
-    },
-    "polar": {
-      "radialaxis": {
-        "visible": true,
-        "range": [0, 1.5],
-        "showticklabels": false,
-        "ticks": ""
-      },
-      "angularaxis": {
-        "direction": "clockwise",
-        "showticklabels": true
-      }
-    },
-    "showlegend": false,
-    "margin": { "l": 80, "r": 80, "t": 100, "b": 80 },
-    "paper_bgcolor": "rgba(0,0,0,0)",
-    "plot_bgcolor": "rgba(0,0,0,0)"
-  }
-}
-```"""
+# Create the main wind rose data
+main_wind_rose_data = create_wind_rose_data(sections, file_counts)
 
-# Add main visualization to index
+# Write the main wind rose data file
+main_wind_rose_file = "wind_rose_all_dirs.json"
+with mkdocs_gen_files.open(f"assets/{main_wind_rose_file}", "w") as f:
+    f.write(json.dumps(main_wind_rose_data, indent=2))
+
+# Add main visualization to index with plotly plugin
 index_content += f"""
 
 ## Directory Structure Visualization
 
-{main_chart_data}
+{create_plotly_block(f"../assets/{main_wind_rose_file}")}
 """
 
 # Write index
