@@ -228,8 +228,30 @@ class StatsGenerator:
             contributions = contributor.get('contributions', 0)
             content += f"| {i} | {username} | {contributions:,} |\n"
         
+        # Create auxillary directory if it doesn't exist
+        try:
+            with mkdocs_gen_files.open("auxillary/.gitkeep", "w") as f:
+                f.write("")
+        except Exception as e:
+            print(f"Warning: Could not create auxillary directory: {e}", file=sys.stderr)
+        
+        # Create auxiliary directory if it doesn't exist (alternative spelling)
+        try:
+            with mkdocs_gen_files.open("auxiliary/.gitkeep", "w") as f:
+                f.write("")
+        except Exception as e:
+            print(f"Warning: Could not create auxiliary directory: {e}", file=sys.stderr)
+        
         # Write the file
         with mkdocs_gen_files.open("auxillary/stats.md", "w") as f:
+            f.write(content)
+        
+        # Create a duplicate in auxiliary directory for compatibility
+        with mkdocs_gen_files.open("auxiliary/stats.md", "w") as f:
+            f.write(content)
+        
+        # Also create a copy in the root for maximum compatibility
+        with mkdocs_gen_files.open("stats.md", "w") as f:
             f.write(content)
         
         print(f"✅ Repository statistics generated successfully!")
