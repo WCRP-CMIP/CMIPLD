@@ -44,8 +44,8 @@ This section contains formatted views of JSON data files.
 
 ## Available Data Files
 
-| File | Description | Summary | Detailed | Raw File |
-|------|-------------|---------|----------|----------|
+| File | Description | View | Raw File |
+|------|-------------|------|----------|
 """
     
     # Process each JSON file
@@ -57,15 +57,10 @@ This section contains formatted views of JSON data files.
             with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            # Generate page content
-            page_content = generate_json_page(json_file, data)
-            
-            # Write page
+            # Generate only detailed page (summary page not needed)
             page_name = json_file.stem  # filename without extension
-            with mkdocs_gen_files.open(f"{output_base}/{page_name}.md", "w") as f:
-                f.write(page_content)
             
-            # Generate detailed version with header at bottom
+            # Generate detailed version
             detailed_content = generate_detailed_json_page(json_file, data)
             with mkdocs_gen_files.open(f"{output_base}/{page_name}_detailed.md", "w") as f:
                 f.write(detailed_content)
@@ -85,13 +80,13 @@ This section contains formatted views of JSON data files.
             
             # Add to index
             github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
-            index_content += f"| {json_file.name} | {description} | [Summary]({page_name}.md) | [Detailed]({page_name}_detailed.md) | [Raw File]({github_url}) |\n"
+            index_content += f"| {json_file.name} | {description} | [View]({page_name}_detailed.md) | [Raw File]({github_url}) |\n"
             
         except Exception as e:
             print(f"  ⚠️  Error processing {json_file.name}: {e}", file=sys.stderr)
             # Still add to index but mark as error
             github_url = f"https://raw.githubusercontent.com/{{ github_username }}/{{ repo_name }}/main/{json_file.name}"
-            index_content += f"| {json_file.name} | *Error processing file* | - | - | [Raw File]({github_url}) |\n"
+            index_content += f"| {json_file.name} | *Error processing file* | [View]({page_name}_detailed.md) | [Raw File]({github_url}) |\n"
     
     # Complete index page
     index_content += f"""
@@ -173,7 +168,6 @@ def generate_detailed_json_page(json_file, data):
     # Add footer
     page_content += f"""\n---\n
 <div style="text-align: center; margin-top: 40px;">
-    <a href="{json_file.stem}.md" class="md-button">← Back to Summary</a>
     <a href="index.md" class="md-button">← Back to Data Summaries</a>
 </div>
 """
@@ -200,7 +194,9 @@ def generate_json_page(json_file, data):
         page_content += "## Header Information\n\n"
         
         if isinstance(header, dict):
+            page_content += '<div style="text-align: center; margin: 2rem 0;">\n'
             page_content += format_dict_as_table(header, flatten_nested=True)
+            page_content += '</div>\n'
         else:
             page_content += f"```\n{header}\n```\n\n"
     
