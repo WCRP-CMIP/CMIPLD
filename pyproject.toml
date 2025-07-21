@@ -21,7 +21,6 @@ dependencies = [
     "tqdm"
 ]
 
-
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -35,6 +34,7 @@ Documentation = "https://wiki.mipcvs.dev"
 Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb'
 
 [project.scripts]
+# Python entry points
 cmipld = "cmipld.browse.__main__:main"
 update_ctx = "cmipld.generate.update_ctx:main"
 update_all = "cmipld.generate.update_all:main"
@@ -44,26 +44,23 @@ update_readme = "cmipld.generate.create_readme:main"
 validate_json = "cmipld.utils.validate_json:main"
 create_readme = "cmipld.generate.create_readme:main"
 
+# Shell script wrappers
+ld2graph = "cmipld.utils.shell_wrappers:ld2graph_main"
+validjsonld = "cmipld.utils.shell_wrappers:validjsonld_main"
+dev = "cmipld.utils.shell_wrappers:dev_main"
+rmbak = "cmipld.utils.shell_wrappers:rmbak_main"
+rmgraph = "cmipld.utils.shell_wrappers:rmgraph_main"
+coauthor_file = "cmipld.utils.shell_wrappers:coauthor_file_main"
+
 [tool.setuptools]
 packages = ["cmipld"]
 include-package-data = true
 
-#[tool.setuptools.packages.find]
-#where = [".."]
-
-
 [tool.setuptools.package-data]
-cmipld = ["scripts/*/*"
-          ]
-
-[tool.setuptools.data-files]
-"bin" = [
-    "scripts/directory-utilities/dev",
-    "scripts/directory-utilities/validjsonld",
-    "scripts/directory-utilities/ld2graph",
-    "scripts/jsonld-util/rmbak",
-    "scripts/jsonld-util/rmgraph",
-    "scripts/development/coauthor_file"
+cmipld = [
+    "scripts/*/*",
+    "scripts/*/*/*",
+    "prefix_mappings.json"
 ]
 
 [tool.setuptools_scm]
