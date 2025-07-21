@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Set the target direct#!/bin/bash
-
 # Set the directory to check, default to current directory if not provided
 DIR="${1:-.}"
 

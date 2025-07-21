@@ -248,10 +248,12 @@ def generate_final_navigation(docs_path, mkdocs_files):
         stats_found_in_auxiliary = any(str(f.src_path) == stats_path_auxiliary for f in mkdocs_files)
         stats_found_in_auxillary = any(str(f.src_path) == stats_path_auxillary for f in mkdocs_files)
         
-        if stats_found_in_auxiliary:
-            nav_lines.append('- [Repository Statistics](auxiliary/stats.md)')
-        elif stats_found_in_auxillary:
+        # Since we're specifically placing the stats page in the auxillary folder,
+        # let's prioritize that location
+        if stats_found_in_auxillary:
             nav_lines.append('- [Repository Statistics](auxillary/stats.md)')
+        elif stats_found_in_auxiliary:
+            nav_lines.append('- [Repository Statistics](auxiliary/stats.md)')
         else:
             nav_lines.append('- [Repository Statistics](stats.md)')
     

@@ -170,14 +170,8 @@ def create_wind_rose_data(section_names, file_counts):
     max_count = max(file_counts) if file_counts else 1
     min_count = min(file_counts) if file_counts else 0
     
-    # Log for debugging - check what file counts we're working with
-    print(f"File counts: {file_counts}", file=sys.stderr)
-    print(f"Max count: {max_count}", file=sys.stderr)
-    
     # Create bars for each section
     for i, (theta, section_name, file_count) in enumerate(zip(theta_values, section_names, file_counts)):
-        # Print diagnostic info for each section
-        print(f"Section '{section_name}': {file_count} files", file=sys.stderr)
         
         # Define base colors
         base_colors = [
@@ -195,9 +189,6 @@ def create_wind_rose_data(section_names, file_counts):
         # Calculate how many complete segments of 5 and a possible remainder
         full_segments = file_count // 5
         remainder = file_count % 5
-        
-        # Print details of the segments
-        print(f"  - Splitting into {full_segments} full segments of 5 files, plus {remainder} remainder files", file=sys.stderr)
         
         # Create r values for each segment (stacked)
         r_values = []
@@ -224,9 +215,6 @@ def create_wind_rose_data(section_names, file_counts):
         # Extract RGB components from the base color string
         rgb_parts = base_color.replace('rgb(', '').replace(')', '').split(',')
         colors = [f"rgba({rgb_parts[0]}, {rgb_parts[1]}, {rgb_parts[2]}, {opacity})" for opacity in opacities]
-        
-        print(f"  - Created {len(r_values)} segments: {r_values}", file=sys.stderr)
-        print(f"  - Opacities: {opacities}", file=sys.stderr)
         
         # Create barpolar trace with stacked bands
         data.append({

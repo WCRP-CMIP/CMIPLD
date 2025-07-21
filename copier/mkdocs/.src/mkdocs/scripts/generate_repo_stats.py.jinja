@@ -95,6 +95,8 @@ class StatsGenerator:
             'closed_prs': int(closed_prs) if closed_prs.isdigit() else 0
         }
     
+
+    
     def generate_stats_page(self):
         """Generate the statistics page."""
         print("Extracting repository statistics via gh CLI...")
@@ -218,41 +220,223 @@ class StatsGenerator:
 
 **Total Contributors:** {len(contributors)}
 
-| Rank | Contributor | Contributions |
-|------|-------------|---------------|
+| Rank | Contributor | Contributions | Avatar |
+|------|-------------|---------------|--------|
 """
         
-        # Add top 20 contributors
+        # Add top 20 contributors with avatars
         for i, contributor in enumerate(contributors[:20], 1):
             username = contributor.get('login', 'Unknown')
             contributions = contributor.get('contributions', 0)
-            content += f"| {i} | {username} | {contributions:,} |\n"
+            avatar_url = contributor.get('avatar_url', '')
+            avatar_html = f'<img src="{avatar_url}" width="40" height="40" style="border-radius: 50%" alt="{username}">' if avatar_url else ''
+            content += f"| {i} | {username} | {contributions:,} | {avatar_html} |\n"
         
+        # Create assets directory for visualizations
+        try:
+            with mkdocs_gen_files.open("assets/.gitkeep", "w") as f:
+                f.write("")
+            print("✅ Created assets directory", file=sys.stderr)
+        except Exception as e:
+            print(f"⚠️ Could not create assets directory: {e}", file=sys.stderr)
+            
         # Create auxillary directory if it doesn't exist
         try:
             with mkdocs_gen_files.open("auxillary/.gitkeep", "w") as f:
                 f.write("")
+            print("✅ Created auxillary directory", file=sys.stderr)
         except Exception as e:
-            print(f"Warning: Could not create auxillary directory: {e}", file=sys.stderr)
-        
-        # Create auxiliary directory if it doesn't exist (alternative spelling)
-        try:
-            with mkdocs_gen_files.open("auxiliary/.gitkeep", "w") as f:
-                f.write("")
-        except Exception as e:
-            print(f"Warning: Could not create auxiliary directory: {e}", file=sys.stderr)
-        
-        # Write the file
+            print(f"⚠️ Could not create auxillary directory: {e}", file=sys.stderr)
+            
+        # Write the file to auxillary directory as specified
         with mkdocs_gen_files.open("auxillary/stats.md", "w") as f:
             f.write(content)
         
-        # Create a duplicate in auxiliary directory for compatibility
-        with mkdocs_gen_files.open("auxiliary/stats.md", "w") as f:
-            f.write(content)
-        
-        # Also create a copy in the root for maximum compatibility
-        with mkdocs_gen_files.open("stats.md", "w") as f:
-            f.write(content)
+        # Also create a time series visualization of GitHub activity if available
+        try:
+            # Get commit activity from GitHub CLI
+            print("Extracting commit activity data from GitHub...", file=sys.stderr)
+            commit_activity = self.run_gh_command(f'gh api repos/{self.repo}/stats/commit_activity')
+            
+            if commit_activity and isinstance(commit_activity, list) and len(commit_activity) > 0:
+                print(f"✅ Found commit activity data ({len(commit_activity)} weeks)", file=sys.stderr)
+                
+                # Process commit data for time series
+                weeks = []
+                commits = []
+                
+                # Last 52 weeks of data
+                for i, week_data in enumerate(commit_activity[-52:]):
+                    if 'week' in week_data and 'total' in week_data:
+                        # Convert Unix timestamp to date
+                        week_timestamp = week_data['week']
+                        week_date = datetime.fromtimestamp(week_timestamp).strftime('%Y-%m-%d')
+                        weeks.append(week_date)
+                        commits.append(week_data['total'])
+                
+                if weeks and commits:
+                    # Create time series visualization
+                    time_series_data = {
+                        "data": [
+                            {
+                                "type": "scatter",
+                                "mode": "lines+markers",
+                                "x": weeks,
+                                "y": commits,
+                                "name": "Weekly Commits",
+                                "line": {"color": "rgb(70, 130, 180)", "width": 2},
+                                "marker": {"size": 5, "color": "rgb(70, 130, 180)"}
+                            }
+                        ],
+                        "layout": {
+                            "title": "Repository Activity",
+                            "xaxis": {"title": "Week", "tickangle": 45},
+                            "yaxis": {"title": "Commits"},
+                            "margin": {"l": 60, "r": 40, "t": 80, "b": 120},
+                            "height": 400,
+                            "width": 700
+                        }
+                    }
+                    
+                    # Create time series visualization with simple format
+                    time_series_file = "commits_time_series.json"
+                    
+                    with mkdocs_gen_files.open(f"assets/{time_series_file}", "w") as f:
+                        f.write(json.dumps(time_series_data, indent=2))
+                    
+                    # Add time series visualization to stats page with plain HTML
+                    time_series_content = f"""## Commit Activity
+
+This chart shows the weekly commit activity for the repository over time.
+
+```plotly
+{{
+                    "file_path": "../../assets/{time_series_file}"
+}}
+```
+
+<div id="commit-activity-chart" style="height:400px; width:100%;"></div>
+<script>
+                    document.addEventListener('DOMContentLoaded', function() {{
+                    if (typeof Plotly !== 'undefined') {{
+                    fetch('../../assets/{time_series_file}')
+                      .then(response => response.json())
+                        .then(data => {{
+                            Plotly.newPlot('commit-activity-chart', data.data, data.layout);
+                          }});
+    }} else {{
+      console.error('Plotly is not loaded');
+    }}
+  }});
+</script>
+"""
+                    
+                    # Append to the auxillary file
+                    with mkdocs_gen_files.open("auxillary/stats.md", "a") as f:
+                        f.write(time_series_content)
+                    
+                    print("✅ Added commit activity time series visualization", file=sys.stderr)
+                else:
+                    print("⚠️ No usable commit data found", file=sys.stderr)
+            else:
+                print("⚠️ No commit activity data available", file=sys.stderr)
+                
+            # Also get code frequency (additions/deletions)
+            code_frequency = self.run_gh_command(f'gh api repos/{self.repo}/stats/code_frequency')
+            
+            if code_frequency and isinstance(code_frequency, list) and len(code_frequency) > 0:
+                print(f"✅ Found code frequency data ({len(code_frequency)} weeks)", file=sys.stderr)
+                
+                # Process code frequency data
+                weeks = []
+                additions = []
+                deletions = []
+                
+                # Last 52 weeks of data
+                for i, week_data in enumerate(code_frequency[-52:]):
+                    if len(week_data) >= 3:
+                        # Convert Unix timestamp to date
+                        week_timestamp = week_data[0]
+                        week_date = datetime.fromtimestamp(week_timestamp).strftime('%Y-%m-%d')
+                        weeks.append(week_date)
+                        additions.append(week_data[1])  # Additions
+                        deletions.append(-week_data[2])  # Convert deletions to positive for visualization
+                
+                if weeks and additions and deletions:
+                    # Create code frequency visualization
+                    code_frequency_data = {
+                        "data": [
+                            {
+                                "type": "bar",
+                                "x": weeks,
+                                "y": additions,
+                                "name": "Additions",
+                                "marker": {"color": "rgb(75, 192, 192)"}
+                            },
+                            {
+                                "type": "bar",
+                                "x": weeks,
+                                "y": deletions,
+                                "name": "Deletions",
+                                "marker": {"color": "rgb(255, 99, 132)"}
+                            }
+                        ],
+                        "layout": {
+                            "title": "Code Changes Over Time",
+                            "xaxis": {"title": "Week", "tickangle": 45},
+                            "yaxis": {"title": "Lines of Code"},
+                            "barmode": "group",
+                            "margin": {"l": 60, "r": 40, "t": 80, "b": 120},
+                            "height": 400,
+                            "width": 700
+                        }
+                    }
+                    
+                    # Create code frequency visualization with simple format
+                    code_frequency_file = "code_frequency.json"
+                    
+                    with mkdocs_gen_files.open(f"assets/{code_frequency_file}", "w") as f:
+                        f.write(json.dumps(code_frequency_data, indent=2))
+                    
+                    # Add code frequency visualization to stats page with direct HTML
+                    code_frequency_content = f"""## Code Changes
+
+This chart shows code additions (green) and deletions (red) over time.
+
+```plotly
+{{
+  "file_path": "../../assets/{code_frequency_file}"
+}}
+```
+
+<div id="code-changes-chart" style="height:400px; width:100%;"></div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {{
+    if (typeof Plotly !== 'undefined') {{
+      fetch('../../assets/{code_frequency_file}')
+        .then(response => response.json())
+        .then(data => {{
+          Plotly.newPlot('code-changes-chart', data.data, data.layout);
+        }});
+    }} else {{
+      console.error('Plotly is not loaded');
+    }}
+  }});
+</script>
+"""
+                    
+                    # Append to the auxillary file
+                    with mkdocs_gen_files.open("auxillary/stats.md", "a") as f:
+                        f.write(code_frequency_content)
+                    
+                    print("✅ Added code frequency visualization", file=sys.stderr)
+                else:
+                    print("⚠️ No usable code frequency data found", file=sys.stderr)
+            else:
+                print("⚠️ No code frequency data available", file=sys.stderr)
+                
+        except Exception as e:
+            print(f"⚠️ Error generating time series visualizations: {e}", file=sys.stderr)
         
         print(f"✅ Repository statistics generated successfully!")
         print(f"📊 Found {len(contributors)} contributors")

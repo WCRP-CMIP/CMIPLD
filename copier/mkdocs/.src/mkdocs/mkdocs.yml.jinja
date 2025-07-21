@@ -40,7 +40,12 @@ theme:
 
 plugins:
   - search
-  - plotly
+  - plotly:
+      js_url: https://cdn.plot.ly/plotly-latest.min.js
+      json_path: ./assets
+      global_plotlyjs: true
+      auto_load: true
+      offline: true
   - gen-files:
       scripts:
         - scripts/copy_static_assets.py  # Copy JavaScript and CSS files
@@ -104,3 +109,6 @@ markdown_extensions:
 
 # Navigation will be auto-generated or use mipcvs-wiki defaults
 # Generated pages from JSON will be added to docs/generated/
+
+# Ensure assets directory is available for graphs
+assets_dir: assets

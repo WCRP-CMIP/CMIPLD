@@ -40,4 +40,3 @@ git rebase --continue
 
 # Push changes (force required)
 git push --force
-
