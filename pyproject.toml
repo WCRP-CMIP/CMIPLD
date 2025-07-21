@@ -34,32 +34,31 @@ Documentation = "https://wiki.mipcvs.dev"
 Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb'
 
 [project.scripts]
-# Python entry points
-cmipld = "cmipld.browse.__main__:main"
-update_ctx = "cmipld.generate.update_ctx:main"
-update_all = "cmipld.generate.update_all:main"
-new_issue = "cmipld.generate.new_issue:main"
-generate_summary = "cmipld.generate.generate_summary:main"
-update_readme = "cmipld.generate.create_readme:main"
-validate_json = "cmipld.utils.validate_json:main"
-create_readme = "cmipld.generate.create_readme:main"
-
-# Shell script wrappers
-ld2graph = "cmipld.utils.shell_wrappers:ld2graph_main"
-validjsonld = "cmipld.utils.shell_wrappers:validjsonld_main"
-dev = "cmipld.utils.shell_wrappers:dev_main"
-rmbak = "cmipld.utils.shell_wrappers:rmbak_main"
-rmgraph = "cmipld.utils.shell_wrappers:rmgraph_main"
-coauthor_file = "cmipld.utils.shell_wrappers:coauthor_file_main"
+# Python entry points only
+cmipld = "cmipld.browse.__main__:main"                    # Main CMIP-LD browser interface
+update_ctx = "cmipld.generate.update_ctx:main"           # Update JSON-LD context files
+update_all = "cmipld.generate.update_all:main"           # Run full update process (contexts + graphs)
+new_issue = "cmipld.generate.new_issue:main"             # Generate new GitHub issue
+generate_summary = "cmipld.generate.generate_summary:main" # Generate repository summary
+update_readme = "cmipld.generate.create_readme:main"     # Update README files
+validate_json = "cmipld.utils.validate_json:main"        # Validate JSON-LD files
+create_readme = "cmipld.generate.create_readme:main"     # Create README files
 
 [tool.setuptools]
 packages = ["cmipld"]
 include-package-data = true
+script-files = [
+    "bin/ld2graph",
+    "bin/validjsonld",
+    "bin/dev",
+    "bin/rmbak",
+    "bin/rmgraph",
+    "bin/coauthor_file",
+    "bin/cmipld-help"
+]
 
 [tool.setuptools.package-data]
 cmipld = [
-    "scripts/*/*",
-    "scripts/*/*/*",
     "prefix_mappings.json"
 ]
 
