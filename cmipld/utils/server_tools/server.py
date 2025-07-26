@@ -214,14 +214,14 @@ class LocalServer:
             ssl_config=ssl_config
         )
 
-        # Test redirect with the appropriate protocol
-        test_protocol = "https" if self.use_ssl else "http"
-        test_url = f'{test_protocol}://wcrp-cmip.github.io/WCRP-universe/bob'
-        print(f"Testing redirect with: {test_url}")
-        try:
-            self.requests.test_redirect(test_url)
-        except Exception as e:
-            log.warn(f"Redirect test failed (this is usually ok): {e}")
+        # # Test redirect with the appropriate protocol
+        # test_protocol = "https" if self.use_ssl else "http"
+        # test_url = f'{test_protocol}://wcrp-cmip.github.io/WCRP-universe/bob'
+        # print(f"Testing redirect with: {test_url}")
+        # try:
+        #     self.requests.test_redirect(test_url)
+        # except Exception as e:
+        #     log.warn(f"Redirect test failed (this is usually ok): {e}")
 
         # Define a custom handler that serves files from the specified base_path
         handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(

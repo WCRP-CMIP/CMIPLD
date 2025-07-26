@@ -83,6 +83,15 @@ def get_repo_url():
         # If it's already HTTPS, just remove the .git
         repo_url = repo_url.replace(".git", "")
     
+    if not repo_url.endswith('/'):
+        repo_url = repo_url + '/'
+        
+    parts = repo_url.split('/')
+
+    # GitHub org is the 4th part (index 3)
+    parts[3] = parts[3].lower()
+
+    repo_url = '/'.join(parts)
     return repo_url
 
 def get_relative_path(cwd = None):
