@@ -21,7 +21,6 @@ dependencies = [
     "tqdm"
 ]
 
-
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -35,35 +34,32 @@ Documentation = "https://wiki.mipcvs.dev"
 Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb'
 
 [project.scripts]
-cmipld = "cmipld.browse.__main__:main"
-update_ctx = "cmipld.generate.update_ctx:main"
-update_all = "cmipld.generate.update_all:main"
-new_issue = "cmipld.generate.new_issue:main"
-generate_summary = "cmipld.generate.generate_summary:main"
-update_readme = "cmipld.generate.create_readme:main"
-validate_json = "cmipld.generate.validate_json:main"
-create_readme = "cmipld.generate.create_readme:main"
+# Python entry points only
+cmipld = "cmipld.browse.__main__:main"                    # Main CMIP-LD browser interface
+update_ctx = "cmipld.generate.update_ctx:main"           # Update JSON-LD context files
+update_all = "cmipld.generate.update_all:main"           # Run full update process (contexts + graphs)
+new_issue = "cmipld.generate.new_issue:main"             # Generate new GitHub issue
+generate_summary = "cmipld.generate.generate_summary:main" # Generate repository summary
+update_readme = "cmipld.generate.create_readme:main"     # Update README files
+validate_json = "cmipld.utils.validate_json:main"        # Validate JSON-LD files
+create_readme = "cmipld.generate.create_readme:main"     # Create README files
 
 [tool.setuptools]
 packages = ["cmipld"]
 include-package-data = true
-
-#[tool.setuptools.packages.find]
-#where = [".."]
-
+script-files = [
+    "bin/ld2graph",
+    "bin/validjsonld",
+    "bin/dev",
+    "bin/rmbak",
+    "bin/rmgraph",
+    "bin/coauthor_file",
+    "bin/cmipld-help"
+]
 
 [tool.setuptools.package-data]
-cmipld = ["scripts/*/*"
-          ]
-
-[tool.setuptools.data-files]
-"bin" = [
-    "scripts/directory-utilities/dev",
-    "scripts/directory-utilities/validjsonld",
-    "scripts/directory-utilities/ld2graph",
-    "scripts/jsonld-util/rmbak",
-    "scripts/jsonld-util/rmgraph",
-    "scripts/development/coauthor_file"
+cmipld = [
+    "prefix_mappings.json"
 ]
 
 [tool.setuptools_scm]

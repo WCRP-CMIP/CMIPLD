@@ -1,7 +1,15 @@
 from .git_core import url,url2io,toplevel
 from .git_repo_metadata import getreponame
 from ... import reverse_mapping
-from ..jsontools import DotAccessibleDict
+# Delay import to avoid circular dependency
+DotAccessibleDict = None
+
+def _get_DotAccessibleDict():
+    global DotAccessibleDict
+    if DotAccessibleDict is None:
+        from ..jsontools import DotAccessibleDict as _DotAccessibleDict
+        DotAccessibleDict = _DotAccessibleDict
+    return DotAccessibleDict
 
 from rich import box
 from rich.panel import Panel
@@ -31,7 +39,7 @@ def cmip_info():
 # whoami, path, name, url, io
 
     
-    return DotAccessibleDict(
+    return _get_DotAccessibleDict()(
         whoami=whoami,
         path=repopath,
         name=reponame,

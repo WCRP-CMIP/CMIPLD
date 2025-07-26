@@ -1,4 +1,0 @@
-echo .DS_Store >> .gitignore
-echo .github/.DS_Store >> .gitignore
-echo src-data/.DS_Store >> .gitignore
-

@@ -1,8 +1,20 @@
 from collections import OrderedDict
-from ..generate.validate_json import JSONValidator
-jval = JSONValidator('./')
-validate_and_fix_json = jval.validate_and_fix_json
-sort_json_keys = jval.sort_json_keys
+
+# Lazy load validate_json to avoid circular imports
+_jval = None
+
+def _get_validator():
+    global _jval
+    if _jval is None:
+        from .validate_json import JSONValidator
+        _jval = JSONValidator('./')
+    return _jval
+
+def validate_and_fix_json(*args, **kwargs):
+    return _get_validator().validate_and_fix_json(*args, **kwargs)
+
+def sort_json_keys(*args, **kwargs):
+    return _get_validator().sort_json_keys(*args, **kwargs)
 
 # class DotAccessibleDictOld:
 #     def __init__(self, entries):
@@ -64,7 +76,7 @@ class DotAccessibleDict:
         return self._data.values()
 
     def __str__(self):
-        return str(self.entries.keys())
+        return str(self._data.keys())
 
 def sorted_json(dct):
     """
