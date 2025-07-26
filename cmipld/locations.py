@@ -38,21 +38,15 @@ io = _generate_mapping('https://raw.githubusercontent.com/{owner}/{repo}/main/')
 mapping = dict(sorted(mapping.items(), key=lambda item: len(item[0])))
 direct = dict(sorted(direct.items(), key=lambda item: len(item[0])))
 io = dict(sorted(io.items(), key=lambda item: len(item[0])))
-
 # # a dot accessible dict of the mapping
 # latest = DotAccessibleDict(dict([i, j + 'graph'] for i, j in mapping.items()))
 
 
-def reverse_mapping():
-    return {v: k for k, v in mapping.items()}
+reverse_mapping = {v: k for k, v in mapping.items()}
 
+reverse_direct = {v: k for k, v in direct.items()}
 
-def reverse_direct():
-    return {v: k for k, v in direct.items()}
-
-
-def reverse_io():
-    return {v: k for k, v in io.items()}
+reverse_io = {v: k for k, v in io.items()}
 
 
 def fetch_all(subset=None):

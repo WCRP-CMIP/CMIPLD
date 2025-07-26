@@ -26,16 +26,18 @@ except ImportError:
     print("Warning: esgvoc not available. Pydantic models will not be used.")
     DATA_DESCRIPTOR_CLASS_MAPPING = {}
 
-try:
-    from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path, url2io
-    from cmipld import prefix_url
-except ImportError:
-    print("Warning: cmipld not available. Git utilities will not be used.")
-    def get_path_url(path): return f"https://github.com/WCRP-CMIP/your-repo/tree/main/src-data/{path}"
-    def get_repo_url(): return "https://github.com/WCRP-CMIP/your-repo"
-    def get_relative_path(path): return f"src-data/{path}"
-    def url2io(repo, branch, path): return f"https://wcrp-cmip.github.io/your-repo/{path.replace('src-data/', '')}"
-    def prefix_url(url): return url.replace('https://wcrp-cmip.github.io/your-repo/', 'your-prefix:')
+# try:
+
+from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path, url2io
+from cmipld import prefix_url
+
+# except ImportError:
+#     print("Warning: cmipld not available. Git utilities will not be used.")
+#     def get_path_url(path): return f"https://github.com/WCRP-CMIP/your-repo/tree/main/src-data/{path}"
+#     def get_repo_url(): return "https://github.com/WCRP-CMIP/your-repo"
+#     def get_relative_path(path): return f"src-data/{path}"
+#     def url2io(repo, branch, path): return f"https://wcrp-cmip.github.io/your-repo/{path.replace('src-data/', '')}"
+#     def prefix_url(url): return url.replace('https://wcrp-cmip.github.io/your-repo/', 'your-prefix:')
 
 
 # def extract_bullets_with_brackets(html_text):
