@@ -8,7 +8,7 @@ import tqdm
 import os
 
 from ..locations import reverse_mapping
-reverse = reverse_mapping()
+reverse = reverse_mapping
 
 repo = os.popen("git remote get-url origin").read().replace('.git',
                                                             '').strip('\n').split('/')[-2:]
@@ -20,6 +20,9 @@ mapping['type'] = '@type'
 mapping['entries'] = '@none'
 
 historic = ['id', 'type']
+
+
+
 
 
 def main():
@@ -35,8 +38,10 @@ def main():
         item = cx.split('/')[1]
 
         try:
-
-            data = json.load(open(cx))
+            try:
+                data = json.load(open(cx))
+            except:
+                data = {'@context': {'id': '@id', 'type': '@type', 'entries': '@none'}}
 
             ctx = data['@context']
 
@@ -76,7 +81,7 @@ def main():
             continue
 
     # lets write the root repo
-    with open('src-data/_context_', 'w') as f:
+    with open('./src-data/_context_', 'w') as f:
         data = {"@context": mapping}
 
         data['@context']['@base'] = base

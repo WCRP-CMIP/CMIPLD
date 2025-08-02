@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Create README files for WCRP universe data directories.
-
 """
 
 import os
@@ -11,10 +10,13 @@ import glob
 import sys
 import argparse
 import numpy as np
-from pathlib import Path
 import urllib.parse
 from collections import defaultdict
-
+import cmipld
+from cmipld.utils.server_tools.offline_patched import LD_server
+from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path, url2io
+from cmipld import prefix_url
+from cmipld.utils.extract.links import depends_keys, depends_keys_detailed
 
 parser = argparse.ArgumentParser(description='Create README files for WCRP universe data directories')
 parser.add_argument('directory', help='Directory path to process')
@@ -26,72 +28,21 @@ except ImportError:
     print("Warning: esgvoc not available. Pydantic models will not be used.")
     DATA_DESCRIPTOR_CLASS_MAPPING = {}
 
-# try:
-
-from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path, url2io
-from cmipld import prefix_url
-
-# except ImportError:
-#     print("Warning: cmipld not available. Git utilities will not be used.")
-#     def get_path_url(path): return f"https://github.com/WCRP-CMIP/your-repo/tree/main/src-data/{path}"
-#     def get_repo_url(): return "https://github.com/WCRP-CMIP/your-repo"
-#     def get_relative_path(path): return f"src-data/{path}"
-#     def url2io(repo, branch, path): return f"https://wcrp-cmip.github.io/your-repo/{path.replace('src-data/', '')}"
-#     def prefix_url(url): return url.replace('https://wcrp-cmip.github.io/your-repo/', 'your-prefix:')
-
-
-# def extract_bullets_with_brackets(html_text):
-#     """Extract bullet points with brackets from HTML text."""
-#     try:
-#         from bs4 import BeautifulSoup
-#         soup = BeautifulSoup(html_text, "html.parser")
-#         results = {}
-
-#         bullet_pattern = re.compile(r"\s*-\s*(\w+):\s*([^\(]+?)(?:\s*\((.*?)\))?\.")
-
-#         for details in soup.find_all("details"):
-#             lines = details.get_text().splitlines()
-#             for line in lines:
-#                 match = bullet_pattern.match(line)
-#                 if match:
-#                     symbol, description, bracket_info = match.groups()
-#                     results[symbol] = {
-#                         "text1": description.strip(),
-#                         "text2": bracket_info.strip() if bracket_info else None
-#                     }
-
-#         return results
-#     except ImportError:
-#         print("Warning: BeautifulSoup not available. HTML parsing will be skipped.")
-#         return {}
-
 
 def sort_keys_like_json(keys):
-    """
-    Sort keys in the same order as JSON files:
-    1. id
-    2. validation-key
-    3. ui-label  
-    4. description
-    5. All other keys (alphabetically)
-    6. @context
-    7. type
-    """
+    """Sort keys in the same order as JSON files."""
     priority_keys = ['id', 'validation-key', 'ui-label', 'description']
     end_keys = ['@context', 'type']
     
     sorted_keys = []
     
-    # Add priority keys in order
     for key in priority_keys:
         if key in keys:
             sorted_keys.append(key)
     
-    # Add remaining keys alphabetically (excluding priority and end keys)
     remaining_keys = [k for k in keys if k not in priority_keys and k not in end_keys]
     sorted_keys.extend(sorted(remaining_keys))
     
-    # Add end keys
     for key in end_keys:
         if key in keys:
             sorted_keys.append(key)
@@ -104,7 +55,6 @@ def bullet_pydantic(pm):
     if not pm:
         return ""
     
-    # Get all field names and sort them
     field_names = list(pm.__pydantic_fields__.keys())
     sorted_fields = sort_keys_like_json(field_names)
     
@@ -113,7 +63,7 @@ def bullet_pydantic(pm):
         if key in pm.__pydantic_fields__:
             value = pm.__pydantic_fields__[key]
             typename = getattr(value.annotation, '__name__', str(value.annotation))
-            description = value.description or '<< No description in pydantic model (see esgvoc) >>'
+            description = value.description or '_No description in pydantic model (see esgvoc)_'
             keys += f"- **`{key}`** (**{typename}**) \n  {description.rstrip()}\n"
     
     return keys
@@ -125,7 +75,6 @@ def bullet_names(keynames):
     
     keys = ""
     for key in sorted_keynames:
-        print(f"- **`{key}`**")
         keys += f"- **`{key}`**  \n   [**unknown**]\n  No Pydantic model found.\n"
     
     return keys
@@ -133,7 +82,6 @@ def bullet_names(keynames):
 
 def extract_description(readme_content):
     """Extract description from README file content."""
-    # Pattern to match the description section
     pattern = r'<section id="description">(.*?)</section>'
     match = re.search(pattern, readme_content, re.DOTALL)
     
@@ -141,8 +89,6 @@ def extract_description(readme_content):
         return None
     
     section_content = match.group(1).strip()
-    
-    # Extract just the description text after "## Description"
     desc_pattern = r'## Description\s*(.*?)(?=\n\n|\Z)'
     desc_match = re.search(desc_pattern, section_content, re.DOTALL)
     
@@ -150,6 +96,7 @@ def extract_description(readme_content):
 
 
 def extract_external_contexts(context):
+    """Extract external contexts from JSON-LD context."""
     mappings = []
     repos = defaultdict(set)
 
@@ -183,49 +130,135 @@ def extract_external_contexts(context):
     return mappings, repos
 
 
-def links(ctxloc):
+def create_breadcrumb_dependencies(all_deps, self_prefix, current_name):
+    """Create breadcrumb-style dependency navigation with key → prefix:location [link] format."""
+    last = re.compile(r'/[^/]+$')
+    external_deps = set([last.sub('', x) for x in all_deps if not x.startswith(self_prefix)])
+    
+    if not external_deps:
+        return "", ""
+    
+    # Create breadcrumb summary
+    dep_count = len(external_deps)
+    # if dep_count <= 3:
+    #     breadcrumb = " → ".join(sorted(external_deps))
+    # else:
+    #     top_3 = sorted(external_deps)[:3]
+    #     breadcrumb = " → ".join(top_3) + f" → (+{dep_count-3} more)"
+    
+    breadcrumb_summary = f"""**{current_name}** depends on **{dep_count} external vocabularies**  
 
+The following external vocabularies are required to fully describe the data:"""
+    
+    # Create combined key → prefix:location [link] format
+    detailed_links = []
+    for x in sorted(external_deps):
+        sprefix, spath = x.split(':', 1)
+        base_link = cmipld.mapping.get(sprefix, 'prefix_not_in_cmipld')
+        
+        # For each path component, create the key → prefix:loc [link] format
+        path_components = [comp for comp in spath.split('/') if comp]
+        
+        temp_link = base_link
+        for i, component in enumerate(path_components):
+            temp_link += f'{component}/'
+            # Create the format: key → prefix:component [link]
+            key_display = component
+            prefix_loc = f"{sprefix}:{'/'.join(path_components[:i+1])}"
+            detailed_links.append(f"- `{key_display} → {prefix_loc}` [link]({temp_link})")
+    
+    return breadcrumb_summary, "\n".join(detailed_links)
+
+
+def links(ctxloc, graph_url=None, prefix_name=None, all_deps=None, self_prefix=None):
+    """Generate combined links and dependencies section."""
+    # Context-based analysis
     try:
         jsonld_context = json.load(open(ctxloc, 'r', encoding='utf-8'))
     except FileNotFoundError:
-        print(f"Error: JSON-LD context file {ctxloc} not found.")
-        return "<section id='links'>\n\n## 🔗 Links\n\nNo context file found!!!</section> \n\n"
-    # Generate mappings and breakdowns
+        return "<section id='links'>\n\n## 🔗 Links and Dependencies\n\nNo context file found!!!</section> \n\n"
+    
     mappings, repo_breakdown = extract_external_contexts(jsonld_context)
 
-    # Build the markdown output
+    # RDF-based analysis
+    external_keys = set()
+    key_details = {}
+    rdf_summary = ""
+    
+    if graph_url:
+        try:
+            external_keys = depends_keys(graph_url, prefix=True, external_only=True)
+            key_details = depends_keys_detailed(graph_url, prefix=True)
+            
+            if external_keys:
+                key_count = len(external_keys)
+                total_refs = sum(len(refs) for refs in key_details.values())
+                
+                breadcrumb_keys = " → ".join(sorted(list(external_keys)[:5]))
+                if len(external_keys) > 5:
+                    breadcrumb_keys += f" → (+{len(external_keys)-5} more)"
+                    
+                rdf_summary = f"""
+### 🔍 RDF Analysis Summary
+**{key_count} properties** reference **{total_refs} external resources**  
+**Property path:** `{breadcrumb_keys}`
+"""
+        except Exception as e:
+            print(f"Error in RDF analysis: {e}")
+            rdf_summary = "\n### 🔍 RDF Analysis\n*Error analyzing RDF dependencies*\n"
+
+    # Dependencies analysis
+    dep_summary = ""
+    dep_details = ""
+    if all_deps and self_prefix and prefix_name:
+        breadcrumb_summary, detailed_deps = create_breadcrumb_dependencies(all_deps, self_prefix, prefix_name)
+        if detailed_deps:
+            dep_summary = f"\n### External Dependencies\n{breadcrumb_summary}\n"
+            dep_details = f"\n{detailed_deps}\n"
+
+    # Build markdown output
     markdown_output = ['<section id="links">\n']
+    markdown_output.append("## 🔗 Links and Dependencies\n")
+    
+    # Add dependencies first if they exist
+    if dep_summary:
+        markdown_output.append(dep_summary)
+        markdown_output.append(dep_details)
+    
+    if rdf_summary:
+        markdown_output.append(rdf_summary)
+    
+    # RDF-based External Property Analysis
+    if external_keys:
+        markdown_output.append("\n### Properties with External References\n")
+        markdown_output.append("*Based on RDF triple analysis*\n")
+        
+        for key in sorted(external_keys):
+            if key in key_details and key_details[key]:
+                refs = ", ".join([f"`{ref}`" for ref in sorted(key_details[key])])
+                markdown_output.append(f"- **`{key}`** → {refs}")
+            else:
+                markdown_output.append(f"- **`{key}`**")
+        markdown_output.append("")
 
-    # Section: External Contexts and Key Mappings
-    markdown_output.append("## External Contexts and Key Mappings\n")
-    ctxrp = r'\_context\_'
-    for m in mappings:
-        markdown_output.append(f"- **{m['key']}** → `@type: {m['type']}`")
-        markdown_output.append(f"- - Context: [{m['context_url'].replace('_context_', ctxrp)}]({m['context_url']})")
-        markdown_output.append(f"- - Source: `{m['organization']}/{m['repository']}{m['path']}`\n")
-
-    # Section: Organization and Repository Breakdown
-    markdown_output.append("\n## Organisation and Repository Breakdown\n")
-    for (org, repo), paths in repo_breakdown.items():
-        markdown_output.append(f"- **Organisation:** `{org}`")
-        markdown_output.append(f"  - Repository: `{repo}`")
-        # for path in sorted(paths):
-        #     markdown_output.append(f"    - Path: `{name}{path}`")
-        markdown_output.append("")  # for spacing
+    # Context-based External Mappings  
+    if mappings:
+        markdown_output.append("\n### Contexts of External Mappings\n")
+        ctxrp = r'\_context\_'
+        for m in mappings:
+            markdown_output.append(f"- **`{m['key']}`** → `@type: {m['type']}`")
+            markdown_output.append(f"  - Context: [{m['context_url'].replace('_context_', ctxrp)}]({m['context_url']})")
+            markdown_output.append(f"  - Source: `{m['organization']}/{m['repository']}{m['path']}`\n")
 
     if len(markdown_output) < 4:
-        return 'No external links found. '
+        return '\n<section id="links">\n\n## 🔗 Links and Dependencies\n\nNo external links or dependencies found.\n\n</section>\n\n'
 
-    # Print the complete markdown string
-    final_markdown = "\n </section>\n\n".join(markdown_output)
-    
-    return final_markdown
+    markdown_output.append("\n</section>\n")
+    return "\n".join(markdown_output)
 
 
 def main():
     """Main function to process directory and create README files."""
-
-    
     args = parser.parse_args()
     
     if not os.path.exists(args.directory):
@@ -234,11 +267,21 @@ def main():
     
     directory_path = args.directory
     
+    # Set up local server
+    repo_url = cmipld.utils.git.get_repo_url()
+    prefix = cmipld.reverse_direct[repo_url]
+    
+    location = directory_path.split('src-data')[0] + 'src-data'
+    local = [(location, cmipld.mapping[prefix], prefix)]
+    server = LD_server(copy=local, use_ssl=False)
+    base_url = server.start_server(port=8081)
+    
     # Change to the specified directory
     os.chdir(directory_path)
     
     # Get all subdirectories
     folders = glob.glob('*/')
+    print(folders)
     missing_pydantic = []
     
     for dir_path in folders:
@@ -270,7 +313,7 @@ def main():
                 
                 if different:
                     print('The following keys are not present in all files:', different)
-                    print( '<<add these to an issue>>')
+                    print('<<add these to an issue>>')
             
         except (ValueError, IndexError) as e:
             print(f"Error processing {dir_path}: {e}")
@@ -288,7 +331,7 @@ def main():
             pydantic = dir_path.strip('/')
         else:
             missing_pydantic.append(dname)
-            print(f"------ \n Adding {dname} to DATA_DESCRIPTOR_CLASS_MAPPING")
+            print(f"Adding {dname} to DATA_DESCRIPTOR_CLASS_MAPPING")
         
         # Generate bullet points
         if pydantic and DATA_DESCRIPTOR_CLASS_MAPPING:
@@ -304,28 +347,17 @@ def main():
         io = relpath.replace('src-data/', url2io(repo, 'main', relpath))
         short = prefix_url(io)
         
-        link_content = links(f"{dir_path}_context_")
+        # Generate content sections
+        self = f'{prefix}:{name}'
+        graph_url = f'{self}/graph.jsonld'
         
-        # Create info section
-        info = f'''
-
-<section id="info">
-
-
-| Item | Reference |
-| --- | --- |
-| Type | `wrcp:{name}` |
-| Pydantic class | [`{pydantic}`](https://github.com/ESGF/esgf-vocab/blob/main/src/esgvoc/api/data_descriptors/{pydantic}.py): {DATA_DESCRIPTOR_CLASS_MAPPING[pydantic].__name__ if pydantic and DATA_DESCRIPTOR_CLASS_MAPPING else ' Not yet implemented'} |
-| | |
-| JSON-LD | `{short}` |
-| Expanded reference link | [{io}]({io}) |
-| Developer Repo | [![Open in GitHub](https://img.shields.io/badge/Open-GitHub-blue?logo=github&style=flat-square)]({content}) |
-
-
-</section>
-    '''
+        # Dependencies analysis
+        all = cmipld.depends(graph_url, prefix=True)
         
-        # Try to extract existing description from README file
+        # Combined links and dependencies section
+        link_content = links(f"{dir_path}/_context_", graph_url, name, all, self)
+        
+        # Description section
         existing_description = ""
         readme_path = f"{dir_path}README.md"
         if os.path.exists(readme_path):
@@ -333,25 +365,34 @@ def main():
                 existing_content = f.read()
             existing_description = extract_description(existing_content)
         
-        # Create description section
         description = f'''
-
 <section id="description">
 
-# {name.title().replace('-', ' ').replace(':', ' : ')}  (universal)
-
-
+# {name.title().replace('-', ' ').replace(':', ' : ')}  ({prefix})
 
 ## Description
 {existing_description or ""}
 
-[View in HTML]({io}/{relpath.replace('src-data/', '')})
-
 </section>
-
 '''
         
-        # Create schema section
+        # Info section
+        info = f'''
+<section id="info">
+
+| Item | Reference |
+| --- | --- |
+| Type | `{prefix}:{name}` |
+| Pydantic class | [`{pydantic}`](https://github.com/ESGF/esgf-vocab/blob/main/src/esgvoc/api/data_descriptors/{pydantic}.py): {DATA_DESCRIPTOR_CLASS_MAPPING[pydantic].__name__ if pydantic and DATA_DESCRIPTOR_CLASS_MAPPING else ' Not yet implemented'} |
+| | |
+| JSON-LD | `{short}` |
+| Expanded reference link | [{io}]({io}) |
+| Developer Repo | [![Open in GitHub](https://img.shields.io/badge/Open-GitHub-blue?logo=github&style=flat-square)]({content}) |
+
+</section>
+'''
+        
+        # Schema section
         schema = f'''
 <section id="schema">
 
@@ -359,54 +400,53 @@ def main():
 
 {bullets}
 
-
-
-
 </section>   
 '''
         
-        # Create usage section
+        # Usage section
         usage = f'''
 <section id="usage">
 
 ## Usage
 
 ### Online Viewer 
-To view a file in a browser use the content link with `.json` appended. 
-eg. {content}/{select}.json
+#### Direct
+To view a file in a browser use the content link with `.json` appended.
 
-### Getting a File. 
+For example: `{content}/{select}.json`
+
+#### Use cmipld.js [in development]
+[View self resolving files here](https://wcrp-cmip.github.io/CMIPLD/viewer/index.html?uri={short.replace(':','%253A').replace('/', '%252F')}/{select})
+
+### Getting a File
 
 A short example of how to integrate the computed ld file into your code. 
 
 ```python
-
 import cmipld
-cmipld.get( "{short}/{select}")
-
+cmipld.get("{short}/{select}")
 ```
 
 ### Framing
 Framing is a way we can filter the downloaded data to match what we want. 
 ```python
 frame = {{
-            "@context": "{io}/_context_",
-            "@type": "wcrp:{name}",
-            "keys we want": "",
-            "@explicit": True
-
-        }}
+    "@context": "{io}/_context_",
+    "@type": "{prefix}:{name}",
+    "keys we want": "",
+    "@explicit": True
+}}
         
 import cmipld
-cmipld.frame( "{short}/{select}" , frame)
-
+cmipld.frame("{short}/{select}", frame)
 ```
 </section>
-
-    '''
+'''
+        
+        htmllink = f"[View in HTML]({io}/{relpath.replace('src-data/', '')})\n" 
         
         # Combine all sections
-        readme = f'''{description}{info}{link_content}{schema}{usage}'''
+        readme = f'''{htmllink}{description}{info}{link_content}{schema}{usage}'''
         
         # Write README file
         with open(f'{dir_path}README.md', 'w') as f:
@@ -418,5 +458,4 @@ cmipld.frame( "{short}/{select}" , frame)
 
 
 if __name__ == "__main__":
-
     main()
