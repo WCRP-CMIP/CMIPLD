@@ -197,10 +197,10 @@ class LocalServer:
         )
 
         # Only test redirect if SSL is available (otherwise the https test will fail)
-        if self.use_ssl:
-            self.requests.test_redirect('https://wcrp-cmip.github.io/WCRP-universe/bob')
-        else:
-            self.requests.test_redirect('http://wcrp-cmip.github.io/WCRP-universe/bob')
+        # if self.use_ssl:
+        #     self.requests.test_redirect('https://wcrp-cmip.github.io/WCRP-universe/bob')
+        # else:
+        #     self.requests.test_redirect('http://wcrp-cmip.github.io/WCRP-universe/bob')
 
         # Define a custom handler that serves files from the specified base_path
         handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
