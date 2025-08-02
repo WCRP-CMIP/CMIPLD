@@ -1,6 +1,6 @@
 from .git_core import url,url2io,toplevel
 from .git_repo_metadata import getreponame
-from ... import reverse_mapping
+from ...locations import reverse_mapping
 # Delay import to avoid circular dependency
 DotAccessibleDict = None
 
@@ -24,7 +24,7 @@ def cmip_info():
     repopath = toplevel()
     reponame = getreponame()
 
-    whoami = reverse_mapping()[io_url]
+    whoami = reverse_mapping[io_url]
     
     console.print(Panel.fit(
         f"[bold cyan]Parsing repo:[/bold cyan] {whoami}\n"
