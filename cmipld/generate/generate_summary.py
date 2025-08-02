@@ -1,207 +1,176 @@
+#!/usr/bin/env python3
+"""
+Generate summary runner with data normalization
 
+Usage: python generate_summary.py <script_directory>
+"""
 
-'''
-This file starts the server runs all the files in the generate_scripts repository. 
-
-generate_summary .github/GENERATE_SUMMARY/ '{"https://wcrp-cmip.github.io/WCRP-universe/":"universal"}'
-
-
-
-'''
-
-# %%
 import cmipld
-import importlib
-import json
-from collections import OrderedDict
-import glob
 import os
-import sys
-import re
-# from p_tqdm import p_map
+import glob
+import importlib.util
 import tqdm
-import json
-import urllib.parse
-from collections import defaultdict
-
+from cmipld.utils.git.repo_info import cmip_info
 from cmipld.utils.server_tools.offline import LD_server
 from cmipld.utils.checksum import version
-from cmipld.utils.git.repo_info import cmip_info
 
 
-from cmipld.utils.logging.unique import UniqueLogger,Panel, box
-log = UniqueLogger()
+def normalize_jsonld_data(data):
+    """Convert expanded JSON-LD to simple key-value format"""
+    if not isinstance(data, dict):
+        return data
+    
+    normalized = {}
+    
+    for key, value in data.items():
+        # Convert @id to id
+        if key == '@id':
+            normalized['id'] = value.split('/')[-1] if isinstance(value, str) else value
+            continue
+        
+        # Skip @type for now
+        if key == '@type':
+            continue
+            
+        # Extract simple key name from URL
+        if isinstance(key, str) and key.startswith('http'):
+            simple_key = key.split('/')[-1]
+        else:
+            simple_key = key
+        
+        # Handle different value formats
+        if isinstance(value, list) and len(value) == 1:
+            item = value[0]
+            
+            # Handle @value wrapper
+            if isinstance(item, dict) and '@value' in item:
+                normalized[simple_key] = item['@value']
+            
+            # Handle @list wrapper
+            elif isinstance(item, dict) and '@list' in item:
+                list_items = item['@list']
+                # Extract @value from each list item
+                if isinstance(list_items, list):
+                    simple_list = []
+                    for list_item in list_items:
+                        if isinstance(list_item, dict) and '@value' in list_item:
+                            simple_list.append(list_item['@value'])
+                        else:
+                            simple_list.append(list_item)
+                    normalized[simple_key] = simple_list
+                else:
+                    normalized[simple_key] = list_items
+            else:
+                normalized[simple_key] = item
+        else:
+            normalized[simple_key] = value
+    
+    return normalized
 
 
 def write(location, me, data):
-    # print(f'AWriting to {location}',data)
+    """Write summary with proper version header"""
     summary = version(data, me, location.split("/")[-1])
 
     if os.path.exists(location):
         old = cmipld.utils.io.jr(location)
-        if old['Header']['checksum'] == summary['Header']['checksum']:
+        if old.get('Header', {}).get('checksum') == summary.get('Header', {}).get('checksum'):
+            print(f"📄 {me}: No update needed (unchanged)")
             return 'no update - file already exists'
 
     cmipld.utils.io.jw(summary, location)
-    log.debug(f'Written to {location}')
-
-def extract_external_contexts(context):
-    mappings = []
-    repos = defaultdict(set)
-
-    inner_context = context["@context"][1] if isinstance(context["@context"], list) else context["@context"]
-
-    for key, value in inner_context.items():
-        if key.startswith("@"):
-            continue
-
-        ext_context = value.get("@context") if isinstance(value, dict) else None
-        key_type = value.get("@type") if isinstance(value, dict) else None
-
-        if ext_context:
-            parsed = urllib.parse.urlparse(ext_context)
-            path_parts = parsed.path.strip("/").split("/")
-            org = path_parts[0] if len(path_parts) > 1 else "unknown"
-            repo = path_parts[1] if len(path_parts) > 2 else "unknown"
-            path = "/" + "/".join(path_parts[2:]) if len(path_parts) > 2 else parsed.path
-
-            mappings.append({
-                "key": key,
-                "type": key_type,
-                "context_url": ext_context,
-                "organization": org,
-                "repository": repo,
-                "path": path
-            })
-
-            repos[(org, repo)].add(path)
-
-    return mappings, repos
+    print(f"💾 {me}: Written to {location}")
 
 
-def links(ctxloc):
+def run_script(script_path, repo_info):
+    """Run script with data normalization"""
+    try:
+        spec = importlib.util.spec_from_file_location("module.name", script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
-    jsonld_context = json.load(open(ctxloc, 'r', encoding='utf-8'))
-    # Generate mappings and breakdowns
-    mappings, repo_breakdown = extract_external_contexts(jsonld_context)
+        # Monkey patch cmipld.get to normalize data
+        original_get = cmipld.get
+        
+        def normalizing_get(url, **kwargs):
+            """Get data and normalize JSON-LD format"""
+            data = original_get(url, **kwargs)
+            
+            if isinstance(data, dict) and '@graph' in data:
+                # Normalize each item in the graph
+                normalized_graph = []
+                for item in data['@graph']:
+                    normalized_item = normalize_jsonld_data(item)
+                    normalized_graph.append(normalized_item)
+                data['@graph'] = normalized_graph
+            
+            return data
+        
+        # Temporarily replace cmipld.get
+        cmipld.get = normalizing_get
+        
+        try:
+            processed = module.run(**repo_info)
+            
+            if processed and len(processed) == 3:
+                write(*processed)
+                return True
+            else:
+                print(f"❌ {os.path.basename(script_path)}: No output")
+                return False
+        finally:
+            # Restore original get function
+            cmipld.get = original_get
 
-    # Build the markdown output
-    markdown_output = []
+    except Exception as e:
+        print(f"❌ {os.path.basename(script_path)}: {e}")
+        return False
 
-    # Section: External Contexts and Key Mappings
-    markdown_output.append("## 🔑 External Contexts and Key Mappings\n")
-    for m in mappings:
-        markdown_output.append(f"- **{m['key']}** → `@type: {m['type']}`")
-        markdown_output.append(f"  - Context: [{m['context_url']}]({m['context_url']})")
-        markdown_output.append(f"  - Source: `{m['organization']}/{m['repository']}{m['path']}`\n")
-
-    # Section: Organization and Repository Breakdown
-    markdown_output.append("\n## 🏛️ Organization and Repository Breakdown\n")
-    for (org, repo), paths in repo_breakdown.items():
-        markdown_output.append(f"- **Organization:** `{org}`")
-        markdown_output.append(f"  - Repository: `{repo}`")
-        for path in sorted(paths):
-            markdown_output.append(f"    - Path: `{path}`")
-        markdown_output.append("")  # for spacing
-
-    # Print the complete markdown string
-    final_markdown = "\n".join(markdown_output)
-    return final_markdown
 
 def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Process a file path.")
-    parser.add_argument(
-        "dir", type=str, help="Path to the generate scripts directory")
-    # parser.add_argument("repos", type=json.loads,
-    #                     help="JSON string containing repositories")
-
-    args = parser.parse_args()
-
-    log.debug(f"File path provided: {args.dir}")
-
-    # relpath = __file__.replace('__main__.py', '')
-    relpath = args.dir
-
-
-
+    import sys
+    
+    if len(sys.argv) != 2:
+        print("Usage: generate_summary <script_directory>")
+        sys.exit(1)
+    
+    script_dir = sys.argv[1]
+    
+    print("🔍 Getting repository information...")
     repo = cmip_info()
-
-    ldpath = cmipld.utils.io.ldpath() 
-
-
-
-    print('We should read all rep dependencies and pre-load them here.')
-
-    localserver = LD_server( copy=[
-                            [ldpath, repo.io, repo.whoami],
-                            # ['/Users/daniel.ellis/WIPwork/WCRP-universe/src-data/', repo.io.replace('CMIP7-CVs','WCRP-universe'), 'universal'],
-                            ], override='y')
-
-    localhost = localserver.start_server()
     
+    print("🖥️  Setting up local LD server...")
     
+    # Server setup matching your pattern
+    directory_path = repo.path
+    location = directory_path.split('src-data')[0] + 'src-data' if 'src-data' in directory_path else os.path.join(directory_path, 'src-data')
+    prefix = repo.whoami
     
-    # input('wait')
+    local = [(location, cmipld.mapping[prefix], prefix)]
+    server = LD_server(copy=local, use_ssl=False)
     
-    # cmipld.processor.replace_loader(
-    #     localhost,[[cmipld.mapping[whoami], whoami]],
-    #     )
-        # [list(i) for i in repos.items()])
-    # print(cmipld.processor.loader)
-    # input('wait')
-
-    files = glob.glob(relpath+'*.py')
-    
-    
-    def run(file):
-        if file == __file__:
-            return
-
-        cmipld.utils.git.update_summary(f'Executing: {file}')
-
-        try:
-            # this = importlib.import_module(os.path.abspath(file))
-            log.print(
-                Panel.fit(
-                    f"Starting to run {file.split('/')[-1].replace('.py','')}",
-                    box=box.ROUNDED,
-                    padding=(1, 2),
-                    title=f"{file}",
-                    border_style="bright_blue",
-                ),
-                justify="center",
-            )
+    try:
+        base_url = server.start_server(port=8081)
+        print(f"✅ LD server started at {base_url}")
         
-            
-            spec = importlib.util.spec_from_file_location("module.name", file)
-            this = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(this)  # Load the module
-
-            processed = this.run(**repo)
-            
-            if len(processed) == 3:
-                write(*processed)
-
-        except Exception as e:
-            cmipld.utils.git.update_summary(f"Error in {file} : {e}")
-
-        return
-
+        # Find scripts
+        scripts = [s for s in glob.glob(f"{script_dir}/*.py") 
+                   if not os.path.basename(s).startswith('x_')]
         
-    # for each file run the function
-    for file in tqdm.tqdm(files):
+        print(f"🚀 Running {len(scripts)} summary scripts...\n")
         
-        if os.path.basename(file).lower().startswith('x_'):
-            # skip files that start with x
-            continue
-        run(file)
+        # Run each script
+        success = 0
+        for script in tqdm.tqdm(scripts):
+            if run_script(script, dict(repo)):
+                success += 1
+        
+        print(f"\n✅ Summary: {success}/{len(scripts)} scripts successful")
+    
+    finally:
+        print("🛑 Stopping LD server...")
+        server.stop_server()
 
-    localserver.stop_server()
 
-
-
-
-
-# %%
+if __name__ == "__main__":
+    main()
