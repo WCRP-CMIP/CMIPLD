@@ -74,7 +74,7 @@ def _checksum(obj):
 
 
 def version(data, name, location='./', repo=None):
-    rmap = reverse_mapping()
+    rmap = reverse_mapping
 
     writefile = f'{location}'
     output = OrderedDict()
