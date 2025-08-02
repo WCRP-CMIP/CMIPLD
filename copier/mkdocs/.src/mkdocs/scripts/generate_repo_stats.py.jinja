@@ -305,29 +305,24 @@ class StatsGenerator:
                         f.write(json.dumps(time_series_data, indent=2))
                     
                     # Add time series visualization to stats page with plain HTML
-                    time_series_content = f"""## Commit Activity
+                    time_series_content = """## Commit Activity
 
 This chart shows the weekly commit activity for the repository over time.
 
-```plotly
-{{
-                    "file_path": "../../assets/{time_series_file}"
-}}
-```
-
 <div id="commit-activity-chart" style="height:400px; width:100%;"></div>
 <script>
-                    document.addEventListener('DOMContentLoaded', function() {{
-                    if (typeof Plotly !== 'undefined') {{
-                    fetch('../../assets/{time_series_file}')
-                      .then(response => response.json())
-                        .then(data => {{
-                            Plotly.newPlot('commit-activity-chart', data.data, data.layout);
-                          }});
-    }} else {{
-      console.error('Plotly is not loaded');
-    }}
-  }});
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Plotly !== 'undefined') {
+        fetch('../../assets/commits_time_series.json')
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('commit-activity-chart', data.data, data.layout);
+            })
+            .catch(error => console.error('Error loading chart data:', error));
+    } else {
+        console.error('Plotly is not loaded');
+    }
+});
 </script>
 """
                     
@@ -399,29 +394,24 @@ This chart shows the weekly commit activity for the repository over time.
                         f.write(json.dumps(code_frequency_data, indent=2))
                     
                     # Add code frequency visualization to stats page with direct HTML
-                    code_frequency_content = f"""## Code Changes
+                    code_frequency_content = """## Code Changes
 
 This chart shows code additions (green) and deletions (red) over time.
 
-```plotly
-{{
-  "file_path": "../../assets/{code_frequency_file}"
-}}
-```
-
 <div id="code-changes-chart" style="height:400px; width:100%;"></div>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {{
-    if (typeof Plotly !== 'undefined') {{
-      fetch('../../assets/{code_frequency_file}')
-        .then(response => response.json())
-        .then(data => {{
-          Plotly.newPlot('code-changes-chart', data.data, data.layout);
-        }});
-    }} else {{
-      console.error('Plotly is not loaded');
-    }}
-  }});
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Plotly !== 'undefined') {
+        fetch('../../assets/code_frequency.json')
+            .then(response => response.json())
+            .then(data => {
+                Plotly.newPlot('code-changes-chart', data.data, data.layout);
+            })
+            .catch(error => console.error('Error loading chart data:', error));
+    } else {
+        console.error('Plotly is not loaded');
+    }
+});
 </script>
 """
                     

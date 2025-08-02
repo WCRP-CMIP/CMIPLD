@@ -259,7 +259,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
-        nav_lines.append('- Data Content:')
+        nav_lines.append('- Repository Contents:')
         nav_lines.append('  - [Overview](src-data-docs/index.md)')
         
         # Add each section in alphabetical order
@@ -277,7 +277,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
     
     # Add data summaries from virtual files
     if has_data_summaries:
-        nav_lines.append('- Data Summaries:')
+        nav_lines.append('- Summary of Data:')
         nav_lines.append('  - [Overview](data-summaries/index.md)')
         
         # Add each data file directly to detailed page (not nested)
