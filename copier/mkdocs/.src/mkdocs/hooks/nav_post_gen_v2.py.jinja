@@ -8,19 +8,14 @@ import os
 import re
 from pathlib import Path
 
-def on_env(env, config, files):
-    """
-    This hook runs after all plugins (including gen-files) have processed.
-    We use the files object to detect virtual files created by gen-files.
-    """
-    print("🔧 Post-generation hook: Creating navigation...")
+def on_files(files, config):
+    """Hook that runs after gen-files has generated all virtual files."""
+    print("🔧 Files hook: Processing navigation after gen-files...")
     
     docs_dir = Path(config['docs_dir'])
-    
-    # Pass the MkDocs files object to access virtual files
     generate_final_navigation(docs_dir, files)
     
-    return env
+    return files
 
 def clean_title(filename):
     """Clean filename for display."""
@@ -63,6 +58,15 @@ def get_sort_key(filename):
 def generate_final_navigation(docs_path, mkdocs_files):
     """Generate SUMMARY.md after ALL content is created."""
     print(f"📂 Scanning for all content...")
+    
+    # Debug: Print all detected files
+    print(f"🔍 Debug: Found {len(mkdocs_files)} total files:")
+    for i, file_obj in enumerate(mkdocs_files):
+        if i < 20:  # Show first 20 files
+            print(f"   {i+1}. {file_obj.src_path} (virtual: {getattr(file_obj, 'generated_by', None) is not None})")
+        elif i == 20:
+            print(f"   ... and {len(mkdocs_files) - 20} more files")
+            break
     
     # First, detect src-data virtual files from gen-files
     src_data_sections = {}
@@ -136,8 +140,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
         rel_path = md_file.relative_to(docs_path)
         parts = list(rel_path.parts)
         
-        # Skip src-data-docs (handled separately via virtual files)
-        if parts and parts[0] == 'src-data-docs':
+        # Skip src-data-docs (handled separately via virtual files) and data-summaries
+        if parts and parts[0] in ['src-data-docs', 'data-summaries']:
             continue
             
         if len(parts) == 1:
@@ -168,8 +172,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
         rel_path = md_file.relative_to(docs_path)
         parts = list(rel_path.parts)
         
-        # Skip src-data-docs
-        if parts and parts[0] == 'src-data-docs':
+        # Skip src-data-docs and data-summaries (handled separately)
+        if parts and parts[0] in ['src-data-docs', 'data-summaries']:
             continue
             
         if len(parts) > 1:
@@ -238,31 +242,27 @@ def generate_final_navigation(docs_path, mkdocs_files):
                     for f in dir_files:
                         rel_path = f.relative_to(docs_path)
                         title = clean_title(f.name)
+                        # Skip stats.md if it exists as a real file - we'll add it as virtual file
+                        if f.name == 'stats.md':
+                            continue
                         nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
+                
+                # Also check for virtual stats file in auxillary directory
+                if dir_name == 'auxillary' and has_stats_page:
+                    # Check if stats is in auxillary directory as virtual file
+                    stats_found_in_auxillary = any(str(f.src_path) == 'auxillary/stats.md' for f in mkdocs_files)
+                    if stats_found_in_auxillary:
+                        nav_lines.append('  - [Repository Statistics](auxillary/stats.md)')
     
-    # Add stats page if it exists
-    if has_stats_page:
-        # Check if stats is in auxiliary or auxillary directory (handling both spellings)
-        stats_path_auxiliary = 'auxiliary/stats.md'
-        stats_path_auxillary = 'auxillary/stats.md'
-        stats_found_in_auxiliary = any(str(f.src_path) == stats_path_auxiliary for f in mkdocs_files)
-        stats_found_in_auxillary = any(str(f.src_path) == stats_path_auxillary for f in mkdocs_files)
-        
-        # Since we're specifically placing the stats page in the auxillary folder,
-        # let's prioritize that location
-        if stats_found_in_auxillary:
-            nav_lines.append('- [Repository Statistics](auxillary/stats.md)')
-        elif stats_found_in_auxiliary:
-            nav_lines.append('- [Repository Statistics](auxiliary/stats.md)')
-        else:
-            nav_lines.append('- [Repository Statistics](stats.md)')
+    # Add stats page if it exists - but only under auxiliary section, not as separate item
+    # (Stats will be added when processing the auxillary directory)
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
         nav_lines.append('- Repository Contents:')
-        nav_lines.append('  - [Overview](src-data-docs/index.md)')
+        nav_lines.append('  - [Available Files](src-data-docs/index.md)')
         
-        # Add each section in alphabetical order
+        # Add each section in alphabetical order - show all generated files
         for section in sorted(src_data_sections.keys()):
             info = src_data_sections[section]
             section_title = clean_title(section)
@@ -274,6 +274,22 @@ def generate_final_navigation(docs_path, mkdocs_files):
                 # Add contents as sub-item if it exists
                 if info.get('has_contents', False):
                     nav_lines.append(f'    - [Contents](src-data-docs/{section}_contents.md)')
+    
+    # If no src-data but we have other content files, still create Repository Contents section
+    elif any(item['type'] == 'directory' and item['name'] in ['json_data', 'src', 'content', 'repository'] for item in unique_sorted_items):
+        nav_lines.append('- Repository Contents:')
+        # Add any directories that might contain repository content
+        for item in unique_sorted_items:
+            if item['type'] == 'directory' and item['name'] in ['json_data', 'src', 'content', 'repository']:
+                dir_name = item['name']
+                if dir_name in directories:
+                    dir_title = clean_title(dir_name)
+                    nav_lines.append(f'  - {dir_title}:')
+                    dir_files = sorted(directories[dir_name], key=lambda f: get_sort_key(f.name))
+                    for f in dir_files:
+                        rel_path = f.relative_to(docs_path)
+                        title = clean_title(f.name)
+                        nav_lines.append(f'    - [{title}]({str(rel_path).replace(os.sep, "/")})')
     
     # Add data summaries from virtual files
     if has_data_summaries:

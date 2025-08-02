@@ -364,7 +364,7 @@ def create_new_configuration(args):
         username = github_username or 'your-username'
         repo_name = Path.cwd().name
     
-    project_name = repo_name.replace('-', ' ').replace('_', ' ').title()
+    project_name = repo_name.replace('-', ' ').replace('_', ' ')
     readme_content = read_readme_content(quiet=args.quiet)
     
     # Select color
