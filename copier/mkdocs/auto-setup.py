@@ -310,18 +310,19 @@ def validate_configuration(data):
 
 
 def run_copier_with_data(template_path, data, no_confirm=False):
-    """Run copier with the provided data."""
-    cmd_parts = ["copier", "copy", template_path, "."]
+    """Run copier with the provided data using subprocess for proper escaping."""
+    cmd = ["copier", "copy", template_path, ".", "--overwrite"]
     
-    # Add data arguments
+    # Add data arguments with proper escaping
     for key, value in data.items():
         if key != 'template_path':
-            cmd_parts.extend(["--data", f"{key}={value}"])
+            # Convert value to string
+            str_value = str(value)
+            cmd.extend(["--data", f"{key}={str_value}"])
     
     # Add flags
-    cmd_parts.extend(["--overwrite"])
     if no_confirm:
-        cmd_parts.append("--quiet")
+        cmd.append("--quiet")
     
     print(f"\\n🔄 Running copier...")
     if not no_confirm:
@@ -331,7 +332,13 @@ def run_copier_with_data(template_path, data, no_confirm=False):
             print("❌ Cancelled by user")
             return False
     
-    return run_command(" ".join(f'"{part}"' if " " in part else part for part in cmd_parts), capture=False)
+    # Use subprocess.run with list for proper argument handling
+    try:
+        result = subprocess.run(cmd, cwd=None)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"❌ Error running copier: {e}")
+        return False
 
 
 def create_new_configuration(args):
