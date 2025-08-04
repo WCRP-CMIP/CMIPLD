@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Enhanced auto-setup script for MkDocs Publisher template.
-Features: answer reuse, random color selection, create-new flag, double-check validation.
+Features: answer reuse, random color selection, create-new flag, FORCE OVERWRITE.
 """
 import subprocess
 import os
@@ -13,11 +13,12 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
-# Available header colors
+# Available header colors - sleek designer selection (Material Design compatible)
 HEADER_COLORS = [
-    'red', 'pink', 'purple', 'deep-purple', 'indigo', 'blue', 'light-blue', 
-    'cyan', 'teal', 'green', 'light-green', 'lime', 'yellow', 'amber', 
-    'orange', 'deep-orange', 'brown', 'grey', 'blue-grey'
+    'blue-grey', 'indigo', 'teal', 'cyan', 'deep-purple',
+    'blue', 'green', 'grey', 'red', 'deep-orange',
+    'purple', 'light-blue', 'orange', 'amber', 'pink',
+    'light-green', 'lime', 'yellow', 'brown', 'black'
 ]
 
 def parse_arguments():
@@ -27,6 +28,7 @@ def parse_arguments():
         epilog='By default, previous configuration is automatically reused if found. Use --create-new for clean install.'
     )
     parser.add_argument('template_path', nargs='?', help='Path to copier template')
+    parser.add_argument('destination', nargs='?', default='.', help='Destination directory (default: current directory)')
     parser.add_argument('--create-new', action='store_true', 
                        help='Create new configuration (clean install - ignores saved answers)')
     parser.add_argument('--color', choices=HEADER_COLORS, 
@@ -35,6 +37,8 @@ def parse_arguments():
                        help='Skip confirmation prompts (for automation)')
     parser.add_argument('--quiet', action='store_true',
                        help='Reduce output verbosity (no README content display)')
+    parser.add_argument('--force-overwrite', action='store_true',
+                       help='🔥 Force overwrite ALL files, ignoring _skip_if_exists exceptions')
     return parser.parse_args()
 
 
@@ -124,31 +128,6 @@ def get_remote_info():
     return None, None
 
 
-def read_readme_content(quiet=False):
-    """Read README.md content or return fallback message."""
-    readme_files = ['./README.md', './readme.md', './Readme.md']
-    
-    for readme_file in readme_files:
-        readme_path = Path(readme_file)
-        if readme_path.exists():
-            try:
-                with open(readme_path, 'r', encoding='utf-8') as f:
-                    content = f.read().strip()
-                
-                if not quiet:
-                    print(f"✅ Found README: {readme_file} ({len(content)} chars)")
-                return content
-                
-            except Exception as e:
-                if not quiet:
-                    print(f"⚠️  Error reading {readme_file}: {e}")
-                continue
-    
-    if not quiet:
-        print("⚠️  No README.md found")
-    return "Documentation content - please update this section"
-
-
 def save_answers(data, answers_file=".copier-answers.yml"):
     """Save answers to YAML file with metadata."""
     try:
@@ -157,7 +136,7 @@ def save_answers(data, answers_file=".copier-answers.yml"):
             '_commit': 'HEAD',
             '_timestamp': datetime.now().isoformat(),
             '_auto_generated': True,
-            '_script_version': '2.0'
+            '_script_version': '2.1'
         }
         
         # Add actual answers (excluding template_path)
@@ -204,31 +183,6 @@ def load_previous_answers(answers_file=".copier-answers.yml"):
     except Exception as e:
         print(f"⚠️  Error loading previous answers: {e}")
         return None
-
-
-def prompt_reuse_answers(data, metadata, no_confirm=False):
-    """Prompt user to reuse previous answers."""
-    print(f"\\n📋 Found previous configuration:")
-    
-    if metadata.get('timestamp'):
-        try:
-            timestamp = datetime.fromisoformat(metadata['timestamp'])
-            print(f"   🕐 Created: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
-        except:
-            print(f"   🕐 Created: {metadata['timestamp']}")
-    
-    print(f"   📦 Template: {metadata.get('src_path', 'Unknown')}")
-    print(f"   📄 Project: {data.get('project_name', 'Unknown')}")
-    print(f"   🎨 Color: {data.get('header_color', 'blue')}")
-    print(f"   👤 GitHub: {data.get('github_username', 'Unknown')}/{data.get('repo_name', 'Unknown')}")
-    
-    if no_confirm:
-        print("\\n✅ Using previous configuration (--no-confirm)")
-        return True
-    
-    print("\\n🔄 Reuse this configuration?")
-    response = input("[Y/n]: ").strip().lower()
-    return response in ['', 'y', 'yes']
 
 
 def detect_template_path():
@@ -309,29 +263,52 @@ def validate_configuration(data):
     return True
 
 
-def run_copier_with_data(template_path, data, no_confirm=False):
-    """Run copier with the provided data."""
-    cmd_parts = ["copier", "copy", template_path, "."]
+def run_copier_with_data(template_path, data, destination=".", no_confirm=False, force_overwrite=False):
+    """Run copier with the provided data using subprocess for proper escaping."""
+    cmd = ["copier", "copy", template_path, destination]
     
-    # Add data arguments
+    # Add overwrite flags
+    if force_overwrite:
+        cmd.extend(["--overwrite", "--force"])
+        print("🔥 Force overwrite mode: ignoring _skip_if_exists exceptions")
+    else:
+        cmd.append("--overwrite")
+    
+    # Add data arguments with proper escaping
     for key, value in data.items():
         if key != 'template_path':
-            cmd_parts.extend(["--data", f"{key}={value}"])
+            # Convert value to string
+            str_value = str(value)
+            cmd.extend(["--data", f"{key}={str_value}"])
     
     # Add flags
-    cmd_parts.extend(["--overwrite"])
     if no_confirm:
-        cmd_parts.append("--quiet")
+        cmd.append("--quiet")
     
     print(f"\\n🔄 Running copier...")
-    if not no_confirm:
-        print(f"   Command: copier copy {template_path} .")
-        confirm = input("\\nProceed with generation? [Y/n]: ").strip().lower()
-        if confirm and confirm not in ['y', 'yes', '']:
-            print("❌ Cancelled by user")
-            return False
+    if force_overwrite:
+        print("   ⚠️  Force mode: Will overwrite ALL files including protected ones")
     
-    return run_command(" ".join(f'"{part}"' if " " in part else part for part in cmd_parts), capture=False)
+    if not no_confirm:
+        print(f"   Command: copier copy {template_path} {destination}")
+        if force_overwrite:
+            confirm = input("\\n⚠️  FORCE OVERWRITE: This will replace ALL files. Proceed? [y/N]: ").strip().lower()
+            if confirm not in ['y', 'yes']:
+                print("❌ Cancelled by user")
+                return False
+        else:
+            confirm = input("\\nProceed with generation? [Y/n]: ").strip().lower()
+            if confirm and confirm not in ['y', 'yes', '']:
+                print("❌ Cancelled by user")
+                return False
+    
+    # Use subprocess.run with list for proper argument handling
+    try:
+        result = subprocess.run(cmd, cwd=None)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"❌ Error running copier: {e}")
+        return False
 
 
 def create_new_configuration(args):
@@ -357,8 +334,7 @@ def create_new_configuration(args):
         username = github_username or 'your-username'
         repo_name = Path.cwd().name
     
-    project_name = repo_name.replace('-', ' ').replace('_', ' ').title()
-    readme_content = read_readme_content(quiet=args.quiet)
+    project_name = repo_name.replace('-', ' ').replace('_', ' ')
     
     # Select color
     if args.color:
@@ -385,7 +361,6 @@ def create_new_configuration(args):
         'repo_url': f"https://github.com/{username}/{repo_name}",
         'json_data_folder': 'json_data',
         'description': f"Documentation for {project_name}",
-        'readme_content': readme_content,
         'template_path': template_path,
         'header_color': header_color,
         'generate_static_files': True,
@@ -430,13 +405,16 @@ def print_next_steps(data):
     print(f"\\n💾 Configuration saved to .copier-answers.yml")
     print(f"   🔄 Next run will automatically reuse this configuration")
     print(f"   🆕 Use --create-new flag to force clean install")
+    print(f"   🔥 Use --force-overwrite to ignore _skip_if_exists exceptions")
 
 
 def main():
-    """Enhanced main function with automatic answer reuse."""
+    """Enhanced main function with automatic answer reuse and force overwrite."""
     args = parse_arguments()
     
-    print("🚀 MkDocs Publisher Auto-Setup v2.0")
+    print("🚀 MkDocs Publisher Auto-Setup v2.1")
+    if args.force_overwrite:
+        print("🔥 FORCE OVERWRITE MODE ENABLED")
     
     # Install dependencies if needed
     if not install_dependencies():
@@ -491,8 +469,14 @@ def main():
     # Save configuration
     save_answers(data, answers_file)
     
-    # Run copier
-    success = run_copier_with_data(data['template_path'], data, args.no_confirm)
+    # Run copier with force overwrite option
+    success = run_copier_with_data(
+        data['template_path'], 
+        data, 
+        args.destination, 
+        args.no_confirm,
+        args.force_overwrite
+    )
     
     if success:
         print_next_steps(data)
