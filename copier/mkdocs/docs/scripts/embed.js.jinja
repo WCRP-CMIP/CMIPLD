@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Embed.js - Mobile-safe embedded view system with NUCLEAR old button cleanup
  * 
  * USAGE (DESKTOP ONLY):
@@ -156,10 +157,33 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             enterEmbedMode();
         }, 500);
+=======
+ * Embed.js - Fullscreen and interactive functionality for MkDocs
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for embed parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedMode = urlParams.get('embed') === 'true' || urlParams.get('fullscreen') === 'true';
+    
+    // Add fullscreen functionality to tables and other elements
+    addFullscreenButtons();
+    
+    // Add keyboard shortcuts
+    addKeyboardShortcuts();
+    
+    // Add table enhancements
+    enhanceTables();
+    
+    // Auto-enter fullscreen mode if embed parameter is present
+    if (embedMode) {
+        autoEnterEmbedMode();
+>>>>>>> e43c076 (expand correction)
     }
 });
 
 /**
+<<<<<<< HEAD
  * Detect if device is mobile using MkDocs breakpoint
  */
 function isMobileDevice() {
@@ -418,10 +442,145 @@ function addKeyboardShortcuts() {
         if (e.key === 'Escape') {
             if (document.body.classList.contains('embed-mode')) {
                 exitEmbedMode();
+=======
+ * Auto-enter embed mode for the main content area
+ */
+function autoEnterEmbedMode() {
+    // Target the .md-content area specifically for embed mode
+    let targetElement = document.querySelector('.md-content');
+    
+    if (!targetElement) {
+        // Fallback to table or other content
+        targetElement = document.querySelector('table, .md-content__inner, .md-typeset, main');
+    }
+    
+    if (targetElement) {
+        // Create wrapper if needed
+        let wrapper = targetElement.closest('.fullscreen-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'fullscreen-wrapper';
+            targetElement.parentNode.insertBefore(wrapper, targetElement);
+            wrapper.appendChild(targetElement);
+            
+            // Add fullscreen button
+            const button = document.createElement('button');
+            button.className = 'fullscreen-btn';
+            button.innerHTML = '⛷';
+            button.title = 'Exit Fullscreen (ESC)';
+            button.addEventListener('click', () => toggleFullscreen(wrapper));
+            wrapper.appendChild(button);
+        }
+        
+        // Enter fullscreen immediately
+        enterFullscreen(wrapper);
+        
+        // Also hide browser chrome if possible (requires user gesture)
+        setTimeout(() => {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    // Ignore errors - not all browsers support this or it requires user gesture
+                });
+            }
+        }, 500);
+    }
+}
+
+/**
+ * Add fullscreen buttons to tables and other content
+ */
+function addFullscreenButtons() {
+    // Target tables and other elements that should have fullscreen capability
+    const targets = document.querySelectorAll('table, .network-container, .treemap-container, .interactive-demo');
+    
+    targets.forEach(element => {
+        // Create fullscreen button
+        const button = document.createElement('button');
+        button.className = 'fullscreen-btn';
+        button.innerHTML = '⛶';
+        button.title = 'Toggle Fullscreen (F11)';
+        button.setAttribute('aria-label', 'Toggle fullscreen');
+        
+        // Create wrapper if needed
+        let wrapper = element.parentElement;
+        if (!wrapper.classList.contains('fullscreen-wrapper')) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'fullscreen-wrapper';
+            element.parentNode.insertBefore(wrapper, element);
+            wrapper.appendChild(element);
+        }
+        
+        // Add button to wrapper
+        wrapper.appendChild(button);
+        
+        // Add click handler
+        button.addEventListener('click', () => toggleFullscreen(wrapper));
+    });
+}
+
+/**
+ * Toggle fullscreen mode for an element
+ */
+function toggleFullscreen(element) {
+    if (element.classList.contains('fullscreen-active')) {
+        exitFullscreen(element);
+    } else {
+        enterFullscreen(element);
+    }
+}
+
+/**
+ * Enter fullscreen mode
+ */
+function enterFullscreen(element) {
+    element.classList.add('fullscreen-active');
+    document.body.classList.add('fullscreen-mode');
+    
+    // Update button text
+    const button = element.querySelector('.fullscreen-btn');
+    if (button) {
+        button.innerHTML = '⛷';
+        button.title = 'Exit Fullscreen (ESC)';
+    }
+    
+    // Focus the element for keyboard navigation
+    element.setAttribute('tabindex', '-1');
+    element.focus();
+}
+
+/**
+ * Exit fullscreen mode
+ */
+function exitFullscreen(element) {
+    element.classList.remove('fullscreen-active');
+    document.body.classList.remove('fullscreen-mode');
+    
+    // Update button text
+    const button = element.querySelector('.fullscreen-btn');
+    if (button) {
+        button.innerHTML = '⛶';
+        button.title = 'Toggle Fullscreen (F11)';
+    }
+    
+    element.removeAttribute('tabindex');
+}
+
+/**
+ * Add keyboard shortcuts
+ */
+function addKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // ESC to exit fullscreen
+        if (e.key === 'Escape') {
+            const fullscreenElement = document.querySelector('.fullscreen-active');
+            if (fullscreenElement) {
+                exitFullscreen(fullscreenElement);
+>>>>>>> e43c076 (expand correction)
                 e.preventDefault();
             }
         }
         
+<<<<<<< HEAD
         // F11 to toggle embed mode
         if (e.key === 'F11') {
             e.preventDefault();
@@ -429,18 +588,31 @@ function addKeyboardShortcuts() {
                 exitEmbedMode();
             } else {
                 enterEmbedMode();
+=======
+        // F11 to toggle fullscreen on focused element
+        if (e.key === 'F11') {
+            const focusedWrapper = document.activeElement.closest('.fullscreen-wrapper');
+            if (focusedWrapper) {
+                toggleFullscreen(focusedWrapper);
+                e.preventDefault();
+>>>>>>> e43c076 (expand correction)
             }
         }
     });
 }
 
 /**
+<<<<<<< HEAD
  * Enhance tables with sorting and filtering (desktop only)
+=======
+ * Enhance tables with sorting and filtering
+>>>>>>> e43c076 (expand correction)
  */
 function enhanceTables() {
     const tables = document.querySelectorAll('table');
     
     tables.forEach(table => {
+<<<<<<< HEAD
         addTableControls(table);
         makeTableResponsive(table);
         
@@ -448,6 +620,16 @@ function enhanceTables() {
         if (!isMobileDevice()) {
             addTableSorting(table);
         }
+=======
+        // Add table controls
+        addTableControls(table);
+        
+        // Make tables responsive
+        makeTableResponsive(table);
+        
+        // Add sorting functionality
+        addTableSorting(table);
+>>>>>>> e43c076 (expand correction)
     });
 }
 
@@ -455,10 +637,15 @@ function enhanceTables() {
  * Add controls to tables
  */
 function addTableControls(table) {
+<<<<<<< HEAD
     // Check if controls already exist
     if (table.previousElementSibling && table.previousElementSibling.classList.contains('table-controls')) {
         return;
     }
+=======
+    const wrapper = table.closest('.fullscreen-wrapper');
+    if (!wrapper) return;
+>>>>>>> e43c076 (expand correction)
     
     // Create controls container
     const controls = document.createElement('div');
@@ -473,10 +660,14 @@ function addTableControls(table) {
     searchInput.addEventListener('input', () => filterTable(table, searchInput.value));
     
     controls.appendChild(searchInput);
+<<<<<<< HEAD
     table.parentNode.insertBefore(controls, table);
     
     // Hide search box by default (only show in expanded view)
     updateTableControlsVisibility();
+=======
+    wrapper.insertBefore(controls, table);
+>>>>>>> e43c076 (expand correction)
 }
 
 /**
@@ -493,14 +684,23 @@ function makeTableResponsive(table) {
 }
 
 /**
+<<<<<<< HEAD
  * Add sorting to table headers (desktop only)
+=======
+ * Add sorting to table headers
+>>>>>>> e43c076 (expand correction)
  */
 function addTableSorting(table) {
     const headers = table.querySelectorAll('th');
     
     headers.forEach((header, index) => {
+<<<<<<< HEAD
         header.title = 'Click to sort';
         header.style.cursor = 'pointer';
+=======
+        header.style.cursor = 'pointer';
+        header.title = 'Click to sort';
+>>>>>>> e43c076 (expand correction)
         
         header.addEventListener('click', () => {
             sortTable(table, index);
@@ -571,6 +771,7 @@ function filterTable(table, searchTerm) {
 }
 
 /**
+<<<<<<< HEAD
  * Update table controls visibility
  */
 function updateTableControlsVisibility() {
@@ -589,10 +790,37 @@ function updateTableControlsVisibility() {
             controls.style.opacity = '0';
         }
     });
+=======
+ * Utility function to make any element fullscreen
+ */
+function makeFullscreen(selector) {
+    const element = document.querySelector(selector);
+    if (element) {
+        // Create wrapper if needed
+        let wrapper = element.parentElement;
+        if (!wrapper.classList.contains('fullscreen-wrapper')) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'fullscreen-wrapper';
+            element.parentNode.insertBefore(wrapper, element);
+            wrapper.appendChild(element);
+        }
+        
+        // Add fullscreen button if not present
+        if (!wrapper.querySelector('.fullscreen-btn')) {
+            const button = document.createElement('button');
+            button.className = 'fullscreen-btn';
+            button.innerHTML = '⛶';
+            button.title = 'Toggle Fullscreen';
+            button.addEventListener('click', () => toggleFullscreen(wrapper));
+            wrapper.appendChild(button);
+        }
+    }
+>>>>>>> e43c076 (expand correction)
 }
 
 // Export functions for external use
 window.embedUtils = {
+<<<<<<< HEAD
     version: 9,
     enterEmbedMode,
     exitEmbedMode,
@@ -602,4 +830,11 @@ window.embedUtils = {
     sortTable,
     updateTableControlsVisibility,
     isMobileDevice
+=======
+    makeFullscreen,
+    toggleFullscreen,
+    enterFullscreen,
+    exitFullscreen,
+    autoEnterEmbedMode
+>>>>>>> e43c076 (expand correction)
 };

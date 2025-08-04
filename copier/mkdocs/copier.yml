@@ -8,8 +8,12 @@ _skip_if_exists:
   - "docs/*.md"
   - ".git*"
   - "README*"
+<<<<<<< HEAD
   # Note: auxillary/* commented out so nav can find template files
   # - "docs/auxillary/*"
+=======
+  - "docs/auxillary/*"
+>>>>>>> e43c076 (expand correction)
 
 # Exclude files/directories from being copied at all
 _exclude:
@@ -19,6 +23,7 @@ _exclude:
   - "backup/**"
   - "node_modules/**"
   - ".DS_Store"
+<<<<<<< HEAD
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
@@ -26,6 +31,9 @@ _exclude:
   - "__pycache__/**"
   - ".copier-answers.yml"
 
+=======
+  - "./*.py"
+>>>>>>> e43c076 (expand correction)
 
 # Template metadata
 _metadata:
