@@ -18,12 +18,14 @@ _exclude:
   - "backup/**"
   - "node_modules/**"
   - ".DS_Store"
+
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
   - "*.pyc"
   - "__pycache__/**"
   - ".copier-answers.yml"
+
 
 # Template metadata
 _metadata:
