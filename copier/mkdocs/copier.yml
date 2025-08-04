@@ -1,6 +1,25 @@
 # Minimal Copier template for MkDocs publishing
 _templates_suffix: .jinja
 
+# Skip overwriting existing files with wildcard patterns
+_skip_if_exists:
+  # - "*.yml"
+  # - "*.yaml"
+  - "docs/*.md"
+  - ".git*"
+  - "README*"
+  - "docs/auxillary/*"
+
+# Exclude files/directories from being copied at all
+_exclude:
+  - "*.tmp"
+  - "*.bak"
+  - "temp/*"
+  - "backup/**"
+  - "node_modules/**"
+  - ".DS_Store"
+  - "./*.py"
+
 # Template metadata
 _metadata:
   name: "MkDocs Publisher"
@@ -64,8 +83,8 @@ description:
 
 header_color:
   type: str
-  default: "blue grey"
-  help: "Material theme color: red, pink, purple, deep purple, indigo, blue, light blue, cyan, teal, green, light green, lime, yellow, amber, orange, deep orange, brown, grey, blue grey, black, white"
+  default: "blue"
+  help: "Material theme color: red, pink, purple, deep-purple, indigo, blue, light blue, cyan, teal, green, light-green, lime, yellow, amber, orange, deep-orange, brown, grey, blue-grey, black, white"
   when: true
 
 generate_static_files:
