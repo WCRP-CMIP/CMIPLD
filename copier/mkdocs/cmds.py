@@ -28,7 +28,6 @@ def parse_arguments():
         epilog='By default, previous configuration is automatically reused if found. Use --create-new for clean install.'
     )
     parser.add_argument('template_path', nargs='?', help='Path to copier template')
-    parser.add_argument('destination', nargs='?', default='.', help='Destination directory (default: current directory)')
     parser.add_argument('--create-new', action='store_true', 
                        help='Create new configuration (clean install - ignores saved answers)')
     parser.add_argument('--color', choices=HEADER_COLORS, 
@@ -286,9 +285,9 @@ def validate_configuration(data):
     return True
 
 
-def run_copier_with_data(template_path, data, destination=".", no_confirm=False):
+def run_copier_with_data(template_path, data, no_confirm=False):
     """Run copier with the provided data using subprocess for proper escaping."""
-    cmd = ["copier", "copy", template_path, destination, "--overwrite"]
+    cmd = ["copier", "copy", template_path, ".", "--overwrite"]
     
     # Add data arguments with proper escaping
     for key, value in data.items():
@@ -303,7 +302,7 @@ def run_copier_with_data(template_path, data, destination=".", no_confirm=False)
     
     print(f"\\n🔄 Running copier...")
     if not no_confirm:
-        print(f"   Command: copier copy {template_path} {destination}")
+        print(f"   Command: copier copy {template_path} .")
         confirm = input("\\nProceed with generation? [Y/n]: ").strip().lower()
         if confirm and confirm not in ['y', 'yes', '']:
             print("❌ Cancelled by user")
@@ -474,7 +473,7 @@ def main():
     save_answers(data, answers_file)
     
     # Run copier
-    success = run_copier_with_data(data['template_path'], data, args.destination, args.no_confirm)
+    success = run_copier_with_data(data['template_path'], data, args.no_confirm)
     
     if success:
         print_next_steps(data)
