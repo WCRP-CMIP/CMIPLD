@@ -1,17 +1,112 @@
 
 /* Custom styles for CMIP-LD Documentation */
 
+/* Optional custom color overrides - only use if you need specific hex colors */
+/* Remove the comments below and set custom hex values if needed:
 :root {
   --md-primary-fg-color: #1976d2;
   --md-primary-fg-color--light: #42a5f5;
   --md-primary-fg-color--dark: #1565c0;
   --md-accent-fg-color: #03dac6;
 }
+*/
 
 /* Logo and branding */
 .md-header__button.md-logo img {
-  height: 2.4rem;
+  height: 1.4rem!important;
+  padding: 1px;
   width: auto;
+}
+
+/* Smart SVG logo color management that adapts to theme */
+.md-header__button.md-logo svg {
+  height: 1.4rem;
+  width: auto;
+  /* Try currentColor first */
+  fill: currentColor;
+  color: var(--md-primary-bg-color);
+}
+
+/* Advanced: Dynamic filter generation based on Material theme colors */
+/* This uses CSS custom properties to adapt to any theme color */
+:root {
+  --logo-brightness: 0;
+  --logo-invert: 100%;
+  --logo-sepia: 0%;
+  --logo-saturate: 100%;
+  --logo-hue-rotate: 0deg;
+  --logo-filter: brightness(var(--logo-brightness)) saturate(var(--logo-saturate)) invert(var(--logo-invert)) sepia(var(--logo-sepia)) hue-rotate(var(--logo-hue-rotate));
+}
+
+/* Color-specific filter adjustments for different Material theme colors */
+/* These will adapt when user selects different header colors in copier */
+
+/* Red themes */
+[data-md-color-primary="red"] {
+  --logo-filter: brightness(0) saturate(100%) invert(28%) sepia(95%) saturate(7471%) hue-rotate(356deg) brightness(91%) contrast(135%);
+}
+
+/* Blue themes (default) */
+[data-md-color-primary="blue"],
+[data-md-color-primary="light-blue"] {
+  --logo-filter: brightness(0) saturate(100%) invert(39%) sepia(57%) saturate(1803%) hue-rotate(204deg) brightness(94%) contrast(86%);
+}
+
+/* Blue grey theme */
+[data-md-color-primary="blue-grey"] {
+  --logo-filter: brightness(0) saturate(100%) invert(44%) sepia(21%) saturate(1050%) hue-rotate(162deg) brightness(94%) contrast(87%);
+}
+
+/* Green themes */
+[data-md-color-primary="green"],
+[data-md-color-primary="light-green"] {
+  --logo-filter: brightness(0) saturate(100%) invert(48%) sepia(58%) saturate(447%) hue-rotate(72deg) brightness(97%) contrast(86%);
+}
+
+/* Purple/indigo themes */
+[data-md-color-primary="purple"],
+[data-md-color-primary="deep-purple"],
+[data-md-color-primary="indigo"] {
+  --logo-filter: brightness(0) saturate(100%) invert(25%) sepia(64%) saturate(2804%) hue-rotate(244deg) brightness(90%) contrast(96%);
+}
+
+/* Dark mode: usually want white/light icons */
+[data-md-color-scheme="slate"] {
+  --logo-filter: brightness(0) saturate(100%) invert(100%);
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  :root {
+    --logo-filter: brightness(0) saturate(100%) invert(100%);
+  }
+  [data-md-color-scheme="slate"] {
+    --logo-filter: brightness(0) saturate(100%) invert(0%);
+  }
+}
+
+/* Apply dynamic filter to black SVGs that don't respond to currentColor */
+.md-header__button.md-logo svg[fill="#000000"],
+.md-header__button.md-logo svg[fill="black"],
+.md-header__button.md-logo svg:not([fill]),
+.md-header__button.md-logo img[src$=".svg"] {
+  filter: var(--logo-filter);
+}
+
+/* Advanced: Detect if currentColor is working, if not apply filter */
+@supports (color: color-mix(in srgb, currentColor 50%, transparent)) {
+  .md-header__button.md-logo svg {
+    /* Modern browsers: try to match header text color */
+    filter: none;
+    fill: currentColor;
+    color: var(--md-primary-bg-color);
+  }
+  
+  /* Fallback for SVGs that ignore currentColor */
+  .md-header__button.md-logo svg[fill]:not([fill="currentColor"]):not([fill="inherit"]) {
+    filter: var(--logo-filter);
+    fill: unset;
+  }
 }
 
 /* Navigation enhancements */

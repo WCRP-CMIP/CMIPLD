@@ -25,15 +25,15 @@ theme:
   palette: 
     # Palette toggle for light mode
     - scheme: default
-      primary: {{ header_color }}
-      accent: {{ header_color }}
+      primary: {{ header_color | replace('-', ' ') }}
+      accent: {{ header_color | replace('-', ' ') }}
       toggle:
         icon: material/toggle-switch
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      primary: {{ header_color }}
-      accent: {{ header_color }}
+      primary: {{ header_color | replace('-', ' ') }}
+      accent: {{ header_color | replace('-', ' ') }}
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to light mode
