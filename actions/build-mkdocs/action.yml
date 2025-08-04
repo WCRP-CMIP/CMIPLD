@@ -1,0 +1,175 @@
+name: 'Build MkDocs Documentation'
+description: 'Build MkDocs documentation with Material theme support'
+author: 'CMIP-IPO'
+
+inputs:
+  build_dir:
+    description: 'Directory to output the build'
+    required: false
+    default: '.src/mkdocs/site'
+  config_file:
+    description: 'Path to mkdocs.yml config file'
+    required: false
+    default: '.src/mkdocs/mkdocs.yml'
+  python_version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  upload_artifact:
+    description: 'Whether to upload build as artifact'
+    required: false
+    default: 'true'
+  artifact_name:
+    description: 'Name for the uploaded artifact'
+    required: false
+    default: 'mkdocs-build'
+
+outputs:
+  build_path:
+    description: 'Path to the built documentation'
+    value: ${{ steps.build.outputs.build_path }}
+  artifact_name:
+    description: 'Name of the uploaded artifact'
+    value: ${{ inputs.artifact_name }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-mkdocs-${{ hashFiles('.src/mkdocs/requirements.txt', '**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-mkdocs-
+          ${{ runner.os }}-pip-
+
+    - name: Install MkDocs dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        
+        # Try multiple requirements file locations
+        if [ -f ".src/mkdocs/requirements.txt" ]; then
+          echo "📦 Installing from .src/mkdocs/requirements.txt"
+          pip install -r .src/mkdocs/requirements.txt
+        elif [ -f "requirements.txt" ]; then
+          echo "📦 Installing from requirements.txt"
+          pip install -r requirements.txt
+        elif [ -f "docs/requirements.txt" ]; then
+          echo "📦 Installing from docs/requirements.txt"
+          pip install -r docs/requirements.txt
+        else
+          echo "📦 Installing default MkDocs packages"
+          pip install mkdocs mkdocs-material mkdocs-plotly-plugin mkdocs-gen-files mkdocs-literate-nav
+        fi
+        
+        # Install additional packages that are commonly needed
+        pip install pymdown-extensions mkdocs-mermaid2-plugin || true
+
+    - name: Verify MkDocs config
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.config_file }}" ]; then
+          echo "❌ MkDocs config file not found: ${{ inputs.config_file }}"
+          echo "📁 Available files in .src/mkdocs/:"
+          find .src/mkdocs/ -type f -name "*.yml" -o -name "*.yaml" | head -10 || echo "No .src/mkdocs/ directory found"
+          echo "📁 Available files in root:"
+          find . -maxdepth 2 -name "mkdocs.yml" -o -name "mkdocs.yaml" | head -5
+          exit 1
+        fi
+        echo "✅ Found MkDocs config: ${{ inputs.config_file }}"
+        
+        # Validate config syntax
+        python -c "import yaml; yaml.safe_load(open('${{ inputs.config_file }}'))" || {
+          echo "❌ Invalid YAML syntax in config file"
+          exit 1
+        }
+
+    - name: Run pre-build scripts
+      shell: bash
+      run: |
+        # Run any Python scripts in the scripts directory
+        for script_dir in ".src/mkdocs/scripts" "scripts" "docs/scripts"; do
+          if [ -d "$script_dir" ]; then
+            echo "🔧 Running pre-build scripts from $script_dir..."
+            for script in "$script_dir"/*.py; do
+              if [ -f "$script" ]; then
+                echo "▶️ Running: $script"
+                python "$script" || echo "⚠️ Script $script failed but continuing..."
+              fi
+            done
+          fi
+        done
+
+    - name: Build MkDocs documentation
+      id: build
+      shell: bash
+      run: |
+        echo "🏗️ Building MkDocs documentation..."
+        echo "📄 Config: ${{ inputs.config_file }}"
+        echo "📁 Output: ${{ inputs.build_dir }}"
+        
+        # Create output directory if it doesn't exist
+        mkdir -p "$(dirname "${{ inputs.build_dir }}")"
+        
+        # Build with verbose output
+        mkdocs build -f "${{ inputs.config_file }}" -d "${{ inputs.build_dir }}" --verbose
+        
+        # Verify build was successful
+        if [ ! -d "${{ inputs.build_dir }}" ]; then
+          echo "❌ Build directory not created: ${{ inputs.build_dir }}"
+          exit 1
+        fi
+        
+        if [ ! -f "${{ inputs.build_dir }}/index.html" ]; then
+          echo "❌ No index.html found in build output"
+          echo "📁 Build directory contents:"
+          ls -la "${{ inputs.build_dir }}" || echo "Directory not accessible"
+          exit 1
+        fi
+        
+        echo "✅ MkDocs build completed successfully"
+        echo "build_path=${{ inputs.build_dir }}" >> $GITHUB_OUTPUT
+
+    - name: Upload build artifact
+      if: inputs.upload_artifact == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.build_dir }}
+        retention-days: 30
+        compression-level: 6
+
+    - name: Build summary
+      shell: bash
+      run: |
+        echo "## 📚 MkDocs Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Config file**: \`${{ inputs.config_file }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build directory**: \`${{ inputs.build_dir }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python version**: \`${{ inputs.python_version }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+        
+        # Count files and calculate size
+        if [ -d "${{ inputs.build_dir }}" ]; then
+          file_count=$(find "${{ inputs.build_dir }}" -type f | wc -l)
+          size=$(du -sh "${{ inputs.build_dir }}" | cut -f1)
+          echo "- **Files generated**: \`$file_count\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total size**: \`$size\`" >> $GITHUB_STEP_SUMMARY
+          
+          # List key files
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📄 Key Files Generated" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find "${{ inputs.build_dir }}" -name "*.html" | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+branding:
+  icon: 'book-open'
+  color: 'blue'
