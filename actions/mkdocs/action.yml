@@ -23,10 +23,13 @@ inputs:
     description: 'Directory name in target branch'
     required: false
     default: 'docs'
+<<<<<<< HEAD
   site_dir:
     description: 'Directory where MkDocs builds the site (temporary build directory)'
     required: false
     default: '.src/mkdocs/site'
+=======
+>>>>>>> 8e88d9a (actions and docs)
 
 outputs:
   deployed_branch:
@@ -39,6 +42,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
+<<<<<<< HEAD
 
     - name: Fetch all branches
       shell: bash
@@ -54,6 +58,8 @@ runs:
         echo "📁 Site directory will be: $(pwd)/${{ inputs.site_dir }}"
         echo "📁 Worktree will be: $(pwd)/production-deploy"
 
+=======
+>>>>>>> 8e88d9a (actions and docs)
     - name: Set up Git configuration
       shell: bash
       run: |
@@ -69,7 +75,10 @@ runs:
     - name: Install MkDocs dependencies
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
+=======
+>>>>>>> 8e88d9a (actions and docs)
         python -m pip install --upgrade pip
         
         # Install from requirements file if it exists
@@ -84,7 +93,10 @@ runs:
     - name: Verify MkDocs config
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
+=======
+>>>>>>> 8e88d9a (actions and docs)
         if [ ! -f "${{ inputs.config_file }}" ]; then
           echo "❌ MkDocs config file not found: ${{ inputs.config_file }}"
           exit 1
@@ -94,6 +106,7 @@ runs:
     - name: Build MkDocs
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
         echo "🏗️ Building MkDocs documentation..."
         echo "📁 Repository root: ${REPO_ROOT}"
@@ -123,10 +136,28 @@ runs:
         echo "   - Output directory: ${SITE_DIR_PATH}"
         echo "   - Files generated: $(find "${SITE_DIR_PATH}" -type f | wc -l)"
         echo "   - Total size: $(du -sh "${SITE_DIR_PATH}" | cut -f1)"
+=======
+        echo "🏗️ Building MkDocs documentation..."
+        mkdocs build -f "${{ inputs.config_file }}" -d "site"
+        
+        # Verify build was successful
+        if [ ! -d "site" ]; then
+          echo "❌ Build failed - no site directory created"
+          exit 1
+        fi
+        
+        if [ ! -f "site/index.html" ]; then
+          echo "❌ Build failed - no index.html in output"
+          exit 1
+        fi
+        
+        echo "✅ MkDocs build completed"
+>>>>>>> 8e88d9a (actions and docs)
 
     - name: Setup production branch with git worktree
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
         echo "🌿 Setting up production branch with git worktree..."
         echo "📁 Repository root: ${REPO_ROOT}"
@@ -161,6 +192,21 @@ runs:
           git rm -rf . 2>/dev/null || true
           cd "${REPO_ROOT}"
           echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+=======
+        echo "🌿 Setting up production branch with git worktree..."
+        
+        # Check if production branch exists remotely
+        if git ls-remote --heads origin ${{ inputs.target_branch }} | grep -q ${{ inputs.target_branch }}; then
+          echo "📥 Production branch exists, fetching..."
+          git fetch origin ${{ inputs.target_branch }}
+          git worktree add production-deploy origin/${{ inputs.target_branch }}
+        else
+          echo "🆕 Creating new production branch..."
+          git worktree add --orphan production-deploy ${{ inputs.target_branch }}
+          cd production-deploy
+          git rm -rf . 2>/dev/null || true
+          cd ..
+>>>>>>> 8e88d9a (actions and docs)
         fi
         
         echo "✅ Production branch worktree ready"
@@ -168,6 +214,7 @@ runs:
     - name: Deploy to production branch
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
         echo "📁 Deploying to production branch..."
         echo "📁 Source: ${SITE_DIR_PATH}"
@@ -199,10 +246,41 @@ runs:
         fi
         
         echo "✅ Files transferred to production branch src-data/${{ inputs.docs_dir }}/ folder"
+=======
+        echo "📁 Deploying to production branch..."
+        
+        # Only clear the docs directory, keep everything else
+        cd production-deploy
+        
+        # Remove only the docs directory if it exists
+        if [ -d "${{ inputs.docs_dir }}" ]; then
+          echo "🗑️ Clearing existing ${{ inputs.docs_dir }}/ directory..."
+          rm -rf "${{ inputs.docs_dir }}"
+        fi
+        
+        cd ..
+        
+        # Create fresh docs directory and copy built site
+        mkdir -p production-deploy/${{ inputs.docs_dir }}
+        cp -r site/* production-deploy/${{ inputs.docs_dir }}/
+        
+        # Add .nojekyll file for GitHub Pages (only if it doesn't exist)
+        if [ ! -f "production-deploy/.nojekyll" ]; then
+          touch production-deploy/.nojekyll
+        fi
+        
+        # Add 404.html if it exists in build (only if it doesn't exist)
+        if [ -f "site/404.html" ] && [ ! -f "production-deploy/404.html" ]; then
+          cp site/404.html production-deploy/404.html
+        fi
+        
+        echo "✅ Files transferred to production branch docs/ folder"
+>>>>>>> 8e88d9a (actions and docs)
 
     - name: Commit and push to production
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${WORKTREE_PATH}"
         echo "📤 Committing and pushing to production..."
         echo "📁 Working in: $(pwd)"
@@ -215,10 +293,16 @@ runs:
         git branch --show-current
         echo "🔍 Remote tracking:"
         git branch -vv
+=======
+        echo "📤 Committing and pushing to production..."
+        
+        cd production-deploy
+>>>>>>> 8e88d9a (actions and docs)
         
         # Add all files
         git add .
         
+<<<<<<< HEAD
         # Check if there are changes to commit or if this is a new branch
         if [ -n "$(git status --porcelain)" ] || [ "${BRANCH_EXISTS}" = "false" ]; then
           if [ "${BRANCH_EXISTS}" = "false" ]; then
@@ -237,27 +321,47 @@ runs:
           # Push to origin
           echo "🚀 Pushing to origin/${{ inputs.target_branch }}..."
           git push origin "${CURRENT_BRANCH}":${{ inputs.target_branch }}
+=======
+        # Check if there are changes to commit
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "📚 Deploy documentation from ${{ inputs.source_branch }} - $(date +'%Y-%m-%d %H:%M:%S')"
+          git push origin ${{ inputs.target_branch }}
+>>>>>>> 8e88d9a (actions and docs)
           echo "✅ Documentation deployed to ${{ inputs.target_branch }} branch"
         else
           echo "ℹ️ No changes to deploy"
         fi
+<<<<<<< HEAD
+=======
+        
+        cd ..
+>>>>>>> 8e88d9a (actions and docs)
 
     - name: Cleanup worktree
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
         echo "🧹 Cleaning up worktree..."
         git worktree remove "${WORKTREE_PATH}" --force || true
+=======
+        echo "🧹 Cleaning up worktree..."
+        git worktree remove production-deploy --force || true
+>>>>>>> 8e88d9a (actions and docs)
         echo "✅ Worktree cleaned up"
 
     - name: Deployment summary
       shell: bash
       run: |
+<<<<<<< HEAD
         cd "${REPO_ROOT}"
+=======
+>>>>>>> 8e88d9a (actions and docs)
         echo "## 🎉 MkDocs Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "- **Source branch**: \`${{ inputs.source_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Target branch**: \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Config file**: \`${{ inputs.config_file }}\`" >> $GITHUB_STEP_SUMMARY
+<<<<<<< HEAD
         echo "- **Site directory**: \`${{ inputs.site_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Docs directory**: \`src-data/${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
@@ -265,6 +369,14 @@ runs:
         if [ -d "${SITE_DIR_PATH}" ]; then
           file_count=$(find "${SITE_DIR_PATH}" -type f | wc -l)
           size=$(du -sh "${SITE_DIR_PATH}" | cut -f1)
+=======
+        echo "- **Docs directory**: \`${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "site" ]; then
+          file_count=$(find "site" -type f | wc -l)
+          size=$(du -sh "site" | cut -f1)
+>>>>>>> 8e88d9a (actions and docs)
           echo "- **Files deployed**: \`$file_count\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Total size**: \`$size\`" >> $GITHUB_STEP_SUMMARY
         fi

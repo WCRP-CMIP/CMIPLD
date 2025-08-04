@@ -24,16 +24,22 @@ _exclude:
   - "node_modules/**"
   - ".DS_Store"
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 8e88d9a (actions and docs)
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
   - "*.pyc"
   - "__pycache__/**"
   - ".copier-answers.yml"
+<<<<<<< HEAD
 
 =======
   - "./*.py"
 >>>>>>> e43c076 (expand correction)
+=======
+>>>>>>> 8e88d9a (actions and docs)
 
 # Template metadata
 _metadata:
