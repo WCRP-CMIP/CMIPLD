@@ -1,17 +1,112 @@
 
 /* Custom styles for CMIP-LD Documentation */
 
+/* Optional custom color overrides - only use if you need specific hex colors */
+/* Remove the comments below and set custom hex values if needed:
 :root {
   --md-primary-fg-color: #1976d2;
   --md-primary-fg-color--light: #42a5f5;
   --md-primary-fg-color--dark: #1565c0;
   --md-accent-fg-color: #03dac6;
 }
+*/
 
 /* Logo and branding */
 .md-header__button.md-logo img {
-  height: 2.4rem;
+  height: 1.4rem!important;
+  padding: 1px;
   width: auto;
+}
+
+/* Smart SVG logo color management that adapts to theme */
+.md-header__button.md-logo svg {
+  height: 1.4rem;
+  width: auto;
+  /* Try currentColor first */
+  fill: currentColor;
+  color: var(--md-primary-bg-color);
+}
+
+/* Advanced: Dynamic filter generation based on Material theme colors */
+/* This uses CSS custom properties to adapt to any theme color */
+:root {
+  --logo-brightness: 0;
+  --logo-invert: 100%;
+  --logo-sepia: 0%;
+  --logo-saturate: 100%;
+  --logo-hue-rotate: 0deg;
+  --logo-filter: brightness(var(--logo-brightness)) saturate(var(--logo-saturate)) invert(var(--logo-invert)) sepia(var(--logo-sepia)) hue-rotate(var(--logo-hue-rotate));
+}
+
+/* Color-specific filter adjustments for different Material theme colors */
+/* These will adapt when user selects different header colors in copier */
+
+/* Red themes */
+[data-md-color-primary="red"] {
+  --logo-filter: brightness(0) saturate(100%) invert(28%) sepia(95%) saturate(7471%) hue-rotate(356deg) brightness(91%) contrast(135%);
+}
+
+/* Blue themes (default) */
+[data-md-color-primary="blue"],
+[data-md-color-primary="light-blue"] {
+  --logo-filter: brightness(0) saturate(100%) invert(39%) sepia(57%) saturate(1803%) hue-rotate(204deg) brightness(94%) contrast(86%);
+}
+
+/* Blue grey theme */
+[data-md-color-primary="blue-grey"] {
+  --logo-filter: brightness(0) saturate(100%) invert(44%) sepia(21%) saturate(1050%) hue-rotate(162deg) brightness(94%) contrast(87%);
+}
+
+/* Green themes */
+[data-md-color-primary="green"],
+[data-md-color-primary="light-green"] {
+  --logo-filter: brightness(0) saturate(100%) invert(48%) sepia(58%) saturate(447%) hue-rotate(72deg) brightness(97%) contrast(86%);
+}
+
+/* Purple/indigo themes */
+[data-md-color-primary="purple"],
+[data-md-color-primary="deep-purple"],
+[data-md-color-primary="indigo"] {
+  --logo-filter: brightness(0) saturate(100%) invert(25%) sepia(64%) saturate(2804%) hue-rotate(244deg) brightness(90%) contrast(96%);
+}
+
+/* Dark mode: usually want white/light icons */
+[data-md-color-scheme="slate"] {
+  --logo-filter: brightness(0) saturate(100%) invert(100%);
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  :root {
+    --logo-filter: brightness(0) saturate(100%) invert(100%);
+  }
+  [data-md-color-scheme="slate"] {
+    --logo-filter: brightness(0) saturate(100%) invert(0%);
+  }
+}
+
+/* Apply dynamic filter to black SVGs that don't respond to currentColor */
+.md-header__button.md-logo svg[fill="#000000"],
+.md-header__button.md-logo svg[fill="black"],
+.md-header__button.md-logo svg:not([fill]),
+.md-header__button.md-logo img[src$=".svg"] {
+  filter: var(--logo-filter);
+}
+
+/* Advanced: Detect if currentColor is working, if not apply filter */
+@supports (color: color-mix(in srgb, currentColor 50%, transparent)) {
+  .md-header__button.md-logo svg {
+    /* Modern browsers: try to match header text color */
+    filter: none;
+    fill: currentColor;
+    color: var(--md-primary-bg-color);
+  }
+  
+  /* Fallback for SVGs that ignore currentColor */
+  .md-header__button.md-logo svg[fill]:not([fill="currentColor"]):not([fill="inherit"]) {
+    filter: var(--logo-filter);
+    fill: unset;
+  }
 }
 
 /* Navigation enhancements */
@@ -190,32 +285,80 @@
   border-color: var(--md-primary-fg-color--light);
 }
 
-/* Fullscreen functionality */
-.fullscreen-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 100%;
+/* Minimize/Maximize functionality - UNIVERSAL BUTTONS ON ALL PAGES */
+.minimize-maximize-btn {
+  position: absolute !important;
+  top: 0.5rem !important;
+  right: 0.5rem !important;
+  background: var(--md-primary-fg-color, #1976d2) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.25rem !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+  z-index: 100 !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-.fullscreen-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: var(--md-primary-fg-color);
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  width: 2rem;
-  height: 2rem;
-  font-size: 1rem;
-  cursor: pointer;
-  z-index: 10;
-  transition: all 0.2s ease;
+/* Page maximize button - make it more prominent */
+.minimize-maximize-btn.page-maximize-btn {
+  top: 1rem !important;
+  right: 1rem !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  z-index: 200 !important;
+  background: var(--md-primary-fg-color, #1976d2) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-.fullscreen-btn:hover {
-  background: var(--md-primary-fg-color--dark);
-  transform: scale(1.1);
+/* Header maximize button positioning */
+.minimize-maximize-btn.header-maximize-btn {
+  top: 0.25rem !important;
+  right: 0.25rem !important;
+  width: 1.8rem !important;
+  height: 1.8rem !important;
+  z-index: 1100 !important;
+}
+
+/* Sidebar maximize button positioning */
+.minimize-maximize-btn.sidebar-maximize-btn {
+  top: 0.5rem !important;
+  right: 0.5rem !important;
+  z-index: 300 !important;
+}
+
+/* Table maximize buttons */
+.minimize-maximize-btn.table-maximize-btn {
+  z-index: 50 !important;
+}
+
+.minimize-maximize-btn:hover {
+  background: var(--md-primary-fg-color--dark, #1565c0) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.minimize-maximize-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  fill: currentColor !important;
+}
+
+/* Ensure elements with buttons have relative positioning */
+.md-content,
+.md-header,
+.md-sidebar--primary,
+table,
+.network-container,
+.treemap-container,
+.interactive-demo {
+  position: relative !important;
 }
 
 .fullscreen-active {
@@ -287,7 +430,7 @@
   font-size: 0.9rem;
 }
 
-.fullscreen-active .fullscreen-btn {
+.fullscreen-active .minimize-maximize-btn {
   position: fixed;
   top: 1rem;
   right: 1rem;
@@ -346,8 +489,8 @@
   margin: 1rem 0;
 }
 
-/* Floating expand icon */
-.floating-expand-btn {
+/* Floating minimize/maximize button */
+.floating-minimize-maximize-btn {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -367,24 +510,34 @@
   justify-content: center;
 }
 
-.floating-expand-btn:hover {
+.floating-minimize-maximize-btn:hover {
   background: var(--md-primary-fg-color--dark);
   transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.floating-expand-btn:active {
+.floating-minimize-maximize-btn:active {
   transform: scale(0.95);
 }
 
+.floating-minimize-maximize-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 /* Hide floating button in fullscreen mode */
-.fullscreen-mode .floating-expand-btn {
-  display: none !important;
+.fullscreen-mode .floating-minimize-maximize-btn {
+  opacity: 0.8;
+}
+
+.fullscreen-mode .floating-minimize-maximize-btn:hover {
+  opacity: 1;
 }
 
 /* Hide floating button on mobile to avoid interfering with nav */
 @media screen and (max-width: 768px) {
-  .floating-expand-btn {
+  .floating-minimize-maximize-btn {
     display: none;
   }
 }
@@ -408,7 +561,8 @@
     color: var(--md-default-fg-color--light);
   }
   
-  .fullscreen-btn,
+  .minimize-maximize-btn,
+  .floating-minimize-maximize-btn,
   .table-controls {
     display: none !important;
   }
