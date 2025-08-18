@@ -2,11 +2,6 @@
 name: Build Documentation
 
 on:
-  {# push:
-    branches: [ {{ build_trigger_branch }} ]
-    paths:
-      - 'src-data/**'
-      - 'docs/**' #}
   workflow_run:
     workflows: ["Update JSONLD"]
     types:
