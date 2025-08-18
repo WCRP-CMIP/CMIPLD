@@ -2,15 +2,8 @@
 name: Build Documentation
 
 on:
-  {% comment %} push: {% endcomment %}
-    {% comment %} branches: [ {{ build_trigger_branch }} ]
-    paths:
-      - 'src-data/**'
-      - 'docs/**' {% endcomment %}
-  workflow_run:
-    workflows: ["Update JSONLD"]   
-      - completed
-    
+  push:
+    branches: [ {{ build_trigger_branch }} ]
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -18,9 +11,9 @@ on:
         required: false
         default: false
         type: boolean
+
 jobs:
   build-docs:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
     steps:
@@ -30,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build and Deploy Documentation
-        uses: {{ github_username }}/CMIPLD/actions/build-docs@main
+        uses: {{ github_username }}/CMIP-LD/actions/build-docs@main
         with:
           source_branch: {{ build_trigger_branch }}
           target_branch: {{ build_target_branch }}
