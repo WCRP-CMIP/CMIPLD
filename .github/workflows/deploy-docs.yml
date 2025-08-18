@@ -1,0 +1,56 @@
+
+name: Deploy Documentation on Production or Docs Update
+
+on:
+  push:
+    branches: [ production ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for git worktree
+
+      - name: Determine deployment strategy
+        id: strategy
+        run: |
+          if [ "${{ github.ref_name }}" == "production" ]; then
+            echo "strategy=production-branch" >> $GITHUB_OUTPUT
+            echo "📦 Triggered by push to production branch"
+          elif [ "${{ github.ref_name }}" == "main" ]; then
+            echo "strategy=docs-update" >> $GITHUB_OUTPUT
+            echo "📁 Triggered by docs folder update on main branch"
+          else
+            echo "strategy=manual" >> $GITHUB_OUTPUT
+            echo "🖱️ Manual deployment trigger"
+          fi
+
+      - name: Build and Deploy MkDocs to Production
+        uses: WCRP-CMIP/CMIPLD/actions/mkdocs@main
+        with:
+          source_branch: ${{ github.ref_name }}
+          target_branch: 'production'
+          config_file: '.src/mkdocs/mkdocs.yml'
+          docs_dir: 'docs'
+
+
+      - name: Publish
+        if: github.ref_name == 'production'
+        uses: WCRP-CMIP/CMIPLD/actions/publish2pages@main
+        with:
+          api_key: ${{ secrets.API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch_name: ${{ github.ref_name }}
+
+
