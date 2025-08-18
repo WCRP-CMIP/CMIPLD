@@ -315,9 +315,13 @@ def generate_final_navigation(docs_path, mkdocs_files):
     tree = build_directory_tree(docs_path)
     
 <<<<<<< HEAD
+<<<<<<< HEAD
     # Generate navigation
 =======
     for md_file in docs_path.rglob("*.md"):
+=======
+    for md_file in docs_path.rglob("*.md*"):  # This will catch both .md and .md.jinja
+>>>>>>> f0ff259 (stats fixed)
         if any(part.startswith('.') for part in md_file.parts):
             continue
         if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
@@ -349,7 +353,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
     
     # Get unique directories for later processing
     directories = {}
-    for md_file in docs_path.rglob("*.md"):
+    for md_file in docs_path.rglob("*.md*"):  # This will catch both .md and .md.jinja
         if any(part.startswith('.') for part in md_file.parts):
             continue
         if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
@@ -479,15 +483,16 @@ def generate_final_navigation(docs_path, mkdocs_files):
     auxilary_already_processed = 'auxilary' in processed_dirs or 'auxiliary' in processed_dirs
     
     if not auxilary_already_processed:
-        auxilary_exists = auxilary_dir.exists() and any(auxilary_dir.glob('*.md*'))
-        auxiliary_exists = auxiliary_dir.exists() and any(auxiliary_dir.glob('*.md*'))
+        auxilary_exists = auxilary_dir.exists() and (any(auxilary_dir.glob('*.md')) or any(auxilary_dir.glob('*.md.jinja')))
+        auxiliary_exists = auxiliary_dir.exists() and (any(auxiliary_dir.glob('*.md')) or any(auxiliary_dir.glob('*.md.jinja')))
         
         if auxilary_exists or auxiliary_exists:
             nav_lines.append('- Additional Resources:')
             
             # Process auxilary directory (primary spelling)
             if auxilary_exists:
-                for md_file in sorted(auxilary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                auxilary_files = list(auxilary_dir.glob('*.md')) + list(auxilary_dir.glob('*.md.jinja'))
+                for md_file in sorted(auxilary_files, key=lambda f: get_sort_key(f.name)):
                     if md_file.name.startswith('_'):
                         continue
                     rel_path = md_file.relative_to(docs_path)
@@ -496,7 +501,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
             
             # Process auxiliary directory (alternative spelling)
             elif auxiliary_exists:
-                for md_file in sorted(auxiliary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                auxiliary_files = list(auxiliary_dir.glob('*.md')) + list(auxiliary_dir.glob('*.md.jinja'))
+                for md_file in sorted(auxiliary_files, key=lambda f: get_sort_key(f.name)):
                     if md_file.name.startswith('_'):
                         continue
                     rel_path = md_file.relative_to(docs_path)
