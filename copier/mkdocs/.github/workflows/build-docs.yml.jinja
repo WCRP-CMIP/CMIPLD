@@ -2,11 +2,15 @@
 name: Build Documentation
 
 on:
-  push:
-    branches: [ {{ build_trigger_branch }} ]
+  {% comment %} push: {% endcomment %}
+    {% comment %} branches: [ {{ build_trigger_branch }} ]
     paths:
       - 'src-data/**'
-      - 'docs/**'
+      - 'docs/**' {% endcomment %}
+  workflow_run:
+    workflows: ["Update JSONLD"]   
+      - completed
+    
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -16,6 +20,7 @@ on:
         type: boolean
 jobs:
   build-docs:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
     steps:
