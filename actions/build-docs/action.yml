@@ -27,7 +27,6 @@ inputs:
     description: 'Force deployment even if no changes detected'
     required: false
     default: 'false'
-    type: boolean
 
 outputs:
   deployed_branch:
