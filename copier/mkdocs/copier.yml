@@ -8,7 +8,8 @@ _skip_if_exists:
   - "docs/*.md"
   - ".git*"
   - "README*"
-  - "docs/auxillary/*"
+  # Note: auxillary/* commented out so nav can find template files
+  # - "docs/auxillary/*"
 
 # Exclude files/directories from being copied at all
 _exclude:
