@@ -25,15 +25,24 @@ def clean_title(filename):
     return name.replace('_', ' ').replace('-', ' ').title()
 
 def clean_data_summary_title(filename):
-    """Clean data summary filename for display - use part after first underscore."""
+    """Clean data summary filename for display - remove repository name and detailed view text."""
     name = filename.replace('.md', '')
     # Remove numeric prefixes
     name = re.sub(r'^\d+[-_.](?=\w)', '', name)
     
-    # If there's an underscore, use only the part after the first one
+    # Remove repository name prefix (e.g., "Variable-Registry_" -> "")
+    # Look for pattern: word-word_ or word_ at the beginning
+    name = re.sub(r'^[A-Za-z]+-[A-Za-z]+_', '', name)
+    name = re.sub(r'^[A-Za-z]+_', '', name)
+    
+    # If there's still an underscore, use only the part after the first one
     if '_' in name:
         parts = name.split('_', 1)  # Split on first underscore only
         name = parts[1]  # Use everything after first underscore
+    
+    # Remove "detailed view" or similar suffixes
+    name = re.sub(r'[-_]?detailed[-_]?view?$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'[-_]?detailed$', '', name, flags=re.IGNORECASE)
     
     return name.replace('_', ' ').replace('-', ' ').title()
 
@@ -369,22 +378,3 @@ def generate_final_navigation(docs_path, mkdocs_files):
         print(f"📋 Included {len(data_summaries_files)} data summary files")
     if has_stats_page:
         print(f"📋 Included repository statistics page")
-
-def get_sort_key(filename):
-    """Get sort key for ordering."""
-    # Extract base name without extension
-    name = filename.replace('.md', '').replace('_detailed', '')
-    
-    # Look for number at the start of the filename or after common prefixes
-    match = re.match(r'^(.+?)[-_]?(\d+)[-_.]', name)
-    if match:
-        prefix = match.group(1)
-        number = int(match.group(2))
-        return (number, prefix, filename)
-    
-    # Fallback to original logic for files without numbers
-    match = re.match(r'^(\d+)[-_.]', name)
-    if match:
-        return (int(match.group(1)), filename)
-    
-    return (9999, filename)  # Put non-numbered files at the end
