@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 {% if enable_build_docs -%}
 name: Build Documentation
 
@@ -11,13 +12,20 @@ on:
   workflow_dispatch:
     inputs:
 =======
+=======
+{% if enable_build_docs -%}
+>>>>>>> f3c46cf (docs)
 name: Build Documentation
 
 on:
   push:
-    branches: [ production ]
+    branches: [ {{ build_trigger_branch }} ]
+    paths:
+      - 'src-data/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
+<<<<<<< HEAD
       source_branch:
         description: 'Source branch to build from'
         required: false
@@ -28,11 +36,14 @@ on:
           - main
           - published
 >>>>>>> 7e63a8c (docs)
+=======
+>>>>>>> f3c46cf (docs)
       force_deploy:
         description: 'Force deployment even if no changes detected'
         required: false
         default: false
         type: boolean
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 jobs:
@@ -44,6 +55,8 @@ jobs:
         required: false
         default: 'gh-pages'
 
+=======
+>>>>>>> f3c46cf (docs)
 jobs:
   build-docs:
 >>>>>>> 7e63a8c (docs)
@@ -53,6 +66,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+<<<<<<< HEAD
 <<<<<<< HEAD
           fetch-depth: 0
 
@@ -84,15 +98,19 @@ jobs:
             echo "source_branch=production" >> $GITHUB_OUTPUT
             echo "❓ Unknown trigger, defaulting to production branch"
           fi{% endraw %}
+=======
+          fetch-depth: 0
+>>>>>>> f3c46cf (docs)
 
       - name: Build and Deploy Documentation
-        uses: {{ github_username }}/CMIP-LD/actions/build-docs@main
+        uses: {{ github_username }}/CMIPLD/actions/build-docs@main
         with:
-          {% raw %}source_branch: ${{ steps.trigger.outputs.source_branch }}
-          target_branch: ${{ github.event.inputs.target_branch || 'gh-pages' }}{% endraw %}
+          source_branch: {{ build_trigger_branch }}
+          target_branch: {{ build_target_branch }}
           config_file: '.src/mkdocs/mkdocs.yml'
           docs_dir: 'docs'
           {% raw %}force_deploy: ${{ github.event.inputs.force_deploy || 'false' }}{% endraw %}
+<<<<<<< HEAD
 
       - name: Post-build actions
         if: success()
@@ -118,3 +136,6 @@ jobs:
           echo "3. Ensure all required source files are present" >> $GITHUB_STEP_SUMMARY
           echo "4. Check that the target branch permissions are correct" >> $GITHUB_STEP_SUMMARY
 >>>>>>> 7e63a8c (docs)
+=======
+{% endif -%}
+>>>>>>> f3c46cf (docs)
