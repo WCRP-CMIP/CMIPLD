@@ -41,6 +41,7 @@ runs:
   steps:
 
     - name: Fetch all branches
+      shell: bash
       run: git fetch --all
 
     - name: Set up environment variables
