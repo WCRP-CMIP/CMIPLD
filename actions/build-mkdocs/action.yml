@@ -6,7 +6,7 @@ inputs:
   build_dir:
     description: 'Directory to output the build'
     required: false
-    default: 'site'
+    default: '.src/mkdocs/site'
   config_file:
     description: 'Path to mkdocs.yml config file'
     required: false
