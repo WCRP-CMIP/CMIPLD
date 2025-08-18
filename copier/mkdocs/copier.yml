@@ -9,11 +9,16 @@ _skip_if_exists:
   - ".git*"
   - "README*"
 <<<<<<< HEAD
+<<<<<<< HEAD
   # Note: auxillary/* commented out so nav can find template files
   # - "docs/auxillary/*"
 =======
   - "docs/auxillary/*"
 >>>>>>> e43c076 (expand correction)
+=======
+  # Note: auxillary/* commented out so nav can find template files
+  # - "docs/auxillary/*"
+>>>>>>> f0ff259 (stats fixed)
 
 # Exclude files/directories from being copied at all
 _exclude:
