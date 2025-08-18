@@ -132,17 +132,35 @@ runs:
         echo "📁 Repository root: ${REPO_ROOT}"
         echo "📁 Worktree path: ${WORKTREE_PATH}"
         
+        # Clean up any existing worktree first
+        if [ -d "${WORKTREE_PATH}" ]; then
+          echo "🧹 Cleaning up existing worktree..."
+          git worktree remove "${WORKTREE_PATH}" --force 2>/dev/null || true
+        fi
+        
         # Check if production branch exists remotely
         if git ls-remote --heads origin ${{ inputs.target_branch }} | grep -q ${{ inputs.target_branch }}; then
-          echo "📥 Production branch exists, fetching..."
+          echo "📥 Production branch exists remotely, fetching..."
           git fetch origin ${{ inputs.target_branch }}
-          git worktree add "${WORKTREE_PATH}" origin/${{ inputs.target_branch }}
+          
+          # Check if local branch exists
+          if git show-ref --verify --quiet refs/heads/${{ inputs.target_branch }}; then
+            echo "📋 Local branch exists, updating..."
+            git checkout ${{ inputs.target_branch }}
+            git pull origin ${{ inputs.target_branch }}
+            git worktree add "${WORKTREE_PATH}" ${{ inputs.target_branch }}
+          else
+            echo "📋 Creating local branch from remote..."
+            git worktree add "${WORKTREE_PATH}" origin/${{ inputs.target_branch }} -b ${{ inputs.target_branch }}
+          fi
+          echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
         else
           echo "🆕 Creating new production branch..."
           git worktree add --orphan "${WORKTREE_PATH}" ${{ inputs.target_branch }}
           cd "${WORKTREE_PATH}"
           git rm -rf . 2>/dev/null || true
           cd "${REPO_ROOT}"
+          echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
         fi
         
         echo "✅ Production branch worktree ready"
@@ -188,14 +206,37 @@ runs:
         cd "${WORKTREE_PATH}"
         echo "📤 Committing and pushing to production..."
         echo "📁 Working in: $(pwd)"
+        echo "📋 Branch exists: ${BRANCH_EXISTS}"
+        
+        # Debug git status
+        echo "🔍 Git status:"
+        git status --porcelain
+        echo "🔍 Current branch:"
+        git branch --show-current
+        echo "🔍 Remote tracking:"
+        git branch -vv
         
         # Add all files
         git add .
         
-        # Check if there are changes to commit
-        if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "📚 Deploy documentation from ${{ inputs.source_branch }} - $(date +'%Y-%m-%d %H:%M:%S')"
-          git push origin ${{ inputs.target_branch }}
+        # Check if there are changes to commit or if this is a new branch
+        if [ -n "$(git status --porcelain)" ] || [ "${BRANCH_EXISTS}" = "false" ]; then
+          if [ "${BRANCH_EXISTS}" = "false" ]; then
+            echo "🆕 Making initial commit for new branch"
+            git commit -m "📚 Initial documentation deployment from ${{ inputs.source_branch }} - $(date +'%Y-%m-%d %H:%M:%S')"
+          else
+            echo "📝 Updating existing branch"
+            git commit -m "📚 Deploy documentation from ${{ inputs.source_branch }} - $(date +'%Y-%m-%d %H:%M:%S')"
+          fi
+          
+          # Ensure we're tracking the remote branch properly
+          CURRENT_BRANCH=$(git branch --show-current)
+          echo "🔗 Setting up remote tracking for branch: ${CURRENT_BRANCH}"
+          git branch --set-upstream-to=origin/${{ inputs.target_branch }} "${CURRENT_BRANCH}" || true
+          
+          # Push to origin
+          echo "🚀 Pushing to origin/${{ inputs.target_branch }}..."
+          git push origin "${CURRENT_BRANCH}":${{ inputs.target_branch }}
           echo "✅ Documentation deployed to ${{ inputs.target_branch }} branch"
         else
           echo "ℹ️ No changes to deploy"
