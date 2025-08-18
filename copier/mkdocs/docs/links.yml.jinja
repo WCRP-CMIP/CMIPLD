@@ -1,9 +1,16 @@
+<<<<<<< HEAD
 # Custom Links Configuration
 # Add your external links and custom menu items here
+=======
+# Custom Links Configuration for MkDocs Navigation
+# This file allows you to add external links and custom menu items to your MkDocs navigation
+# Format: YAML or JSON
+>>>>>>> 4d2dbd3 (readme)
 
 links:
   # Root-level links (appear directly under the section)
   - title: "CMIP Website"
+<<<<<<< HEAD
     url: "https://www.wcrp-cmip.org"
     description: "Official CMIP website"
 
@@ -25,3 +32,41 @@ links:
 # - url: Required - Target URL
 # - category: Optional - Groups links under subsections  
 # - description: Optional - For documentation purposes (not displayed)
+=======
+    url: "https://www.wcrp-climate.org/wgcm-cmip"
+    description: "Official CMIP website"
+    
+  - title: "GitHub Repository"
+    url: "https://github.com/{{ github_username }}/{{ repo_name }}"
+    description: "Source code repository"
+  
+  # Categorized links (grouped under subsections)
+  - title: "ES-DOC Documentation"
+    url: "https://es-doc.org"
+    category: "Documentation"
+    description: "Earth System Documentation project"
+    
+  - title: "CF Conventions"
+    url: "http://cfconventions.org"
+    category: "Standards"
+    description: "Climate and Forecast metadata conventions"
+    
+  - title: "ESGF Portal"
+    url: "https://esgf-node.llnl.gov/search/cmip6/"
+    category: "Data Access"
+    description: "Earth System Grid Federation data portal"
+    
+  - title: "CEDA Archive"
+    url: "https://archive.ceda.ac.uk"
+    category: "Data Access"
+    description: "Centre for Environmental Data Analysis"
+
+# Alternative format examples:
+# You can also use 'link' instead of 'url':
+# - title: "Example"
+#   link: "https://example.com"
+#
+# Links without categories appear at the top level:
+# - title: "Top Level Link"
+#   url: "https://example.com"
+>>>>>>> 4d2dbd3 (readme)

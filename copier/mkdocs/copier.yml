@@ -25,8 +25,11 @@ _exclude:
   - ".DS_Store"
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 8e88d9a (actions and docs)
+=======
+>>>>>>> 4d2dbd3 (readme)
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
@@ -141,6 +144,7 @@ links_section_title:
   default: "External Links"
   help: "Title for the links section in navigation"
   when: true
+<<<<<<< HEAD
 
 # Workflow Configuration
 enable_build_docs:
@@ -178,3 +182,5 @@ build_target_branch:
   default: "production"
   help: "Branch where built documentation is deployed"
   when: "{{ enable_build_docs }}"
+=======
+>>>>>>> 4d2dbd3 (readme)

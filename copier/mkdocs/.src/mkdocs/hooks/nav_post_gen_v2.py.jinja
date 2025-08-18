@@ -47,7 +47,12 @@ def clean_data_summary_title(filename):
     return name.replace('_', ' ').replace('-', ' ').title()
 
 def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
+<<<<<<< HEAD
     """Parse custom links YAML file."""
+=======
+    """Parse custom links file (YAML or JSON format)."""
+    # Try YAML first
+>>>>>>> 4d2dbd3 (readme)
     links_path = docs_dir / links_filename
     
     if not links_path.exists():
@@ -56,6 +61,7 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
     
     try:
         with open(links_path, 'r', encoding='utf-8') as f:
+<<<<<<< HEAD
             data = yaml.safe_load(f)
         
         if not data:
@@ -63,6 +69,24 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
             return []
             
         links = data.get('links', [])
+=======
+            content = f.read().strip()
+            
+        if not content:
+            print(f"ℹ️  Links file {links_filename} is empty")
+            return []
+            
+        # Try to parse as YAML first
+        try:
+            data = yaml.safe_load(content)
+        except yaml.YAMLError:
+            # Fallback to JSON
+            import json
+            data = json.loads(content)
+        
+        # Handle both 'links' and 'external_links' keys for backward compatibility
+        links = data.get('links', data.get('external_links', []))
+>>>>>>> 4d2dbd3 (readme)
         
         if not isinstance(links, list):
             print(f"⚠️  Links data should be a list, got {type(links)}")
@@ -76,7 +100,11 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
         return []
 
 def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_section_title }}"):
+<<<<<<< HEAD
     """Add custom links to navigation with support for categories."""
+=======
+    """Add custom links to navigation with support for categories and hierarchical structure."""
+>>>>>>> 4d2dbd3 (readme)
     if not custom_links:
         return nav_lines
     
@@ -86,7 +114,16 @@ def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_sec
     
     for link in custom_links:
         # Skip invalid entries
+<<<<<<< HEAD
         if not isinstance(link, dict) or 'title' not in link or 'url' not in link:
+=======
+        if not isinstance(link, dict) or 'title' not in link:
+            continue
+            
+        # Handle both 'url' and 'link' for flexibility
+        url = link.get('url', link.get('link'))
+        if not url:
+>>>>>>> 4d2dbd3 (readme)
             continue
             
         category = link.get('category')
@@ -103,13 +140,27 @@ def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_sec
         
         # Add root-level links first
         for link in root_links:
-            nav_lines.append(f'  - [{link["title"]}]({link["url"]})')
+            title = link['title']
+            url = link.get('url', link.get('link'))
+            description = link.get('description', '')
+            
+            if description:
+                nav_lines.append(f'  - [{title}]({url})  # {description}')
+            else:
+                nav_lines.append(f'  - [{title}]({url})')
         
         # Add categories as subsections
         for category_name in sorted(categories.keys()):
             nav_lines.append(f'  - {category_name}:')
             for link in categories[category_name]:
-                nav_lines.append(f'    - [{link["title"]}]({link["url"]})')
+                title = link['title']
+                url = link.get('url', link.get('link'))
+                description = link.get('description', '')
+                
+                if description:
+                    nav_lines.append(f'    - [{title}]({url})  # {description}')
+                else:
+                    nav_lines.append(f'    - [{title}]({url})')
     
     return nav_lines
 
@@ -325,6 +376,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
             title = clean_data_summary_title(data_file)
             nav_lines.append(f'  - [{title}](data-summaries/{data_file}_detailed.md)')
     
+<<<<<<< HEAD
     # Always add auxilary/auxiliary section if it exists
     auxilary_dir_tree = tree.get('dirs', {}).get('auxilary')
     auxiliary_dir_tree = tree.get('dirs', {}).get('auxiliary')  # Alternative spelling
@@ -340,10 +392,21 @@ def generate_final_navigation(docs_path, mkdocs_files):
             add_tree_to_nav(auxiliary_dir_tree, nav_lines, "  ")
     
     # Add custom links from YAML links file
+=======
+    # Add custom links from links file
+>>>>>>> 4d2dbd3 (readme)
     {% if enable_custom_links %}
     custom_links = parse_links_file(docs_path, "{{ links_file }}")
     nav_lines = add_custom_links_to_nav(nav_lines, custom_links, "{{ links_section_title }}")
     {% endif %}
+<<<<<<< HEAD
+=======
+    
+    # Legacy support: Also check for external-links.json for backward compatibility
+    external_links = parse_external_links_json(docs_path)
+    if external_links:
+        nav_lines = add_external_links_json_to_nav(nav_lines, external_links)
+>>>>>>> 4d2dbd3 (readme)
     
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)
@@ -359,3 +422,63 @@ def generate_final_navigation(docs_path, mkdocs_files):
         print(f"📋 Included {len(data_summaries_files)} data summary files")
     if has_stats_page:
         print(f"📋 Included repository statistics page")
+<<<<<<< HEAD
+=======
+
+def parse_external_links_json(docs_dir):
+    """Parse legacy external-links.json file for backward compatibility."""
+    external_links_path = docs_dir / 'external-links.json'
+    
+    if not external_links_path.exists():
+        return []
+    
+    try:
+        import json
+        with open(external_links_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        links = data.get('external_links', [])
+        if links:
+            print(f"✅ Found {len(links)} legacy external links in JSON")
+        
+        return links
+        
+    except Exception as e:
+        print(f"⚠️  Error parsing legacy external-links.json: {e}")
+        return []
+
+def add_external_links_json_to_nav(nav_lines, external_links):
+    """Add external links from legacy JSON to navigation."""
+    if not external_links:
+        return nav_lines
+    
+    # Organize links by category
+    categories = {}
+    root_links = []
+    
+    for link in external_links:
+        category = link.get('category')
+        if category:
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(link)
+        else:
+            root_links.append(link)
+    
+    # Add external links section (only if no custom links were added)
+    section_exists = any('External Links:' in line for line in nav_lines)
+    if not section_exists and (root_links or categories):
+        nav_lines.append('- External Links:')
+        
+        # Add root-level links first
+        for link in root_links:
+            nav_lines.append(f'  - [{link["title"]}]({link["url"]})')
+        
+        # Add categories as subsections
+        for category_name in sorted(categories.keys()):
+            nav_lines.append(f'  - {category_name}:')
+            for link in categories[category_name]:
+                nav_lines.append(f'    - [{link["title"]}]({link["url"]})')
+    
+    return nav_lines
+>>>>>>> 4d2dbd3 (readme)
