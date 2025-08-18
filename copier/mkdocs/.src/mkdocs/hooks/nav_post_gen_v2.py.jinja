@@ -146,8 +146,10 @@ def generate_final_navigation(docs_path, mkdocs_files):
     for file_obj in mkdocs_files:
         src_path = str(file_obj.src_path)
         
-        # Check for stats page in both root and auxiliary
-        if src_path == 'stats.md' or src_path == 'auxiliary/stats.md' or src_path == 'auxillary/stats.md':
+        # Check for stats/statistics page in both root and auxiliary
+        if (src_path == 'stats.md' or src_path == 'statistics.md' or 
+            src_path == 'auxiliary/stats.md' or src_path == 'auxiliary/statistics.md' or 
+            src_path == 'auxillary/stats.md' or src_path == 'auxillary/statistics.md'):
             has_stats_page = True
             
         if src_path.startswith('src-data-docs/'):
@@ -302,17 +304,9 @@ def generate_final_navigation(docs_path, mkdocs_files):
                     for f in dir_files:
                         rel_path = f.relative_to(docs_path)
                         title = clean_title(f.name)
-                        # Skip stats.md if it exists as a real file - we'll add it as virtual file
-                        if f.name == 'stats.md':
-                            continue
                         nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
                 
-                # Also check for virtual stats file in auxillary directory
-                if dir_name == 'auxillary' and has_stats_page:
-                    # Check if stats is in auxillary directory as virtual file
-                    stats_found_in_auxillary = any(str(f.src_path) == 'auxillary/stats.md' for f in mkdocs_files)
-                    if stats_found_in_auxillary:
-                        nav_lines.append('  - [Repository Statistics](auxillary/stats.md)')
+
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
@@ -357,6 +351,38 @@ def generate_final_navigation(docs_path, mkdocs_files):
         for data_file in sorted(data_summaries_files):
             title = clean_data_summary_title(data_file)
             nav_lines.append(f'  - [{title}](data-summaries/{data_file}_detailed.md)')
+    
+    # Always add auxilary/auxiliary section if it exists and wasn't already processed
+    auxilary_dir = docs_path / 'auxilary'
+    auxiliary_dir = docs_path / 'auxiliary'  # Alternative spelling
+    
+    # Check if auxilary directory wasn't already processed in main loop
+    auxilary_already_processed = 'auxilary' in processed_dirs or 'auxiliary' in processed_dirs
+    
+    if not auxilary_already_processed:
+        auxilary_exists = auxilary_dir.exists() and any(auxilary_dir.glob('*.md*'))
+        auxiliary_exists = auxiliary_dir.exists() and any(auxiliary_dir.glob('*.md*'))
+        
+        if auxilary_exists or auxiliary_exists:
+            nav_lines.append('- Additional Resources:')
+            
+            # Process auxilary directory (primary spelling)
+            if auxilary_exists:
+                for md_file in sorted(auxilary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                    if md_file.name.startswith('_'):
+                        continue
+                    rel_path = md_file.relative_to(docs_path)
+                    title = clean_title(md_file.name)
+                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
+            
+            # Process auxiliary directory (alternative spelling)
+            elif auxiliary_exists:
+                for md_file in sorted(auxiliary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                    if md_file.name.startswith('_'):
+                        continue
+                    rel_path = md_file.relative_to(docs_path)
+                    title = clean_title(md_file.name)
+                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
     
     # Add custom links from YAML links file
     {% if enable_custom_links %}
