@@ -36,7 +36,7 @@ jobs:
           fi{% endraw %}
 
       - name: Build and Deploy MkDocs to Production
-        uses: WCRP-CMIP/CMIPLD/actions/mkdocs@main
+        uses: {{ github_username }}/CMIP-LD/actions/mkdocs@main
         with:
           {% raw %}source_branch: ${{ github.ref_name }}{% endraw %}
           target_branch: 'production'
@@ -59,7 +59,7 @@ jobs:
 
       - name: Publish
         if: github.ref_name == 'production'
-        uses: WCRP-CMIP/CMIPLD/actions/publish2pages@main
+        uses: {{ github_username }}/CMIP-LD/actions/publish2pages@main
         with:
           api_key: ${{ '{{ secrets.API_KEY }}' }}
           github_token: ${{ '{{ secrets.GITHUB_TOKEN }}' }}

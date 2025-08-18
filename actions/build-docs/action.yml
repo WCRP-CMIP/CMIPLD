@@ -1,0 +1,362 @@
+name: 'Build Documentation'
+description: 'Build documentation using MkDocs and deploy to production branch'
+author: 'CMIP-IPO'
+
+inputs:
+  source_branch:
+    description: 'Source branch to build from (typically production branch)'
+    required: false
+    default: 'production'
+  target_branch:
+    description: 'Target branch to deploy to'
+    required: false
+    default: 'gh-pages'
+  config_file:
+    description: 'Path to mkdocs.yml config file'
+    required: false
+    default: '.src/mkdocs/mkdocs.yml'
+  python_version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  docs_dir:
+    description: 'Directory name in target branch'
+    required: false
+    default: 'docs'
+  force_deploy:
+    description: 'Force deployment even if no changes detected'
+    required: false
+    default: 'false'
+    type: boolean
+
+outputs:
+  deployed_branch:
+    description: 'Branch where docs were deployed'
+    value: ${{ inputs.target_branch }}
+  deployed_path:
+    description: 'Path where docs were deployed'
+    value: ${{ inputs.docs_dir }}
+  deployment_status:
+    description: 'Status of deployment (success, no_changes, failed)'
+    value: ${{ steps.determine_status.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Git configuration
+      shell: bash
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git config --global init.defaultBranch main
+        echo "✅ Git configuration set up"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Install MkDocs dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        
+        # Install from requirements file if it exists
+        if [ -f ".src/mkdocs/requirements.txt" ]; then
+          echo "📦 Installing from .src/mkdocs/requirements.txt"
+          pip install -r .src/mkdocs/requirements.txt
+        else
+          echo "📦 Installing default MkDocs packages"
+          pip install mkdocs mkdocs-material mkdocs-plotly-plugin mkdocs-gen-files mkdocs-literate-nav pymdown-extensions
+        fi
+        echo "✅ Dependencies installed"
+
+    - name: Verify MkDocs config and source files
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.config_file }}" ]; then
+          echo "❌ MkDocs config file not found: ${{ inputs.config_file }}"
+          exit 1
+        fi
+        echo "✅ Found MkDocs config: ${{ inputs.config_file }}"
+        
+        # Check if docs directory exists
+        if [ -d "docs" ]; then
+          echo "✅ Found docs directory"
+        else
+          echo "ℹ️ No docs directory found - will be generated during build"
+        fi
+
+    - name: Run MkDocs hooks (if any)
+      shell: bash
+      run: |
+        # Check if hooks directory exists and run any pre-build scripts
+        if [ -d "hooks" ]; then
+          echo "🪝 Found hooks directory, checking for pre-build scripts..."
+          for hook in hooks/*.py; do
+            if [ -f "$hook" ]; then
+              echo "🔧 Running hook: $(basename $hook)"
+              python "$hook" || echo "⚠️ Hook $(basename $hook) failed but continuing..."
+            fi
+          done
+        else
+          echo "ℹ️ No hooks directory found"
+        fi
+
+    - name: Build MkDocs documentation
+      shell: bash
+      run: |
+        echo "🏗️ Building MkDocs documentation..."
+        
+        # Extract the directory where the config file is located
+        config_dir=$(dirname "${{ inputs.config_file }}")
+        echo "📂 Config directory: $config_dir"
+        
+        # Build with verbose output for debugging
+        mkdocs build -f "${{ inputs.config_file }}" --verbose
+        
+        # The site directory location depends on the mkdocs.yml site_dir setting
+        # Check common locations
+        possible_sites=(
+          "site"
+          "$config_dir/site"
+          "docs/_site"
+          "_site"
+        )
+        
+        site_location=""
+        for possible_site in "${possible_sites[@]}"; do
+          if [ -d "$possible_site" ]; then
+            site_location="$possible_site"
+            echo "✅ Found site directory at: $site_location"
+            break
+          fi
+        done
+        
+        if [ -z "$site_location" ]; then
+          echo "❌ Build failed - no site directory found in any expected location"
+          echo "Checked locations:"
+          for loc in "${possible_sites[@]}"; do
+            echo "  - $loc"
+          done
+          exit 1
+        fi
+        
+        # Move site to standard location if it's not already there
+        if [ "$site_location" != "site" ]; then
+          echo "📁 Moving site from $site_location to site/"
+          if [ -d "site" ]; then
+            rm -rf "site"
+          fi
+          mv "$site_location" "site"
+        fi
+        
+        if [ ! -f "site/index.html" ]; then
+          echo "❌ Build failed - no index.html in output"
+          exit 1
+        fi
+        
+        # Display build statistics
+        file_count=$(find site -type f | wc -l)
+        size=$(du -sh site | cut -f1)
+        echo "📊 Build completed: $file_count files, $size total"
+        echo "✅ MkDocs build completed successfully"
+
+    - name: Setup target branch with git worktree
+      shell: bash
+      run: |
+        echo "🌿 Setting up target branch (${{ inputs.target_branch }}) with git worktree..."
+        
+        # Clean up any existing worktree
+        git worktree remove deploy-target --force 2>/dev/null || true
+        
+        # Check if target branch exists remotely
+        if git ls-remote --heads origin ${{ inputs.target_branch }} | grep -q ${{ inputs.target_branch }}; then
+          echo "📥 Target branch exists, fetching..."
+          git fetch origin ${{ inputs.target_branch }}
+          git worktree add deploy-target origin/${{ inputs.target_branch }}
+        else
+          echo "🆕 Creating new target branch..."
+          git worktree add --orphan deploy-target ${{ inputs.target_branch }}
+          cd deploy-target
+          git rm -rf . 2>/dev/null || true
+          cd ..
+        fi
+        
+        echo "✅ Target branch worktree ready"
+
+    - name: Check for changes
+      id: check_changes
+      shell: bash
+      run: |
+        echo "🔍 Checking for changes..."
+        
+        cd deploy-target
+        
+        # Create a temporary directory to compare
+        mkdir -p temp_docs
+        cd ..
+        cp -r site/* deploy-target/temp_docs/
+        
+        cd deploy-target
+        
+        # Compare with existing docs directory
+        if [ -d "${{ inputs.docs_dir }}" ]; then
+          if diff -r "${{ inputs.docs_dir }}" temp_docs > /dev/null 2>&1; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No changes detected in documentation"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Changes detected in documentation"
+          fi
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "📝 New documentation deployment (no existing docs directory)"
+        fi
+        
+        # Clean up temp directory
+        rm -rf temp_docs
+        
+        cd ..
+
+    - name: Deploy to target branch
+      shell: bash
+      run: |
+        echo "📁 Deploying to target branch..."
+        
+        # Skip deployment if no changes and not forced
+        if [ "${{ steps.check_changes.outputs.has_changes }}" = "false" ] && [ "${{ inputs.force_deploy }}" != "true" ]; then
+          echo "⏭️ Skipping deployment - no changes detected and force_deploy is false"
+          exit 0
+        fi
+        
+        cd deploy-target
+        
+        # Remove only the docs directory if it exists
+        if [ -d "${{ inputs.docs_dir }}" ]; then
+          echo "🗑️ Clearing existing ${{ inputs.docs_dir }}/ directory..."
+          rm -rf "${{ inputs.docs_dir }}"
+        fi
+        
+        cd ..
+        
+        # Create fresh docs directory and copy built site
+        mkdir -p deploy-target/${{ inputs.docs_dir }}
+        cp -r site/* deploy-target/${{ inputs.docs_dir }}/
+        
+        # Add .nojekyll file for GitHub Pages (only if it doesn't exist)
+        if [ ! -f "deploy-target/.nojekyll" ]; then
+          touch deploy-target/.nojekyll
+          echo "📄 Added .nojekyll for GitHub Pages"
+        fi
+        
+        # Add 404.html if it exists in build (only if it doesn't exist)
+        if [ -f "site/404.html" ] && [ ! -f "deploy-target/404.html" ]; then
+          cp site/404.html deploy-target/404.html
+          echo "📄 Added 404.html"
+        fi
+        
+        echo "✅ Files transferred to target branch ${{ inputs.docs_dir }}/ folder"
+
+    - name: Commit and push to target branch
+      id: commit_push
+      shell: bash
+      run: |
+        echo "📤 Committing and pushing to target branch..."
+        
+        # Skip if no changes and not forced
+        if [ "${{ steps.check_changes.outputs.has_changes }}" = "false" ] && [ "${{ inputs.force_deploy }}" != "true" ]; then
+          echo "deployment_occurred=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        cd deploy-target
+        
+        # Add all files
+        git add .
+        
+        # Check if there are changes to commit
+        if [ -n "$(git status --porcelain)" ]; then
+          # Create commit message with more detail
+          commit_message="📚 Deploy documentation from ${{ inputs.source_branch }}
+
+Built from commit: ${GITHUB_SHA:0:7}
+Trigger: ${{ github.event_name }}
+Timestamp: $(date +'%Y-%m-%d %H:%M:%S UTC')
+Runner: ${{ runner.os }}"
+
+          git commit -m "$commit_message"
+          git push origin ${{ inputs.target_branch }}
+          echo "✅ Documentation deployed to ${{ inputs.target_branch }} branch"
+          echo "deployment_occurred=true" >> $GITHUB_OUTPUT
+        else
+          echo "ℹ️ No changes to deploy after staging"
+          echo "deployment_occurred=false" >> $GITHUB_OUTPUT
+        fi
+        
+        cd ..
+
+    - name: Cleanup worktree
+      shell: bash
+      if: always()
+      run: |
+        echo "🧹 Cleaning up worktree..."
+        git worktree remove deploy-target --force 2>/dev/null || true
+        echo "✅ Worktree cleaned up"
+
+    - name: Determine final status
+      id: determine_status
+      shell: bash
+      run: |
+        if [ "${{ steps.check_changes.outputs.has_changes }}" = "false" ] && [ "${{ inputs.force_deploy }}" != "true" ]; then
+          echo "status=no_changes" >> $GITHUB_OUTPUT
+        elif [ "${{ steps.commit_push.outputs.deployment_occurred }}" = "true" ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "status=failed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Deployment summary
+      shell: bash
+      if: always()
+      run: |
+        echo "## 🎉 Documentation Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Source branch**: \`${{ inputs.source_branch }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target branch**: \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Config file**: \`${{ inputs.config_file }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docs directory**: \`${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Force deploy**: \`${{ inputs.force_deploy }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Deployment status
+        case "${{ steps.determine_status.outputs.status }}" in
+          "success")
+            echo "- **Status**: ✅ Deployment successful" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "no_changes")
+            echo "- **Status**: ℹ️ No changes detected (skipped)" >> $GITHUB_STEP_SUMMARY
+            ;;
+          "failed")
+            echo "- **Status**: ❌ Deployment failed" >> $GITHUB_STEP_SUMMARY
+            ;;
+        esac
+        
+        # Build statistics
+        if [ -d "site" ]; then
+          file_count=$(find "site" -type f | wc -l)
+          size=$(du -sh "site" | cut -f1)
+          echo "- **Files built**: \`$file_count\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total size**: \`$size\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 Next Steps" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.determine_status.outputs.status }}" = "success" ]; then
+          echo "- Documentation is now available on the \`${{ inputs.target_branch }}\` branch" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Pages will automatically deploy from \`${{ inputs.target_branch }}/${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.determine_status.outputs.status }}" = "no_changes" ]; then
+          echo "- No deployment was needed as no changes were detected" >> $GITHUB_STEP_SUMMARY
+          echo "- Use \`force_deploy: true\` to deploy anyway" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- Check the workflow logs for error details" >> $GITHUB_STEP_SUMMARY
+          echo "- Ensure all required files and configurations are present" >> $GITHUB_STEP_SUMMARY
+        fi
