@@ -120,13 +120,35 @@ runs:
         # Create output directory if it doesn't exist
         mkdir -p "$(dirname "${{ inputs.build_dir }}")"
         
-        # Build with verbose output
+        # Build with explicit output directory
         mkdocs build -f "${{ inputs.config_file }}" -d "${{ inputs.build_dir }}" --verbose
         
         # Verify build was successful
         if [ ! -d "${{ inputs.build_dir }}" ]; then
           echo "❌ Build directory not created: ${{ inputs.build_dir }}"
-          exit 1
+          echo "📁 Checking for alternative locations..."
+          config_dir=$(dirname "${{ inputs.config_file }}")
+          alt_locations=(
+            "$config_dir/site"
+            "$config_dir/build"
+            "site"
+            "build"
+            "_site"
+          )
+          
+          for location in "${alt_locations[@]}"; do
+            if [ -d "$location" ]; then
+              echo "✅ Found build at: $location"
+              echo "Moving to expected location: ${{ inputs.build_dir }}"
+              mv "$location" "${{ inputs.build_dir }}"
+              break
+            fi
+          done
+          
+          if [ ! -d "${{ inputs.build_dir }}" ]; then
+            echo "❌ No build directory found anywhere"
+            exit 1
+          fi
         fi
         
         if [ ! -f "${{ inputs.build_dir }}/index.html" ]; then
