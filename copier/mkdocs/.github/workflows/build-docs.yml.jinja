@@ -1,0 +1,86 @@
+name: Build Documentation
+
+on:
+  push:
+    branches: [ production ]
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: 'Source branch to build from'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - main
+          - published
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+      target_branch:
+        description: 'Target branch to deploy to'
+        required: false
+        default: 'gh-pages'
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for git worktree
+          ref: ${{ '{{ github.event.inputs.source_branch || \'production\' }}' }}
+
+      - name: Determine trigger and source
+        id: trigger
+        run: |
+          {% raw %}if [ "${{ github.event_name }}" == "push" ]; then
+            echo "trigger_type=push" >> $GITHUB_OUTPUT
+            echo "source_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "📦 Triggered by push to ${{ github.ref_name }} branch"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "trigger_type=manual" >> $GITHUB_OUTPUT
+            echo "source_branch=${{ github.event.inputs.source_branch || 'production' }}" >> $GITHUB_OUTPUT
+            echo "🖱️ Manual trigger: building from ${{ github.event.inputs.source_branch || 'production' }}"
+          else
+            echo "trigger_type=unknown" >> $GITHUB_OUTPUT
+            echo "source_branch=production" >> $GITHUB_OUTPUT
+            echo "❓ Unknown trigger, defaulting to production branch"
+          fi{% endraw %}
+
+      - name: Build and Deploy Documentation
+        uses: {{ github_username }}/CMIP-LD/actions/build-docs@main
+        with:
+          {% raw %}source_branch: ${{ steps.trigger.outputs.source_branch }}
+          target_branch: ${{ github.event.inputs.target_branch || 'gh-pages' }}{% endraw %}
+          config_file: '.src/mkdocs/mkdocs.yml'
+          docs_dir: 'docs'
+          {% raw %}force_deploy: ${{ github.event.inputs.force_deploy || 'false' }}{% endraw %}
+
+      - name: Post-build actions
+        if: success()
+        run: |
+          echo "## 🎯 Build Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "The documentation build has completed and been deployed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Build Details" >> $GITHUB_STEP_SUMMARY
+          {% raw %}echo "- **Trigger**: ${{ steps.trigger.outputs.trigger_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source branch**: ${{ steps.trigger.outputs.source_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target branch**: ${{ github.event.inputs.target_branch || 'gh-pages' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Force deploy**: ${{ github.event.inputs.force_deploy || 'false' }}" >> $GITHUB_STEP_SUMMARY{% endraw %}
+
+      - name: Handle build failure
+        if: failure()
+        run: |
+          echo "## ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "The documentation build encountered an error." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Troubleshooting Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check the build logs above for specific error messages" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify that your MkDocs configuration is valid" >> $GITHUB_STEP_SUMMARY
+          echo "3. Ensure all required source files are present" >> $GITHUB_STEP_SUMMARY
+          echo "4. Check that the target branch permissions are correct" >> $GITHUB_STEP_SUMMARY
