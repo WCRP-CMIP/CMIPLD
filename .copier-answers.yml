@@ -1,0 +1,17 @@
+_src_path: /Users/daniel.ellis/WIPwork/CMIP-LD/copier/mkdocs
+_commit: HEAD
+_timestamp: '2025-08-18T18:44:01.368575'
+_auto_generated: true
+_script_version: '2.1'
+project_name: CMIP LD Documentation
+repo_name: CMIP-LD
+author_name: Daniel Ellis
+author_email: daniel.ellis@ext.esa.int
+github_username: WCRP-CMIP
+site_url: https://WCRP-CMIP.github.io/CMIP-LD/
+repo_url: https://github.com/WCRP-CMIP/CMIP-LD
+json_data_folder: json_data
+description: Documentation for CMIP LD
+header_color: grey
+generate_static_files: true
+static_files_folder: static_output
