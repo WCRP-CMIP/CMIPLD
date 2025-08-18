@@ -171,22 +171,22 @@ runs:
         cd "${REPO_ROOT}"
         echo "📁 Deploying to production branch..."
         echo "📁 Source: ${SITE_DIR_PATH}"
-        echo "📁 Target: ${WORKTREE_PATH}/${{ inputs.docs_dir }}"
+        echo "📁 Target: ${WORKTREE_PATH}/src-data/${{ inputs.docs_dir }}"
         
         # Only clear the docs directory, keep everything else
         cd "${WORKTREE_PATH}"
         
         # Remove only the docs directory if it exists
-        if [ -d "${{ inputs.docs_dir }}" ]; then
-          echo "🗑️ Clearing existing ${{ inputs.docs_dir }}/ directory..."
-          rm -rf "${{ inputs.docs_dir }}"
+        if [ -d "src-data/${{ inputs.docs_dir }}" ]; then
+          echo "🗑️ Clearing existing src-data/${{ inputs.docs_dir }}/ directory..."
+          rm -rf "src-data/${{ inputs.docs_dir }}"
         fi
         
         cd "${REPO_ROOT}"
         
         # Create fresh docs directory and copy built site
-        mkdir -p "${WORKTREE_PATH}/${{ inputs.docs_dir }}"
-        cp -r "${SITE_DIR_PATH}"/* "${WORKTREE_PATH}/${{ inputs.docs_dir }}/"
+        mkdir -p "${WORKTREE_PATH}/src-data/${{ inputs.docs_dir }}"
+        cp -r "${SITE_DIR_PATH}"/* "${WORKTREE_PATH}/src-data/${{ inputs.docs_dir }}/"
         
         # Add .nojekyll file for GitHub Pages (only if it doesn't exist)
         if [ ! -f "${WORKTREE_PATH}/.nojekyll" ]; then
@@ -198,7 +198,7 @@ runs:
           cp "${SITE_DIR_PATH}/404.html" "${WORKTREE_PATH}/404.html"
         fi
         
-        echo "✅ Files transferred to production branch ${{ inputs.docs_dir }}/ folder"
+        echo "✅ Files transferred to production branch src-data/${{ inputs.docs_dir }}/ folder"
 
     - name: Commit and push to production
       shell: bash
@@ -259,7 +259,7 @@ runs:
         echo "- **Target branch**: \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Config file**: \`${{ inputs.config_file }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Site directory**: \`${{ inputs.site_dir }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **Docs directory**: \`${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docs directory**: \`src-data/${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
         
         if [ -d "${SITE_DIR_PATH}" ]; then
