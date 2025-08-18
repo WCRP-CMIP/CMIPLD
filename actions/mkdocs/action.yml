@@ -23,6 +23,10 @@ inputs:
     description: 'Directory name in target branch'
     required: false
     default: 'docs'
+  site_dir:
+    description: 'Directory where MkDocs builds the site (temporary build directory)'
+    required: false
+    default: '.src/mkdocs/site'
 
 outputs:
   deployed_branch:
@@ -74,20 +78,32 @@ runs:
       shell: bash
       run: |
         echo "🏗️ Building MkDocs documentation..."
-        mkdocs build -f "${{ inputs.config_file }}" -d "site"
+        echo "📁 Building to directory: ${{ inputs.site_dir }}"
+        
+        # Clean any existing site directory
+        if [ -d "${{ inputs.site_dir }}" ]; then
+          echo "🧹 Cleaning existing site directory..."
+          rm -rf "${{ inputs.site_dir }}"
+        fi
+        
+        mkdocs build -f "${{ inputs.config_file }}" -d "${{ inputs.site_dir }}"
         
         # Verify build was successful
-        if [ ! -d "site" ]; then
-          echo "❌ Build failed - no site directory created"
+        if [ ! -d "${{ inputs.site_dir }}" ]; then
+          echo "❌ Build failed - no site directory created at: ${{ inputs.site_dir }}"
           exit 1
         fi
         
-        if [ ! -f "site/index.html" ]; then
-          echo "❌ Build failed - no index.html in output"
+        if [ ! -f "${{ inputs.site_dir }}/index.html" ]; then
+          echo "❌ Build failed - no index.html in output directory: ${{ inputs.site_dir }}"
           exit 1
         fi
         
-        echo "✅ MkDocs build completed"
+        echo "✅ MkDocs build completed successfully"
+        echo "📊 Build summary:"
+        echo "   - Output directory: ${{ inputs.site_dir }}"
+        echo "   - Files generated: $(find '${{ inputs.site_dir }}' -type f | wc -l)"
+        echo "   - Total size: $(du -sh '${{ inputs.site_dir }}' | cut -f1)"
 
     - name: Setup production branch with git worktree
       shell: bash
@@ -127,7 +143,7 @@ runs:
         
         # Create fresh docs directory and copy built site
         mkdir -p production-deploy/${{ inputs.docs_dir }}
-        cp -r site/* production-deploy/${{ inputs.docs_dir }}/
+        cp -r ${{ inputs.site_dir }}/* production-deploy/${{ inputs.docs_dir }}/
         
         # Add .nojekyll file for GitHub Pages (only if it doesn't exist)
         if [ ! -f "production-deploy/.nojekyll" ]; then
@@ -135,11 +151,11 @@ runs:
         fi
         
         # Add 404.html if it exists in build (only if it doesn't exist)
-        if [ -f "site/404.html" ] && [ ! -f "production-deploy/404.html" ]; then
-          cp site/404.html production-deploy/404.html
+        if [ -f "${{ inputs.site_dir }}/404.html" ] && [ ! -f "production-deploy/404.html" ]; then
+          cp ${{ inputs.site_dir }}/404.html production-deploy/404.html
         fi
         
-        echo "✅ Files transferred to production branch docs/ folder"
+        echo "✅ Files transferred to production branch ${{ inputs.docs_dir }}/ folder"
 
     - name: Commit and push to production
       shell: bash
@@ -176,12 +192,13 @@ runs:
         echo "- **Source branch**: \`${{ inputs.source_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Target branch**: \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Config file**: \`${{ inputs.config_file }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Site directory**: \`${{ inputs.site_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Docs directory**: \`${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
         
-        if [ -d "site" ]; then
-          file_count=$(find "site" -type f | wc -l)
-          size=$(du -sh "site" | cut -f1)
+        if [ -d "${{ inputs.site_dir }}" ]; then
+          file_count=$(find "${{ inputs.site_dir }}" -type f | wc -l)
+          size=$(du -sh "${{ inputs.site_dir }}" | cut -f1)
           echo "- **Files deployed**: \`$file_count\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Total size**: \`$size\`" >> $GITHUB_STEP_SUMMARY
         fi
