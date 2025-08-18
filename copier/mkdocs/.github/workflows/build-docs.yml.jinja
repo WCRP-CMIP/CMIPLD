@@ -2,8 +2,16 @@
 name: Build Documentation
 
 on:
-  push:
+  {# push:
     branches: [ {{ build_trigger_branch }} ]
+    paths:
+      - 'src-data/**'
+      - 'docs/**' #}
+  workflow_run:
+    workflows: ["Update JSONLD"]
+    types:
+      - completed
+    
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -14,6 +22,7 @@ on:
 
 jobs:
   build-docs:
+    {% raw %}if: ${{ github.event.workflow_run.conclusion == 'success' }}{% endraw %}
     runs-on: ubuntu-latest
     
     steps:

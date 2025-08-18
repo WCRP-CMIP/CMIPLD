@@ -85,11 +85,13 @@ runs:
         fi
         echo "✅ Found MkDocs config: ${{ inputs.config_file }}"
         
-        # Validate config syntax
-        python -c "import yaml; yaml.safe_load(open('${{ inputs.config_file }}'))" || {
-          echo "❌ Invalid YAML syntax in config file"
+        # Try MkDocs config validation instead of basic YAML
+        echo "🔍 Validating MkDocs configuration..."
+        python -c "import mkdocs.config; mkdocs.config.load_config('${{ inputs.config_file }}')" || {
+          echo "❌ Invalid MkDocs configuration"
           exit 1
         }
+        echo "✅ MkDocs configuration is valid"
 
     - name: Run pre-build scripts
       shell: bash
