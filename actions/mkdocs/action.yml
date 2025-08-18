@@ -39,6 +39,16 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Set up environment variables
+      shell: bash
+      run: |
+        echo "REPO_ROOT=$(pwd)" >> $GITHUB_ENV
+        echo "SITE_DIR_PATH=$(pwd)/${{ inputs.site_dir }}" >> $GITHUB_ENV
+        echo "WORKTREE_PATH=$(pwd)/production-deploy" >> $GITHUB_ENV
+        echo "📁 Repository root: $(pwd)"
+        echo "📁 Site directory will be: $(pwd)/${{ inputs.site_dir }}"
+        echo "📁 Worktree will be: $(pwd)/production-deploy"
+
     - name: Set up Git configuration
       shell: bash
       run: |
@@ -54,6 +64,7 @@ runs:
     - name: Install MkDocs dependencies
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         python -m pip install --upgrade pip
         
         # Install from requirements file if it exists
@@ -68,6 +79,7 @@ runs:
     - name: Verify MkDocs config
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         if [ ! -f "${{ inputs.config_file }}" ]; then
           echo "❌ MkDocs config file not found: ${{ inputs.config_file }}"
           exit 1
@@ -77,50 +89,55 @@ runs:
     - name: Build MkDocs
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         echo "🏗️ Building MkDocs documentation..."
-        echo "📁 Building to directory: ${{ inputs.site_dir }}"
+        echo "📁 Repository root: ${REPO_ROOT}"
+        echo "📁 Building to directory: ${SITE_DIR_PATH}"
         
         # Clean any existing site directory
-        if [ -d "${{ inputs.site_dir }}" ]; then
+        if [ -d "${SITE_DIR_PATH}" ]; then
           echo "🧹 Cleaning existing site directory..."
-          rm -rf "${{ inputs.site_dir }}"
+          rm -rf "${SITE_DIR_PATH}"
         fi
         
-        mkdocs build -f "${{ inputs.config_file }}" -d "${{ inputs.site_dir }}"
+        mkdocs build -f "${{ inputs.config_file }}" -d "${SITE_DIR_PATH}"
         
         # Verify build was successful
-        if [ ! -d "${{ inputs.site_dir }}" ]; then
-          echo "❌ Build failed - no site directory created at: ${{ inputs.site_dir }}"
+        if [ ! -d "${SITE_DIR_PATH}" ]; then
+          echo "❌ Build failed - no site directory created at: ${SITE_DIR_PATH}"
           exit 1
         fi
         
-        if [ ! -f "${{ inputs.site_dir }}/index.html" ]; then
-          echo "❌ Build failed - no index.html in output directory: ${{ inputs.site_dir }}"
+        if [ ! -f "${SITE_DIR_PATH}/index.html" ]; then
+          echo "❌ Build failed - no index.html in output directory: ${SITE_DIR_PATH}"
           exit 1
         fi
         
         echo "✅ MkDocs build completed successfully"
         echo "📊 Build summary:"
-        echo "   - Output directory: ${{ inputs.site_dir }}"
-        echo "   - Files generated: $(find '${{ inputs.site_dir }}' -type f | wc -l)"
-        echo "   - Total size: $(du -sh '${{ inputs.site_dir }}' | cut -f1)"
+        echo "   - Output directory: ${SITE_DIR_PATH}"
+        echo "   - Files generated: $(find "${SITE_DIR_PATH}" -type f | wc -l)"
+        echo "   - Total size: $(du -sh "${SITE_DIR_PATH}" | cut -f1)"
 
     - name: Setup production branch with git worktree
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         echo "🌿 Setting up production branch with git worktree..."
+        echo "📁 Repository root: ${REPO_ROOT}"
+        echo "📁 Worktree path: ${WORKTREE_PATH}"
         
         # Check if production branch exists remotely
         if git ls-remote --heads origin ${{ inputs.target_branch }} | grep -q ${{ inputs.target_branch }}; then
           echo "📥 Production branch exists, fetching..."
           git fetch origin ${{ inputs.target_branch }}
-          git worktree add production-deploy origin/${{ inputs.target_branch }}
+          git worktree add "${WORKTREE_PATH}" origin/${{ inputs.target_branch }}
         else
           echo "🆕 Creating new production branch..."
-          git worktree add --orphan production-deploy ${{ inputs.target_branch }}
-          cd production-deploy
+          git worktree add --orphan "${WORKTREE_PATH}" ${{ inputs.target_branch }}
+          cd "${WORKTREE_PATH}"
           git rm -rf . 2>/dev/null || true
-          cd ..
+          cd "${REPO_ROOT}"
         fi
         
         echo "✅ Production branch worktree ready"
@@ -128,10 +145,13 @@ runs:
     - name: Deploy to production branch
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         echo "📁 Deploying to production branch..."
+        echo "📁 Source: ${SITE_DIR_PATH}"
+        echo "📁 Target: ${WORKTREE_PATH}/${{ inputs.docs_dir }}"
         
         # Only clear the docs directory, keep everything else
-        cd production-deploy
+        cd "${WORKTREE_PATH}"
         
         # Remove only the docs directory if it exists
         if [ -d "${{ inputs.docs_dir }}" ]; then
@@ -139,20 +159,20 @@ runs:
           rm -rf "${{ inputs.docs_dir }}"
         fi
         
-        cd ..
+        cd "${REPO_ROOT}"
         
         # Create fresh docs directory and copy built site
-        mkdir -p production-deploy/${{ inputs.docs_dir }}
-        cp -r ${{ inputs.site_dir }}/* production-deploy/${{ inputs.docs_dir }}/
+        mkdir -p "${WORKTREE_PATH}/${{ inputs.docs_dir }}"
+        cp -r "${SITE_DIR_PATH}"/* "${WORKTREE_PATH}/${{ inputs.docs_dir }}/"
         
         # Add .nojekyll file for GitHub Pages (only if it doesn't exist)
-        if [ ! -f "production-deploy/.nojekyll" ]; then
-          touch production-deploy/.nojekyll
+        if [ ! -f "${WORKTREE_PATH}/.nojekyll" ]; then
+          touch "${WORKTREE_PATH}/.nojekyll"
         fi
         
         # Add 404.html if it exists in build (only if it doesn't exist)
-        if [ -f "${{ inputs.site_dir }}/404.html" ] && [ ! -f "production-deploy/404.html" ]; then
-          cp ${{ inputs.site_dir }}/404.html production-deploy/404.html
+        if [ -f "${SITE_DIR_PATH}/404.html" ] && [ ! -f "${WORKTREE_PATH}/404.html" ]; then
+          cp "${SITE_DIR_PATH}/404.html" "${WORKTREE_PATH}/404.html"
         fi
         
         echo "✅ Files transferred to production branch ${{ inputs.docs_dir }}/ folder"
@@ -160,9 +180,9 @@ runs:
     - name: Commit and push to production
       shell: bash
       run: |
+        cd "${WORKTREE_PATH}"
         echo "📤 Committing and pushing to production..."
-        
-        cd production-deploy
+        echo "📁 Working in: $(pwd)"
         
         # Add all files
         git add .
@@ -175,19 +195,19 @@ runs:
         else
           echo "ℹ️ No changes to deploy"
         fi
-        
-        cd ..
 
     - name: Cleanup worktree
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         echo "🧹 Cleaning up worktree..."
-        git worktree remove production-deploy --force || true
+        git worktree remove "${WORKTREE_PATH}" --force || true
         echo "✅ Worktree cleaned up"
 
     - name: Deployment summary
       shell: bash
       run: |
+        cd "${REPO_ROOT}"
         echo "## 🎉 MkDocs Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "- **Source branch**: \`${{ inputs.source_branch }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Target branch**: \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
@@ -196,9 +216,9 @@ runs:
         echo "- **Docs directory**: \`${{ inputs.docs_dir }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
         
-        if [ -d "${{ inputs.site_dir }}" ]; then
-          file_count=$(find "${{ inputs.site_dir }}" -type f | wc -l)
-          size=$(du -sh "${{ inputs.site_dir }}" | cut -f1)
+        if [ -d "${SITE_DIR_PATH}" ]; then
+          file_count=$(find "${SITE_DIR_PATH}" -type f | wc -l)
+          size=$(du -sh "${SITE_DIR_PATH}" | cut -f1)
           echo "- **Files deployed**: \`$file_count\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Total size**: \`$size\`" >> $GITHUB_STEP_SUMMARY
         fi
