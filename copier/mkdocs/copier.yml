@@ -127,3 +127,40 @@ links_section_title:
   default: "External Links"
   help: "Title for the links section in navigation"
   when: true
+
+# Workflow Configuration
+enable_build_docs:
+  type: bool
+  default: true
+  help: "Generate build-docs workflow using CMIP-LD/actions/build-docs"
+  when: true
+
+enable_static_pages:
+  type: bool
+  default: true
+  help: "Generate static pages deployment workflow"
+  when: true
+
+enable_jsonld_workflows:
+  type: bool
+  default: true
+  help: "Generate JSON-LD processing workflows using CMIP-LD actions"
+  when: true
+
+enable_new_issue:
+  type: bool
+  default: true
+  help: "Generate issue processing workflow using CMIP-LD/actions/new-issue"
+  when: true
+
+build_trigger_branch:
+  type: str
+  default: "main"
+  help: "Branch that triggers documentation builds"
+  when: "{{ enable_build_docs }}"
+
+build_target_branch:
+  type: str
+  default: "production"
+  help: "Branch where built documentation is deployed"
+  when: "{{ enable_build_docs }}"
