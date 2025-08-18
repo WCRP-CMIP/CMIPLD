@@ -115,6 +115,12 @@ runs:
         # Build with verbose output for debugging
         mkdocs build -f "${{ inputs.config_file }}" --verbose
         
+        # Debug: List all directories after build
+        echo "📁 Current directory contents:"
+        ls -la
+        echo "📁 Config directory contents:"
+        ls -la "$config_dir" || echo "Config directory not accessible"
+        
         # The site directory location depends on the mkdocs.yml site_dir setting
         # Check common locations
         possible_sites=(
@@ -122,14 +128,19 @@ runs:
           "$config_dir/site"
           "docs/_site"
           "_site"
+          "$config_dir/_site"
         )
         
+        echo "🔍 Searching for site directory..."
         site_location=""
         for possible_site in "${possible_sites[@]}"; do
+          echo "  Checking: $possible_site"
           if [ -d "$possible_site" ]; then
             site_location="$possible_site"
             echo "✅ Found site directory at: $site_location"
             break
+          else
+            echo "  Not found: $possible_site"
           fi
         done
         
@@ -139,6 +150,8 @@ runs:
           for loc in "${possible_sites[@]}"; do
             echo "  - $loc"
           done
+          echo "🗺️ Full directory tree:"
+          find . -type d -name "*site*" -o -name "*build*" -o -name "*dist*" 2>/dev/null || true
           exit 1
         fi
         
