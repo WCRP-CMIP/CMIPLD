@@ -293,7 +293,6 @@ runs:
           commit_message="📚 Deploy documentation from ${{ inputs.source_branch }}
 
 Built from commit: ${GITHUB_SHA:0:7}
-Trigger: ${{ github.event_name }}
 Timestamp: $(date +'%Y-%m-%d %H:%M:%S UTC')
 Runner: ${{ runner.os }}"
 
