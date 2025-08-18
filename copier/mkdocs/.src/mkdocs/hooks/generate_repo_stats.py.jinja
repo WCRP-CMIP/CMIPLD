@@ -758,8 +758,8 @@ Live tracking includes:
         except Exception as e:
             print(f"⚠️ Could not create auxillary directory: {e}", file=sys.stderr)
             
-        # Write the file to auxillary directory as specified
-        with mkdocs_gen_files.open("auxillary/stats.md", "w") as f:
+        # Write the file to auxillary directory as statistics.md
+        with mkdocs_gen_files.open("auxillary/statistics.md", "w") as f:
             f.write(content)
         
         # Also create a time series visualization of GitHub activity if available
@@ -871,8 +871,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 """
                     
-                    # Append to the auxillary file
-                    with mkdocs_gen_files.open("auxillary/stats.md", "a") as f:
+                    # Append to the auxillary statistics file
+                    with mkdocs_gen_files.open("auxillary/statistics.md", "a") as f:
                         f.write(time_series_content)
                     
                     print("✅ Added commit activity time series visualization", file=sys.stderr)
@@ -1127,8 +1127,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 """
                     
-                    # Append to the auxillary file
-                    with mkdocs_gen_files.open("auxillary/stats.md", "a") as f:
+                    # Append to the auxillary statistics file
+                    with mkdocs_gen_files.open("auxillary/statistics.md", "a") as f:
                         f.write(code_frequency_content)
                     
                     print("✅ Added code frequency visualization", file=sys.stderr)

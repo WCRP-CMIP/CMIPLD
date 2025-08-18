@@ -395,11 +395,26 @@ def generate_final_navigation(docs_path, mkdocs_files):
             if dir_name in ['auxilary', 'auxiliary']:
                 continue
                 
+<<<<<<< HEAD
             dir_title = clean_title(dir_name)
             nav_lines.append(f'- {dir_title}:')
             
             # Recursively add nested content
             add_tree_to_nav(dir_tree, nav_lines, "  ")
+=======
+                dir_title = clean_title(dir_name)
+                nav_lines.append(f'- {dir_title}:')
+                
+                # Add files in this directory
+                if dir_name in directories:
+                    dir_files = sorted(directories[dir_name], key=lambda f: get_sort_key(f.name))
+                    for f in dir_files:
+                        rel_path = f.relative_to(docs_path)
+                        title = clean_title(f.name)
+                        nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
+                
+
+>>>>>>> d5d9113 (stats template)
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
@@ -441,6 +456,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
     
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     # Always add auxilary/auxiliary section if it exists
     auxilary_dir_tree = tree.get('dirs', {}).get('auxilary')
     auxiliary_dir_tree = tree.get('dirs', {}).get('auxiliary')  # Alternative spelling
@@ -454,6 +470,39 @@ def generate_final_navigation(docs_path, mkdocs_files):
         # Process auxiliary directory (alternative spelling)
         elif auxiliary_dir_tree:
             add_tree_to_nav(auxiliary_dir_tree, nav_lines, "  ")
+=======
+    # Always add auxilary/auxiliary section if it exists and wasn't already processed
+    auxilary_dir = docs_path / 'auxilary'
+    auxiliary_dir = docs_path / 'auxiliary'  # Alternative spelling
+    
+    # Check if auxilary directory wasn't already processed in main loop
+    auxilary_already_processed = 'auxilary' in processed_dirs or 'auxiliary' in processed_dirs
+    
+    if not auxilary_already_processed:
+        auxilary_exists = auxilary_dir.exists() and any(auxilary_dir.glob('*.md*'))
+        auxiliary_exists = auxiliary_dir.exists() and any(auxiliary_dir.glob('*.md*'))
+        
+        if auxilary_exists or auxiliary_exists:
+            nav_lines.append('- Additional Resources:')
+            
+            # Process auxilary directory (primary spelling)
+            if auxilary_exists:
+                for md_file in sorted(auxilary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                    if md_file.name.startswith('_'):
+                        continue
+                    rel_path = md_file.relative_to(docs_path)
+                    title = clean_title(md_file.name)
+                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
+            
+            # Process auxiliary directory (alternative spelling)
+            elif auxiliary_exists:
+                for md_file in sorted(auxiliary_dir.glob('*.md*'), key=lambda f: get_sort_key(f.name)):
+                    if md_file.name.startswith('_'):
+                        continue
+                    rel_path = md_file.relative_to(docs_path)
+                    title = clean_title(md_file.name)
+                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
+>>>>>>> d5d9113 (stats template)
     
     # Add custom links from YAML links file
 =======
