@@ -132,7 +132,7 @@ links_section_title:
 enable_build_docs:
   type: bool
   default: true
-  help: "Generate build-docs workflow using CMIP-LD/actions/build-mkdocs"
+  help: "Generate build-docs workflow using CMIPLD/actions/build-mkdocs"
   when: true
 
 enable_static_pages:
@@ -144,13 +144,13 @@ enable_static_pages:
 enable_jsonld_workflows:
   type: bool
   default: true
-  help: "Generate JSON-LD processing workflows using CMIP-LD actions"
+  help: "Generate JSON-LD processing workflows using CMIPLD actions"
   when: true
 
 enable_new_issue:
   type: bool
   default: true
-  help: "Generate issue processing workflow using CMIP-LD/actions/new-issue"
+  help: "Generate issue processing workflow using CMIPLD/actions/new-issue"
   when: true
 
 build_trigger_branch:
