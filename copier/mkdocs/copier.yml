@@ -18,7 +18,6 @@ _exclude:
   - "backup/**"
   - "node_modules/**"
   - ".DS_Store"
-
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
@@ -108,3 +107,22 @@ generate_repo_stats:
   type: bool
   default: true
   when: false
+
+# Links file configuration
+links_file:
+  type: str
+  default: "links.yml"
+  help: "YAML file containing additional menu items (relative to docs directory)"
+  when: true
+
+enable_custom_links:
+  type: bool
+  default: true
+  help: "Enable custom links from links file in navigation"
+  when: true
+
+links_section_title:
+  type: str
+  default: "External Links"
+  help: "Title for the links section in navigation"
+  when: true

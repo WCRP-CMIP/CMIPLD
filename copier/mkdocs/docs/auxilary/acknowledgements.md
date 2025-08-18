@@ -1,9 +1,9 @@
-# Acknowlegements
+# Acknowledgements
 
 
 ## Repository Contributors
 
-[![Contributors](https://contrib.rocks/image?repo={{ repo_url.replace('https://github.com/','') }})]({{ repo_url }}/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=WCRP-CMIP/CMIP7-CVs)](https://github.com/WCRP-CMIP/CMIP7-CVs/graphs/contributors)
 
 Thanks to our contributors!
 

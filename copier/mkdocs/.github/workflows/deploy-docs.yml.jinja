@@ -4,11 +4,6 @@ name: Deploy Documentation on Production or Docs Update
 on:
   push:
     branches: [ production ]
-  push:
-    branches: [ main ]
-    paths:
-      - 'docs/**'
-      - '.src/mkdocs/**'
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -42,26 +37,20 @@ jobs:
           fi{% endraw %}
 
       - name: Build and Deploy MkDocs to Production
-        uses: {{ github_username }}/{{ repo_name }}/actions/mkdocs@main
+        uses: WCRP-CMIP/CMIPLD/actions/mkdocs@main
         with:
           {% raw %}source_branch: ${{ github.ref_name }}{% endraw %}
           target_branch: 'production'
           config_file: '.src/mkdocs/mkdocs.yml'
           docs_dir: 'docs'
 
-      - name: Deployment notification
-        run: |
-          {% raw %}echo "## 🚀 Documentation Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger**: ${{ steps.strategy.outputs.strategy }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Source branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target branch**: \`production\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🌐 Access Documentation" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Pages**: Available at your configured Pages URL" >> $GITHUB_STEP_SUMMARY
-          echo "- **Production branch**: Check \`production\` branch for deployed files" >> $GITHUB_STEP_SUMMARY{% endraw %}
 
-
-
+      - name: Publish
+        if: github.ref_name == 'production'
+        uses: WCRP-CMIP/CMIPLD/actions/publish2pages@main
+        with:
+          api_key: ${{ '{{ secrets.API_KEY }}' }}
+          github_token: ${{ '{{ secrets.GITHUB_TOKEN }}' }}
+          branch_name: ${{ '{{ github.ref_name }}' }}
 
 
