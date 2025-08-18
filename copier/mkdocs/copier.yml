@@ -132,7 +132,7 @@ links_section_title:
 enable_build_docs:
   type: bool
   default: true
-  help: "Generate build-docs workflow using CMIP-LD/actions/build-docs"
+  help: "Generate build-docs workflow using CMIP-LD/actions/build-mkdocs"
   when: true
 
 enable_static_pages:
