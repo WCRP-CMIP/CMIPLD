@@ -4,6 +4,7 @@
 name: Build Documentation
 
 on:
+<<<<<<< HEAD
   workflow_run:
     workflows: ["Update JSONLD"]
     types:
@@ -20,9 +21,17 @@ name: Build Documentation
 on:
   push:
     branches: [ {{ build_trigger_branch }} ]
+=======
+  {% comment %} push: {% endcomment %}
+    {% comment %} branches: [ {{ build_trigger_branch }} ]
+>>>>>>> b74e4ae (docs)
     paths:
       - 'src-data/**'
-      - 'docs/**'
+      - 'docs/**' {% endcomment %}
+  workflow_run:
+    workflows: ["Update JSONLD"]   
+      - completed
+    
   workflow_dispatch:
     inputs:
 <<<<<<< HEAD
@@ -48,6 +57,7 @@ on:
 
 jobs:
   build-docs:
+<<<<<<< HEAD
     {% raw %}if: ${{ github.event.workflow_run.conclusion == 'success' }}{% endraw %}
 =======
       target_branch:
@@ -60,6 +70,9 @@ jobs:
 jobs:
   build-docs:
 >>>>>>> 7e63a8c (docs)
+=======
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+>>>>>>> b74e4ae (docs)
     runs-on: ubuntu-latest
     
     steps:
