@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Post-generation hook that runs AFTER all gen-files plugins have completed
-This ensures navigation includes all generated content
+This ensures navigation includes all generated content and custom links
 """
 
 import os
 import re
+import yaml
 from pathlib import Path
 
 def on_files(files, config):
@@ -36,37 +37,64 @@ def clean_data_summary_title(filename):
     
     return name.replace('_', ' ').replace('-', ' ').title()
 
-def parse_external_links_json(docs_dir):
-    """Parse external-links.json file."""
-    external_links_path = docs_dir / 'external-links.json'
+def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
+    """Parse custom links file (YAML or JSON format)."""
+    # Try YAML first
+    links_path = docs_dir / links_filename
     
-    if not external_links_path.exists():
+    if not links_path.exists():
+        print(f"ℹ️  Links file {links_filename} not found, skipping custom links")
         return []
     
     try:
-        import json
-        with open(external_links_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        with open(links_path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            
+        if not content:
+            print(f"ℹ️  Links file {links_filename} is empty")
+            return []
+            
+        # Try to parse as YAML first
+        try:
+            data = yaml.safe_load(content)
+        except yaml.YAMLError:
+            # Fallback to JSON
+            import json
+            data = json.loads(content)
         
-        links = data.get('external_links', [])
-        print(f"✅ Found {len(links)} external links in JSON")
+        # Handle both 'links' and 'external_links' keys for backward compatibility
+        links = data.get('links', data.get('external_links', []))
         
+        if not isinstance(links, list):
+            print(f"⚠️  Links data should be a list, got {type(links)}")
+            return []
+            
+        print(f"✅ Found {len(links)} custom links in {links_filename}")
         return links
         
     except Exception as e:
-        print(f"⚠️  Error parsing external-links.json: {e}")
+        print(f"⚠️  Error parsing {links_filename}: {e}")
         return []
 
-def add_external_links_json_to_nav(nav_lines, external_links):
-    """Add external links from JSON to navigation."""
-    if not external_links:
+def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_section_title }}"):
+    """Add custom links to navigation with support for categories and hierarchical structure."""
+    if not custom_links:
         return nav_lines
     
     # Organize links by category
     categories = {}
     root_links = []
     
-    for link in external_links:
+    for link in custom_links:
+        # Skip invalid entries
+        if not isinstance(link, dict) or 'title' not in link:
+            continue
+            
+        # Handle both 'url' and 'link' for flexibility
+        url = link.get('url', link.get('link'))
+        if not url:
+            continue
+            
         category = link.get('category')
         if category:
             if category not in categories:
@@ -75,19 +103,33 @@ def add_external_links_json_to_nav(nav_lines, external_links):
         else:
             root_links.append(link)
     
-    # Add external links section
+    # Add custom links section
     if root_links or categories:
-        nav_lines.append('- External Links:')
+        nav_lines.append(f'- {section_title}:')
         
         # Add root-level links first
         for link in root_links:
-            nav_lines.append(f'  - [{link["title"]}]({link["url"]})')
+            title = link['title']
+            url = link.get('url', link.get('link'))
+            description = link.get('description', '')
+            
+            if description:
+                nav_lines.append(f'  - [{title}]({url})  # {description}')
+            else:
+                nav_lines.append(f'  - [{title}]({url})')
         
         # Add categories as subsections
         for category_name in sorted(categories.keys()):
             nav_lines.append(f'  - {category_name}:')
             for link in categories[category_name]:
-                nav_lines.append(f'    - [{link["title"]}]({link["url"]})')
+                title = link['title']
+                url = link.get('url', link.get('link'))
+                description = link.get('description', '')
+                
+                if description:
+                    nav_lines.append(f'    - [{title}]({url})  # {description}')
+                else:
+                    nav_lines.append(f'    - [{title}]({url})')
     
     return nav_lines
 
@@ -338,9 +380,16 @@ def generate_final_navigation(docs_path, mkdocs_files):
             title = clean_data_summary_title(data_file)
             nav_lines.append(f'  - [{title}](data-summaries/{data_file}_detailed.md)')
     
-    # Add external links from external-links.json
+    # Add custom links from links file
+    {% if enable_custom_links %}
+    custom_links = parse_links_file(docs_path, "{{ links_file }}")
+    nav_lines = add_custom_links_to_nav(nav_lines, custom_links, "{{ links_section_title }}")
+    {% endif %}
+    
+    # Legacy support: Also check for external-links.json for backward compatibility
     external_links = parse_external_links_json(docs_path)
-    nav_lines = add_external_links_json_to_nav(nav_lines, external_links)
+    if external_links:
+        nav_lines = add_external_links_json_to_nav(nav_lines, external_links)
     
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)
@@ -358,7 +407,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
         print(f"📋 Included repository statistics page")
 
 def parse_external_links_json(docs_dir):
-    """Parse external-links.json file."""
+    """Parse legacy external-links.json file for backward compatibility."""
     external_links_path = docs_dir / 'external-links.json'
     
     if not external_links_path.exists():
@@ -370,16 +419,17 @@ def parse_external_links_json(docs_dir):
             data = json.load(f)
         
         links = data.get('external_links', [])
-        print(f"✅ Found {len(links)} external links in JSON")
+        if links:
+            print(f"✅ Found {len(links)} legacy external links in JSON")
         
         return links
         
     except Exception as e:
-        print(f"⚠️  Error parsing external-links.json: {e}")
+        print(f"⚠️  Error parsing legacy external-links.json: {e}")
         return []
 
 def add_external_links_json_to_nav(nav_lines, external_links):
-    """Add external links from JSON to navigation."""
+    """Add external links from legacy JSON to navigation."""
     if not external_links:
         return nav_lines
     
@@ -396,8 +446,9 @@ def add_external_links_json_to_nav(nav_lines, external_links):
         else:
             root_links.append(link)
     
-    # Add external links section
-    if root_links or categories:
+    # Add external links section (only if no custom links were added)
+    section_exists = any('External Links:' in line for line in nav_lines)
+    if not section_exists and (root_links or categories):
         nav_lines.append('- External Links:')
         
         # Add root-level links first
@@ -411,22 +462,3 @@ def add_external_links_json_to_nav(nav_lines, external_links):
                 nav_lines.append(f'    - [{link["title"]}]({link["url"]})')
     
     return nav_lines
-
-def get_sort_key(filename):
-    """Get sort key for ordering."""
-    # Extract base name without extension
-    name = filename.replace('.md', '').replace('_detailed', '')
-    
-    # Look for number at the start of the filename or after common prefixes
-    match = re.match(r'^(.+?)[-_]?(\d+)[-_.]', name)
-    if match:
-        prefix = match.group(1)
-        number = int(match.group(2))
-        return (number, prefix, filename)
-    
-    # Fallback to original logic for files without numbers
-    match = re.match(r'^(\d+)[-_.]', name)
-    if match:
-        return (int(match.group(1)), filename)
-    
-    return (9999, filename)  # Put non-numbered files at the end
