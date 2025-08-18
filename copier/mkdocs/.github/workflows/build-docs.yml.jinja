@@ -31,17 +31,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build MkDocs documentation
-        uses: {{ github_username }}/CMIPLD/actions/build-mkdocs@main
+      - name: Build and Deploy MkDocs documentation
+        uses: {{ github_username }}/CMIPLD/actions/mkdocs@main
         with:
+          {% raw %}source_branch: ${{ github.ref_name }}{% endraw %}
+          target_branch: {{ build_target_branch }}
           config_file: '.src/mkdocs/mkdocs.yml'
-          build_dir: 'site'
-          upload_artifact: 'false'
-
-      - name: Deploy to production branch
-        uses: {{ github_username }}/CMIPLD/actions/publish2pages@main
-        with:
-          {% raw %}api_key: ${{ secrets.API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch_name: ${{ github.ref_name }}{% endraw %}
+          docs_dir: 'docs'
 {% endif -%}
