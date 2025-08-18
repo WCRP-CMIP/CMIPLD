@@ -23,14 +23,14 @@ jobs:
           fetch-depth: 0
 
       - name: Build MkDocs documentation
-        uses: {{ github_username }}/CMIP-LD/actions/build-mkdocs@main
+        uses: {{ github_username }}/CMIPLD/actions/build-mkdocs@main
         with:
           config_file: '.src/mkdocs/mkdocs.yml'
           build_dir: 'site'
           upload_artifact: 'false'
 
       - name: Deploy to production branch
-        uses: {{ github_username }}/CMIP-LD/actions/publish2pages@main
+        uses: {{ github_username }}/CMIPLD/actions/publish2pages@main
         with:
           {% raw %}api_key: ${{ secrets.API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
