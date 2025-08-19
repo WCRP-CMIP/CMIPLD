@@ -1,6 +1,28 @@
 (async function() {
     const url = location.href;
     console.warn('404', url);
+
+    // Redirect root repo page to /docs/
+    try {
+        // Check for root GitHub Pages site and redirect if needed
+        const { origin, pathname } = location;
+        // Match pattern: https://XXX.github.io/YYYY or https://XXX.github.io/YYYY/
+        const rootRepoPattern = /^\/[^/]+\/?$/;
+        // Remove leading/trailing slashes for clarity in the check
+        if (rootRepoPattern.test(pathname)) {
+            // Do not redirect if already at /docs/ or deeper
+            if (!pathname.startsWith('/docs')) {
+                // Ensure ending slash
+                const base = pathname.endsWith('/') ? pathname : pathname + '/';
+                window.location.replace(`${origin}${base}docs/`);
+                return; // Stop further execution
+            }
+        }
+    } catch (err) {
+        console.error("Error in redirect logic:", err);
+        // Continue to fallback logic
+    }
+
     try {
         // Process URL components
         const urlSegments = url.split('/').filter(Boolean);
