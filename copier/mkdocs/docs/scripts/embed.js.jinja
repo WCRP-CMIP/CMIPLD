@@ -192,8 +192,10 @@ function enhanceTables() {
  * Add controls to tables
  */
 function addTableControls(table) {
-    const wrapper = table.closest('.fullscreen-wrapper');
-    if (!wrapper) return;
+    // Check if controls already exist
+    if (table.previousElementSibling && table.previousElementSibling.classList.contains('table-controls')) {
+        return;
+    }
     
     // Create controls container
     const controls = document.createElement('div');
@@ -208,7 +210,7 @@ function addTableControls(table) {
     searchInput.addEventListener('input', () => filterTable(table, searchInput.value));
     
     controls.appendChild(searchInput);
-    wrapper.insertBefore(controls, table);
+    table.parentNode.insertBefore(controls, table);
 }
 
 /**
