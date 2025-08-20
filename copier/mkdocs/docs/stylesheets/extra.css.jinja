@@ -13,9 +13,10 @@
 
 /* Logo and branding */
 .md-header__button.md-logo img {
-  height: 1.4rem!important;
+  height: 1.6rem!important;
   padding: 1px;
   width: auto;
+  
 }
 
 /* Smart SVG logo color management that adapts to theme */
@@ -86,12 +87,15 @@
 }
 
 /* Apply dynamic filter to black SVGs that don't respond to currentColor */
+
+/*
 .md-header__button.md-logo svg[fill="#000000"],
 .md-header__button.md-logo svg[fill="black"],
 .md-header__button.md-logo svg:not([fill]),
 .md-header__button.md-logo img[src$=".svg"] {
   filter: var(--logo-filter);
 }
+*/
 
 /* Advanced: Detect if currentColor is working, if not apply filter */
 @supports (color: color-mix(in srgb, currentColor 50%, transparent)) {
@@ -437,13 +441,22 @@ table,
   z-index: 10000;
 }
 
-/* Table controls */
+/* Table controls - hidden by default, shown in embed mode */
 .table-controls {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: var(--md-default-bg-color);
-  border-radius: 0.25rem;
-  border: 1px solid var(--md-default-fg-color--lightest);
+margin-bottom: 1rem;
+padding: 0.5rem;
+background: var(--md-default-bg-color);
+border-radius: 0.25rem;
+border: 1px solid var(--md-default-fg-color--lightest);
+    display: none; /* Hidden by default */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Show table controls in embed mode */
+.embed-mode .table-controls {
+    display: block !important;
+    opacity: 1 !important;
 }
 
 .table-search {
