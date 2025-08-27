@@ -47,16 +47,7 @@ def clean_data_summary_title(filename):
     return name.replace('_', ' ').replace('-', ' ').title()
 
 def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
-<<<<<<< HEAD
-<<<<<<< HEAD
     """Parse custom links YAML file."""
-=======
-    """Parse custom links file (YAML or JSON format)."""
-    # Try YAML first
->>>>>>> 4d2dbd3 (readme)
-=======
-    """Parse custom links YAML file."""
->>>>>>> ea3b186 (readme)
     links_path = docs_dir / links_filename
     
     if not links_path.exists():
@@ -65,8 +56,6 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
     
     try:
         with open(links_path, 'r', encoding='utf-8') as f:
-<<<<<<< HEAD
-<<<<<<< HEAD
             data = yaml.safe_load(f)
         
         if not data:
@@ -74,33 +63,6 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
             return []
             
         links = data.get('links', [])
-=======
-            content = f.read().strip()
-            
-        if not content:
-            print(f"ℹ️  Links file {links_filename} is empty")
-            return []
-            
-        # Try to parse as YAML first
-        try:
-            data = yaml.safe_load(content)
-        except yaml.YAMLError:
-            # Fallback to JSON
-            import json
-            data = json.loads(content)
-        
-        # Handle both 'links' and 'external_links' keys for backward compatibility
-        links = data.get('links', data.get('external_links', []))
->>>>>>> 4d2dbd3 (readme)
-=======
-            data = yaml.safe_load(f)
-        
-        if not data:
-            print(f"ℹ️  Links file {links_filename} is empty")
-            return []
-            
-        links = data.get('links', [])
->>>>>>> ea3b186 (readme)
         
         if not isinstance(links, list):
             print(f"⚠️  Links data should be a list, got {type(links)}")
@@ -114,15 +76,7 @@ def parse_links_file(docs_dir, links_filename="{{ links_file }}"):
         return []
 
 def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_section_title }}"):
-<<<<<<< HEAD
-<<<<<<< HEAD
     """Add custom links to navigation with support for categories."""
-=======
-    """Add custom links to navigation with support for categories and hierarchical structure."""
->>>>>>> 4d2dbd3 (readme)
-=======
-    """Add custom links to navigation with support for categories."""
->>>>>>> ea3b186 (readme)
     if not custom_links:
         return nav_lines
     
@@ -132,20 +86,7 @@ def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_sec
     
     for link in custom_links:
         # Skip invalid entries
-<<<<<<< HEAD
-<<<<<<< HEAD
         if not isinstance(link, dict) or 'title' not in link or 'url' not in link:
-=======
-        if not isinstance(link, dict) or 'title' not in link:
-            continue
-            
-        # Handle both 'url' and 'link' for flexibility
-        url = link.get('url', link.get('link'))
-        if not url:
->>>>>>> 4d2dbd3 (readme)
-=======
-        if not isinstance(link, dict) or 'title' not in link or 'url' not in link:
->>>>>>> ea3b186 (readme)
             continue
             
         category = link.get('category')
@@ -314,66 +255,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
     # Build directory tree for proper nesting
     tree = build_directory_tree(docs_path)
     
-<<<<<<< HEAD
-<<<<<<< HEAD
     # Generate navigation
-=======
-    for md_file in docs_path.rglob("*.md"):
-=======
-    for md_file in docs_path.rglob("*.md*"):  # This will catch both .md and .md.jinja
->>>>>>> f0ff259 (stats fixed)
-        if any(part.startswith('.') for part in md_file.parts):
-            continue
-        if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
-            continue
-        
-        rel_path = md_file.relative_to(docs_path)
-        parts = list(rel_path.parts)
-        
-        # Skip src-data-docs and data-summaries (handled separately)
-        if parts and parts[0] in ['src-data-docs', 'data-summaries']:
-            continue
-            
-        if len(parts) == 1:
-            # Root level file
-            all_items.append({
-                'type': 'file',
-                'name': md_file.name,
-                'path': md_file,
-                'sort_key': get_sort_key(md_file.name)
-            })
-        else:
-            # File in subdirectory - add directory info
-            dir_name = parts[0]
-            all_items.append({
-                'type': 'directory',
-                'name': dir_name,
-                'sort_key': get_sort_key(dir_name)
-            })
-    
-    # Get unique directories for later processing
-    directories = {}
-    for md_file in docs_path.rglob("*.md*"):  # This will catch both .md and .md.jinja
-        if any(part.startswith('.') for part in md_file.parts):
-            continue
-        if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
-            continue
-        
-        rel_path = md_file.relative_to(docs_path)
-        parts = list(rel_path.parts)
-        
-        # Skip src-data-docs and data-summaries (handled separately)
-        if parts and parts[0] in ['src-data-docs', 'data-summaries']:
-            continue
-            
-        if len(parts) > 1:
-            dir_name = parts[0]
-            if dir_name not in directories:
-                directories[dir_name] = []
-            directories[dir_name].append(md_file)
-    
-    # Generate navigation with mixed ordering
->>>>>>> ea3b186 (readme)
     nav_lines = []
     
     # Always add Home first if index.md exists
@@ -399,26 +281,11 @@ def generate_final_navigation(docs_path, mkdocs_files):
             if dir_name in ['auxilary', 'auxiliary']:
                 continue
                 
-<<<<<<< HEAD
             dir_title = clean_title(dir_name)
             nav_lines.append(f'- {dir_title}:')
             
             # Recursively add nested content
             add_tree_to_nav(dir_tree, nav_lines, "  ")
-=======
-                dir_title = clean_title(dir_name)
-                nav_lines.append(f'- {dir_title}:')
-                
-                # Add files in this directory
-                if dir_name in directories:
-                    dir_files = sorted(directories[dir_name], key=lambda f: get_sort_key(f.name))
-                    for f in dir_files:
-                        rel_path = f.relative_to(docs_path)
-                        title = clean_title(f.name)
-                        nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
-                
-
->>>>>>> d5d9113 (stats template)
     
     # Add src-data documentation from virtual files
     if has_src_data and src_data_sections:
@@ -458,9 +325,6 @@ def generate_final_navigation(docs_path, mkdocs_files):
             title = clean_data_summary_title(data_file)
             nav_lines.append(f'  - [{title}](data-summaries/{data_file}_detailed.md)')
     
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
     # Always add auxilary/auxiliary section if it exists
     auxilary_dir_tree = tree.get('dirs', {}).get('auxilary')
     auxiliary_dir_tree = tree.get('dirs', {}).get('auxiliary')  # Alternative spelling
@@ -474,65 +338,13 @@ def generate_final_navigation(docs_path, mkdocs_files):
         # Process auxiliary directory (alternative spelling)
         elif auxiliary_dir_tree:
             add_tree_to_nav(auxiliary_dir_tree, nav_lines, "  ")
-=======
-    # Always add auxilary/auxiliary section if it exists and wasn't already processed
-    auxilary_dir = docs_path / 'auxilary'
-    auxiliary_dir = docs_path / 'auxiliary'  # Alternative spelling
-    
-    # Check if auxilary directory wasn't already processed in main loop
-    auxilary_already_processed = 'auxilary' in processed_dirs or 'auxiliary' in processed_dirs
-    
-    if not auxilary_already_processed:
-        auxilary_exists = auxilary_dir.exists() and (any(auxilary_dir.glob('*.md')) or any(auxilary_dir.glob('*.md.jinja')))
-        auxiliary_exists = auxiliary_dir.exists() and (any(auxiliary_dir.glob('*.md')) or any(auxiliary_dir.glob('*.md.jinja')))
-        
-        if auxilary_exists or auxiliary_exists:
-            nav_lines.append('- Additional Resources:')
-            
-            # Process auxilary directory (primary spelling)
-            if auxilary_exists:
-                auxilary_files = list(auxilary_dir.glob('*.md')) + list(auxilary_dir.glob('*.md.jinja'))
-                for md_file in sorted(auxilary_files, key=lambda f: get_sort_key(f.name)):
-                    if md_file.name.startswith('_'):
-                        continue
-                    rel_path = md_file.relative_to(docs_path)
-                    title = clean_title(md_file.name)
-                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
-            
-            # Process auxiliary directory (alternative spelling)
-            elif auxiliary_exists:
-                auxiliary_files = list(auxiliary_dir.glob('*.md')) + list(auxiliary_dir.glob('*.md.jinja'))
-                for md_file in sorted(auxiliary_files, key=lambda f: get_sort_key(f.name)):
-                    if md_file.name.startswith('_'):
-                        continue
-                    rel_path = md_file.relative_to(docs_path)
-                    title = clean_title(md_file.name)
-                    nav_lines.append(f'  - [{title}]({str(rel_path).replace(os.sep, "/")})')
->>>>>>> d5d9113 (stats template)
     
     # Add custom links from YAML links file
-=======
-    # Add custom links from links file
->>>>>>> 4d2dbd3 (readme)
-=======
-    # Add custom links from YAML links file
->>>>>>> ea3b186 (readme)
     {% if enable_custom_links %}
     custom_links = parse_links_file(docs_path, "{{ links_file }}")
     nav_lines = add_custom_links_to_nav(nav_lines, custom_links, "{{ links_section_title }}")
     {% endif %}
-<<<<<<< HEAD
-=======
     
-<<<<<<< HEAD
-    # Legacy support: Also check for external-links.json for backward compatibility
-    external_links = parse_external_links_json(docs_path)
-    if external_links:
-        nav_lines = add_external_links_json_to_nav(nav_lines, external_links)
->>>>>>> 4d2dbd3 (readme)
-    
-=======
->>>>>>> ea3b186 (readme)
     # Write SUMMARY.md
     summary_content = '\n'.join(nav_lines)
     summary_path = docs_path / 'SUMMARY.md'
@@ -547,60 +359,3 @@ def generate_final_navigation(docs_path, mkdocs_files):
         print(f"📋 Included {len(data_summaries_files)} data summary files")
     if has_stats_page:
         print(f"📋 Included repository statistics page")
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
-def get_sort_key(filename):
-    """Get sort key for ordering."""
-    # Extract base name without extension
-    name = filename.replace('.md', '').replace('_detailed', '')
-    
-    # Look for number at the start of the filename or after common prefixes
-    match = re.match(r'^(.+?)[-_]?(\d+)[-_.]', name)
-    if match:
-        prefix = match.group(1)
-        number = int(match.group(2))
-        return (number, prefix, filename)
-    
-    # Fallback to original logic for files without numbers
-    match = re.match(r'^(\d+)[-_.]', name)
-    if match:
-        return (int(match.group(1)), filename)
-    
-<<<<<<< HEAD
-    # Organize links by category
-    categories = {}
-    root_links = []
-    
-    for link in external_links:
-        category = link.get('category')
-        if category:
-            if category not in categories:
-                categories[category] = []
-            categories[category].append(link)
-        else:
-            root_links.append(link)
-    
-    # Add external links section (only if no custom links were added)
-    section_exists = any('External Links:' in line for line in nav_lines)
-    if not section_exists and (root_links or categories):
-        nav_lines.append('- External Links:')
-        
-        # Add root-level links first
-        for link in root_links:
-            nav_lines.append(f'  - [{link["title"]}]({link["url"]})')
-        
-        # Add categories as subsections
-        for category_name in sorted(categories.keys()):
-            nav_lines.append(f'  - {category_name}:')
-            for link in categories[category_name]:
-                nav_lines.append(f'    - [{link["title"]}]({link["url"]})')
-    
-    return nav_lines
->>>>>>> 4d2dbd3 (readme)
-=======
-    return (9999, filename)  # Put non-numbered files at the end
->>>>>>> ea3b186 (readme)
-=======
->>>>>>> efa725a (readme- linked)

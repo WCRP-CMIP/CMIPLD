@@ -3,22 +3,11 @@ _templates_suffix: .jinja
 
 # Skip overwriting existing files with wildcard patterns
 _skip_if_exists:
-  # - "*.yml"
-  # - "*.yaml"
   - "docs/*.md"
   - ".git*"
   - "README*"
-<<<<<<< HEAD
-<<<<<<< HEAD
   # Note: auxillary/* commented out so nav can find template files
   # - "docs/auxillary/*"
-=======
-  - "docs/auxillary/*"
->>>>>>> e43c076 (expand correction)
-=======
-  # Note: auxillary/* commented out so nav can find template files
-  # - "docs/auxillary/*"
->>>>>>> f0ff259 (stats fixed)
 
 # Exclude files/directories from being copied at all
 _exclude:
@@ -28,26 +17,12 @@ _exclude:
   - "backup/**"
   - "node_modules/**"
   - ".DS_Store"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8e88d9a (actions and docs)
-=======
->>>>>>> 4d2dbd3 (readme)
   - "auto-setup.py"
   - "copier.yml"
   - "cmds.py"
   - "*.pyc"
   - "__pycache__/**"
   - ".copier-answers.yml"
-<<<<<<< HEAD
-
-=======
-  - "./*.py"
->>>>>>> e43c076 (expand correction)
-=======
->>>>>>> 8e88d9a (actions and docs)
 
 # Template metadata
 _metadata:
@@ -149,20 +124,12 @@ links_section_title:
   default: "External Links"
   help: "Title for the links section in navigation"
   when: true
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> f3c46cf (docs)
 
 # Workflow Configuration
 enable_build_docs:
   type: bool
   default: true
-<<<<<<< HEAD
-  help: "Generate build-docs workflow using CMIPLD/actions/build-mkdocs"
-=======
   help: "Generate build-docs workflow using CMIP-LD/actions/build-docs"
->>>>>>> f3c46cf (docs)
   when: true
 
 enable_static_pages:
@@ -174,21 +141,13 @@ enable_static_pages:
 enable_jsonld_workflows:
   type: bool
   default: true
-<<<<<<< HEAD
-  help: "Generate JSON-LD processing workflows using CMIPLD actions"
-=======
   help: "Generate JSON-LD processing workflows using CMIP-LD actions"
->>>>>>> f3c46cf (docs)
   when: true
 
 enable_new_issue:
   type: bool
   default: true
-<<<<<<< HEAD
-  help: "Generate issue processing workflow using CMIPLD/actions/new-issue"
-=======
   help: "Generate issue processing workflow using CMIP-LD/actions/new-issue"
->>>>>>> f3c46cf (docs)
   when: true
 
 build_trigger_branch:
@@ -202,8 +161,3 @@ build_target_branch:
   default: "production"
   help: "Branch where built documentation is deployed"
   when: "{{ enable_build_docs }}"
-<<<<<<< HEAD
-=======
->>>>>>> 4d2dbd3 (readme)
-=======
->>>>>>> f3c46cf (docs)

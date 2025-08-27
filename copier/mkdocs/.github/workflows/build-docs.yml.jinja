@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 {% if enable_build_docs -%}
 name: Build Documentation
 
 on:
-<<<<<<< HEAD
   workflow_run:
     workflows: ["Update JSONLD"]
     types:
@@ -12,143 +9,28 @@ on:
     
   workflow_dispatch:
     inputs:
-=======
-=======
-{% if enable_build_docs -%}
->>>>>>> f3c46cf (docs)
-name: Build Documentation
-
-on:
-  push:
-    branches: [ {{ build_trigger_branch }} ]
-=======
-  {% comment %} push: {% endcomment %}
-    {% comment %} branches: [ {{ build_trigger_branch }} ]
->>>>>>> b74e4ae (docs)
-    paths:
-      - 'src-data/**'
-      - 'docs/**' {% endcomment %}
-  workflow_run:
-    workflows: ["Update JSONLD"]   
-      - completed
-    
-  workflow_dispatch:
-    inputs:
-<<<<<<< HEAD
-      source_branch:
-        description: 'Source branch to build from'
-        required: false
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - main
-          - published
->>>>>>> 7e63a8c (docs)
-=======
->>>>>>> f3c46cf (docs)
       force_deploy:
         description: 'Force deployment even if no changes detected'
         required: false
         default: false
         type: boolean
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 jobs:
   build-docs:
-<<<<<<< HEAD
-    {% raw %}if: ${{ github.event.workflow_run.conclusion == 'success' }}{% endraw %}
-=======
-      target_branch:
-        description: 'Target branch to deploy to'
-        required: false
-        default: 'gh-pages'
-
-=======
->>>>>>> f3c46cf (docs)
-jobs:
-  build-docs:
->>>>>>> 7e63a8c (docs)
-=======
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
->>>>>>> b74e4ae (docs)
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-<<<<<<< HEAD
-<<<<<<< HEAD
           fetch-depth: 0
-
-      - name: Build and Deploy MkDocs documentation
-        uses: {{ github_username }}/CMIPLD/actions/mkdocs@main
-        with:
-          {% raw %}source_branch: ${{ github.ref_name }}{% endraw %}
-          target_branch: {{ build_target_branch }}
-          config_file: '.src/mkdocs/mkdocs.yml'
-          docs_dir: 'docs'
-{% endif -%}
-=======
-          fetch-depth: 0  # Fetch full history for git worktree
-          ref: ${{ '{{ github.event.inputs.source_branch || \'production\' }}' }}
-
-      - name: Determine trigger and source
-        id: trigger
-        run: |
-          {% raw %}if [ "${{ github.event_name }}" == "push" ]; then
-            echo "trigger_type=push" >> $GITHUB_OUTPUT
-            echo "source_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "📦 Triggered by push to ${{ github.ref_name }} branch"
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "trigger_type=manual" >> $GITHUB_OUTPUT
-            echo "source_branch=${{ github.event.inputs.source_branch || 'production' }}" >> $GITHUB_OUTPUT
-            echo "🖱️ Manual trigger: building from ${{ github.event.inputs.source_branch || 'production' }}"
-          else
-            echo "trigger_type=unknown" >> $GITHUB_OUTPUT
-            echo "source_branch=production" >> $GITHUB_OUTPUT
-            echo "❓ Unknown trigger, defaulting to production branch"
-          fi{% endraw %}
-=======
-          fetch-depth: 0
->>>>>>> f3c46cf (docs)
 
       - name: Build and Deploy Documentation
-        uses: {{ github_username }}/CMIPLD/actions/build-docs@main
+        uses: {{ github_username }}/CMIP-LD/actions/build-docs@main
         with:
           source_branch: {{ build_trigger_branch }}
           target_branch: {{ build_target_branch }}
           config_file: '.src/mkdocs/mkdocs.yml'
           docs_dir: 'docs'
-          {% raw %}force_deploy: ${{ github.event.inputs.force_deploy || 'false' }}{% endraw %}
-<<<<<<< HEAD
-
-      - name: Post-build actions
-        if: success()
-        run: |
-          echo "## 🎯 Build Completed Successfully" >> $GITHUB_STEP_SUMMARY
-          echo "The documentation build has completed and been deployed." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Build Details" >> $GITHUB_STEP_SUMMARY
-          {% raw %}echo "- **Trigger**: ${{ steps.trigger.outputs.trigger_type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Source branch**: ${{ steps.trigger.outputs.source_branch }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target branch**: ${{ github.event.inputs.target_branch || 'gh-pages' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Force deploy**: ${{ github.event.inputs.force_deploy || 'false' }}" >> $GITHUB_STEP_SUMMARY{% endraw %}
-
-      - name: Handle build failure
-        if: failure()
-        run: |
-          echo "## ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
-          echo "The documentation build encountered an error." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 Troubleshooting Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Check the build logs above for specific error messages" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify that your MkDocs configuration is valid" >> $GITHUB_STEP_SUMMARY
-          echo "3. Ensure all required source files are present" >> $GITHUB_STEP_SUMMARY
-          echo "4. Check that the target branch permissions are correct" >> $GITHUB_STEP_SUMMARY
->>>>>>> 7e63a8c (docs)
-=======
+          force_deploy: false
 {% endif -%}
->>>>>>> f3c46cf (docs)
