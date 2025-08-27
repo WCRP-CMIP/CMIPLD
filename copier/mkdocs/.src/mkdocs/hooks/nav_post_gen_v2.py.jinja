@@ -6,6 +6,7 @@ This ensures navigation includes all generated content and custom links
 
 import os
 import re
+import sys
 import yaml
 from pathlib import Path
 
@@ -20,13 +21,13 @@ def on_files(files, config):
 
 def clean_title(filename):
     """Clean filename for display."""
-    name = filename.replace('.md', '').replace('.md.jinja', '')
+    name = filename.replace('.md', '').replace('.md.jinja', '').replace('.html', '')
     name = re.sub(r'^\d+[-_.](?=\w)', '', name)
     return name.replace('_', ' ').replace('-', ' ').title()
 
 def clean_data_summary_title(filename):
     """Clean data summary filename for display - remove repository name and detailed view text."""
-    name = filename.replace('.md', '')
+    name = filename.replace('.md', '').replace('.html', '')
     # Remove numeric prefixes
     name = re.sub(r'^\d+[-_.](?=\w)', '', name)
     
@@ -116,7 +117,7 @@ def add_custom_links_to_nav(nav_lines, custom_links, section_title="{{ links_sec
 def get_sort_key(filename):
     """Get sort key for ordering."""
     # Extract base name without extension
-    name = filename.replace('.md', '').replace('_detailed', '')
+    name = filename.replace('.md', '').replace('.html', '').replace('_detailed', '')
     
     # Look for number at the start of the filename or after common prefixes
     match = re.match(r'^(.+?)[-_]?(\d+)[-_.]', name)
@@ -133,55 +134,70 @@ def get_sort_key(filename):
     return (9999, filename)  # Put non-numbered files at the end
 
 def build_directory_tree(docs_path, exclude_dirs=None):
-    """Build a nested directory tree structure."""
+    """Build a nested directory tree structure including HTML and Markdown files."""
     if exclude_dirs is None:
         exclude_dirs = {'src-data-docs', 'data-summaries'}
     
     tree = {}
     
-    for md_file in docs_path.rglob("*.md*"):  # This will catch both .md and .md.jinja
-        if any(part.startswith('.') for part in md_file.parts):
-            continue
-        if md_file.name == "SUMMARY.md" or md_file.name.startswith("_"):
-            continue
-        
-        rel_path = md_file.relative_to(docs_path)
-        parts = list(rel_path.parts)
-        
-        # Skip excluded directories
-        if parts and parts[0] in exclude_dirs:
-            continue
-        
-        # Build tree structure
-        current = tree
-        for i, part in enumerate(parts):
-            if i == len(parts) - 1:
-                # This is the file
-                if 'files' not in current:
-                    current['files'] = []
-                current['files'].append({
-                    'name': part,
-                    'path': rel_path,
-                    'sort_key': get_sort_key(part)
-                })
-            else:
-                # This is a directory
-                if 'dirs' not in current:
-                    current['dirs'] = {}
-                if part not in current['dirs']:
-                    current['dirs'][part] = {}
-                current = current['dirs'][part]
+    # Search for both .md/.md.jinja and .html files
+    patterns = ["*.md", "*.md.jinja", "*.html"]
+    
+    for pattern in patterns:
+        for file_path in docs_path.rglob(pattern):
+            if any(part.startswith('.') for part in file_path.parts):
+                continue
+            if file_path.name == "SUMMARY.md" or file_path.name.startswith("_"):
+                continue
+            
+            rel_path = file_path.relative_to(docs_path)
+            parts = list(rel_path.parts)
+            
+            # Skip excluded directories
+            if parts and parts[0] in exclude_dirs:
+                continue
+            
+            # Build tree structure
+            current = tree
+            for i, part in enumerate(parts):
+                if i == len(parts) - 1:
+                    # This is the file
+                    if 'files' not in current:
+                        current['files'] = []
+                    
+                    # Check if file already exists (avoid duplicates)
+                    existing_files = [f['name'] for f in current['files']]
+                    if part not in existing_files:
+                        current['files'].append({
+                            'name': part,
+                            'path': rel_path,
+                            'sort_key': get_sort_key(part),
+                            'type': 'html' if part.endswith('.html') else 'markdown'
+                        })
+                else:
+                    # This is a directory
+                    if 'dirs' not in current:
+                        current['dirs'] = {}
+                    if part not in current['dirs']:
+                        current['dirs'][part] = {}
+                    current = current['dirs'][part]
     
     return tree
 
 def add_tree_to_nav(tree, nav_lines, indent="", base_path=""):
-    """Recursively add directory tree to navigation lines."""
+    """Recursively add directory tree to navigation lines, including HTML files."""
     # Add files first (sorted)
     if 'files' in tree:
         files = sorted(tree['files'], key=lambda x: x['sort_key'])
         for file_info in files:
             title = clean_title(file_info['name'])
             file_path = str(file_info['path']).replace(os.sep, "/")
+            
+            # Add visual indicator for HTML files
+            if file_info.get('type') == 'html':
+                title = f"🌐 {title}"
+                print(f"📄 Found HTML file: {file_path}", file=sys.stderr)
+            
             nav_lines.append(f'{indent}- [{title}]({file_path})')
     
     # Add directories (sorted)
@@ -196,7 +212,7 @@ def add_tree_to_nav(tree, nav_lines, indent="", base_path=""):
 
 def generate_final_navigation(docs_path, mkdocs_files):
     """Generate SUMMARY.md after ALL content is created."""
-    print(f"📂 Scanning for all content...")
+    print(f"📂 Scanning for all content including HTML files...")
     
     # First, detect src-data virtual files from gen-files
     src_data_sections = {}
@@ -252,8 +268,23 @@ def generate_final_navigation(docs_path, mkdocs_files):
     if has_stats_page:
         print(f"✅ Found stats page")
     
-    # Build directory tree for proper nesting
+    # Build directory tree for proper nesting (now includes HTML files)
     tree = build_directory_tree(docs_path)
+    
+    # Count HTML files found
+    html_count = 0
+    def count_html_files(subtree):
+        count = 0
+        if 'files' in subtree:
+            count += len([f for f in subtree['files'] if f.get('type') == 'html'])
+        if 'dirs' in subtree:
+            for dir_tree in subtree['dirs'].values():
+                count += count_html_files(dir_tree)
+        return count
+    
+    html_count = count_html_files(tree)
+    if html_count > 0:
+        print(f"🌐 Found {html_count} HTML files to include in navigation")
     
     # Generate navigation
     nav_lines = []
@@ -261,16 +292,25 @@ def generate_final_navigation(docs_path, mkdocs_files):
     # Always add Home first if index.md exists
     index_path = docs_path / 'index.md'
     index_jinja_path = docs_path / 'index.md.jinja'
+    index_html_path = docs_path / 'index.html'
+    
     if index_path.exists() or index_jinja_path.exists():
         nav_lines.append('- [Home](index.md)')
+    elif index_html_path.exists():
+        nav_lines.append('- [🌐 Home](index.html)')
     
-    # Process root files first (excluding index.md which we already handled)
+    # Process root files first (excluding index files which we already handled)
     if 'files' in tree:
-        root_files = [f for f in tree['files'] if f['name'] not in ['index.md', 'index.md.jinja']]
+        root_files = [f for f in tree['files'] if f['name'] not in ['index.md', 'index.md.jinja', 'index.html']]
         root_files = sorted(root_files, key=lambda x: x['sort_key'])
         for file_info in root_files:
             title = clean_title(file_info['name'])
             file_path = str(file_info['path']).replace(os.sep, "/")
+            
+            # Add visual indicator for HTML files
+            if file_info.get('type') == 'html':
+                title = f"🌐 {title}"
+            
             nav_lines.append(f'- [{title}]({file_path})')
     
     # Process directories with proper nesting
@@ -284,7 +324,7 @@ def generate_final_navigation(docs_path, mkdocs_files):
             dir_title = clean_title(dir_name)
             nav_lines.append(f'- {dir_title}:')
             
-            # Recursively add nested content
+            # Recursively add nested content (including HTML files)
             add_tree_to_nav(dir_tree, nav_lines, "  ")
     
     # Add src-data documentation from virtual files
@@ -353,6 +393,8 @@ def generate_final_navigation(docs_path, mkdocs_files):
         f.write(summary_content)
     
     print(f"✅ Generated {summary_path} with {len(nav_lines)} entries")
+    if html_count > 0:
+        print(f"🌐 Included {html_count} HTML files in navigation")
     if has_src_data:
         print(f"📋 Included {len(src_data_sections)} src-data sections")
     if has_data_summaries:
