@@ -19,5 +19,9 @@
   "cmip6plus": {
     "owner": "wcrp-cmip",
     "repo": "CMIP6Plus_CVs"
+  }, 
+  "emd": {
+    "owner": "wcrp-cmip",
+    "repo": "Essential-Model-Documentation"
   }
 }
