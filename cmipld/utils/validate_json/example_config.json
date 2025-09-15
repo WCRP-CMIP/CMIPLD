@@ -1,0 +1,43 @@
+{
+  "_comment": "Example configuration file for CMIP-LD JSON validation",
+  
+  "workers": 8,
+  "context": "./example_context.jsonld",
+  "add-coauthors": true,
+  "required-keys": [
+    "id",
+    "validation-key",
+    "ui-label", 
+    "description",
+    "@context",
+    "type",
+    "creator",
+    "created"
+  ],
+  
+  "validation": {
+    "strict_mode": false,
+    "allow_extra_properties": true,
+    "validate_iris": true,
+    "normalize_whitespace": true
+  },
+  
+  "git": {
+    "auto_commit": false,
+    "commit_message_template": "fix: validate and update {file}\n\n- Automated validation fixes\n- Context compliance updates", 
+    "use_last_author": false,
+    "include_coauthors": true
+  },
+  
+  "output": {
+    "verbose": false,
+    "quiet": false,
+    "progress_bar": true,
+    "colored_output": true
+  },
+  
+  "context_sources": {
+    "wcrp_base": "https://raw.githubusercontent.com/wcrp-cmip/WCRP-universe/main/contexts/base.jsonld",
+    "cmip_core": "https://raw.githubusercontent.com/wcrp-cmip/CMIP7-CVs/main/contexts/core.jsonld"
+  }
+}
