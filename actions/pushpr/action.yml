@@ -2,6 +2,10 @@ name: 'Push PR'
 description: 'Push after creating a PR'
 
 inputs:
+  branch:
+    description: 'Branch to create PR from (will be created if does not exist)'
+    required: false
+    default: 'main'
   message:
     description: 'Create a PR and merge'
     required: true
@@ -19,7 +23,7 @@ runs:
         token: ${{ inputs.token }}
         commit-message: ${{ inputs.message }}
         branch: "update-jsonld-automation"
-        base: "main"
+        base: "${ { inputs.branch } }"
         title: "Automated Update of JSONLD Files"
         body: "This pull request contains automated updates to JSONLD files."
         delete-branch: false
