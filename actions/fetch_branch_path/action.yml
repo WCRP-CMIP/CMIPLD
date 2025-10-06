@@ -1,4 +1,4 @@
-name: publish_to_pages
+name: fetch_branch_path
 on:
   workflow_call:
     inputs:
