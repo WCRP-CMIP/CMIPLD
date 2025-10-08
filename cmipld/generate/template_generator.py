@@ -232,7 +232,7 @@ def main():
     output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE"
 
     import os
-    print(os.listdir(template_dirs))
+    print(os.listdir(template_dir))
 
 
     if not template_dir.exists():
