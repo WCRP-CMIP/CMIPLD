@@ -231,6 +231,10 @@ def main():
     template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE"
     output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE"
 
+    import os
+    print(os.listdir(script_dir))
+
+
     if not template_dir.exists():
         print(f"Template directory not found: {template_dir}")
         return False
