@@ -210,10 +210,12 @@ def main():
     
     print("Per-File Template Generator")
     
-    script_dir = Path(__file__).parent
-    template_dir = args.template_dir or script_dir / "templates"
-    output_dir = args.output_dir or script_dir.parent / "ISSUE_TEMPLATE"
+    # script_dir = Path(__file__).parent
     
+    script_dir = Path.cwd()
+    template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE"
+    output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE"
+
     if not template_dir.exists():
         print(f"Template directory not found: {template_dir}")
         return False
