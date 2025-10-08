@@ -227,12 +227,12 @@ def main():
     
     # script_dir = Path(__file__).parent
     
-    script_dir = Path('./') #Path.cwd()
+    script_dir = Path.cwd()
     template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE"
     output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE"
 
-    # import os
-    # print(os.listdir(template_dir))
+    import os
+    print(os.listdir(template_dir))
 
 
     if not template_dir.exists():
