@@ -227,7 +227,7 @@ def main():
     
     # script_dir = Path(__file__).parent
     
-    script_dir = './' #Path.cwd()
+    script_dir = Path('./') #Path.cwd()
     template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE"
     output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE"
 
