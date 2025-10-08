@@ -11,6 +11,8 @@ import yaml
 import argparse
 from pathlib import Path
 
+failed = []
+
 def load_template_data(py_file):
     """Load configuration and data from Python file."""
     namespace = {}
@@ -61,14 +63,16 @@ def generate_field_yaml(field_def, data):
             yaml_lines.append(f"        {description}")
         return '\n'.join(yaml_lines)
     
-    # For multi-select fields, add multiple attribute and no id
+    # All fields get an id (including multi-select)
+    yaml_lines.append(f"    id: {field_id}")
+    
+    # For multi-select fields, add multiple attribute
     if field_type == 'multi-select':
         yaml_lines.append("    attributes:")
         yaml_lines.append("      multiple: true")
         yaml_lines.append(f"      label: {label}")
     else:
-        # Regular fields with id
-        yaml_lines.append(f"    id: {field_id}")
+        # Regular fields
         yaml_lines.append("    attributes:")
         yaml_lines.append(f"      label: {label}")
     
@@ -142,8 +146,17 @@ def generate_field_yaml(field_def, data):
 def generate_template_yaml(config, fields, data):
     """Generate complete YAML template."""
     
-    yaml_content = f"""name: {config['name']}
-description: {config['description']}
+    # Properly format the name and description - quote if contains special chars
+    name = config['name']
+    if ':' in name or '/' in name:
+        name = f'"{name}"'
+    
+    description = config['description']
+    if ':' in description:
+        description = f'"{description}"'
+    
+    yaml_content = f"""name: {name}
+description: {description}
 title: "{config['title']}"
 labels: {config['labels']}
 body:
@@ -160,7 +173,8 @@ def validate_yaml(content):
     try:
         parsed = yaml.safe_load(content)
         return isinstance(parsed, dict) and 'name' in parsed and 'body' in parsed
-    except:
+    except Exception as e:
+        print(f"    YAML Parse Error: {e}")
         return False
 
 def process_template_pair(template_name, csv_file, py_file, output_dir):
@@ -183,6 +197,7 @@ def process_template_pair(template_name, csv_file, py_file, output_dir):
         
         if not validate_yaml(yaml_content):
             print(f"    Invalid YAML generated")
+            failed.append(yaml_content)
             return False
         
         output_file = output_dir / f"{template_name}.yml"
@@ -242,7 +257,17 @@ def main():
                 success_count += 1
     
     print(f"Results: {success_count}/{len(csv_files)} successful")
+    
+    for i in range(len(failed)):
+        print(f"\nFailed YAML {i+1}:\n")
+        print(failed[i])
+    
+    
+    
     return success_count > 0
+
+
+
 
 if __name__ == '__main__':
     success = main()
