@@ -279,5 +279,5 @@ def main():
 
 if __name__ == '__main__':
     success = main()
-    if not success:
-        sys.exit(0)
+    
+    # sys.exit(0 if success else 1)
