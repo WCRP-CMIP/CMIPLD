@@ -254,7 +254,7 @@ def main():
     
     csv_files = list(template_dir.glob('*.csv'))
     
-    print(f"Found {len(csv_files)} CSV files in {template_dir}"s)
+    print(f"Found {len(csv_files)} CSV files in {template_dir}")
     
     if args.template:
         csv_files = [f for f in csv_files if f.stem == args.template]
