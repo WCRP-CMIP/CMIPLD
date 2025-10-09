@@ -231,8 +231,19 @@ def main():
     template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE" 
     output_dir = args.output_dir or script_dir / ".github" / "ISSUE_TEMPLATE" 
 
-    # import os
-    # print(os.popen(f'ls {template_dir}').readlines())
+    print(f"Template dir: {template_dir}")
+    print(f"Output dir: {output_dir}")
+    print(script_dir)
+
+
+
+
+    # The line `# import os` is a commented-out line in the code. It is not actually importing the
+    # `os` module in Python because it is preceded by a `#` symbol, which indicates a comment in
+    # Python. Comments are ignored by the Python interpreter and are used to provide explanations or
+    # notes within the code for developers to understand the code better.
+    import os 
+    print(os.popen(f'ls {script_dir.name}').readlines())
 
 
     if not template_dir.exists():
@@ -242,6 +253,9 @@ def main():
     output_dir.mkdir(exist_ok=True)
     
     csv_files = list(template_dir.glob('*.csv'))
+    
+    print(f"Found {len(csv_files)} CSV files in {template_dir}"s)
+    
     if args.template:
         csv_files = [f for f in csv_files if f.stem == args.template]
     
