@@ -125,7 +125,11 @@ def generate_field_yaml(field_def, data):
                     yaml_lines.append(f"        - \"{item}\"")
         
         elif options_type == 'hardcoded':
+            # Try _options suffix first, then fall back to field_id directly
             hardcoded_key = f"{field_id}_options"
+            if hardcoded_key not in data and field_id in data:
+                hardcoded_key = field_id
+            
             if hardcoded_key in data:
                 for option in data[hardcoded_key]:
                     yaml_lines.append(f"        - \"{option}\"")
