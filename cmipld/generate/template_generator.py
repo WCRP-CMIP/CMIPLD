@@ -236,25 +236,15 @@ def main():
     print(script_dir)
 
 
-
-
-    # The line `# import os` is a commented-out line in the code. It is not actually importing the
-    # `os` module in Python because it is preceded by a `#` symbol, which indicates a comment in
-    # Python. Comments are ignored by the Python interpreter and are used to provide explanations or
-    # notes within the code for developers to understand the code better.
-    import os 
-    print(os.popen(f'ls {script_dir.name}').readlines())
-
-
     if not template_dir.exists():
-        print(f"Template directory not found: {template_dir}")
+        import sys
+        sys.exit(f"Template directory not found: {template_dir}")
         return False
     
     output_dir.mkdir(exist_ok=True)
     
     csv_files = list(template_dir.glob('*.csv'))
     
-    print(f"Found {len(csv_files)} CSV files in {template_dir}")
     
     if args.template:
         csv_files = [f for f in csv_files if f.stem == args.template]
@@ -289,4 +279,4 @@ def main():
 
 if __name__ == '__main__':
     success = main()
-    sys.exit(0 if success else 1)
+    sys.exit(0 if not success else 1)
