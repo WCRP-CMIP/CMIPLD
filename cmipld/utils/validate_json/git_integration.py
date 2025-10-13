@@ -354,6 +354,16 @@ class GitCoauthorManager:
                 "status": "Git repository (info unavailable)",
                 "error": str(e)
             }
+            
+            
+    def get_last_commit_message(filepath):
+        """Get the commit message from the last commit that modified this file."""
+        result = subprocess.run(
+            ['git', 'log', '-n', '1', '--pretty=format:%B', '--', filepath],
+            capture_output=True,
+            text=True
+        )
+        return result.stdout.strip()
 
     def check_git_configuration(self) -> Dict[str, Any]:
         """
