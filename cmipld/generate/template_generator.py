@@ -124,19 +124,18 @@ def generate_field_yaml(field_def, data):
                 for item in source_data:
                     yaml_lines.append(f"        - \"{item}\"")
         
-        elif options_type == 'hardcoded':
-            # Try _options suffix first, then fall back to field_id directly
-            hardcoded_key = f"{field_id}_options"
-            if hardcoded_key not in data and field_id in data:
-                hardcoded_key = field_id
+        # elif options_type == 'hardcoded':
+        #     # Try _options suffix first, then fall back to field_id directly
+        #     hardcoded_key = f"{field_id}"
+        #     # _options"
+        #     if hardcoded_key not in data and field_id in data:
+        #         hardcoded_key = field_id
             
-            if hardcoded_key in data:
-                for option in data[hardcoded_key]:
-                    yaml_lines.append(f"        - \"{option}\"")
+        #     if hardcoded_key in data:
+        #         for option in data[hardcoded_key]:
+        #             yaml_lines.append(f"        - \"{option}\"")
         
-        elif options_type == 'tier_hardcoded':
-            for tier in ['0', '1', '2', '3']:
-                yaml_lines.append(f"        - \"{tier}\"")
+
     
     if default_value:
         yaml_lines.append(f"      default: {default_value}")
@@ -167,6 +166,11 @@ body:
 """
     
     for field_def in fields:
+        
+        # merge the config defaults into data if needed (e.g. issue category)
+        if field_def['field_id'] not in data and field_def['field_id'] in config: 
+            data[field_def['field_id']] = config[field_def['field_id']]
+            
         field_yaml = generate_field_yaml(field_def, data)
         yaml_content += field_yaml + "\n\n"
     
