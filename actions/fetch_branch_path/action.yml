@@ -10,15 +10,23 @@ on:
         description: 'path of the directory of file we want'
         required: true
         type: string
-runs:
+      remove:
+        description: 'whether to remove the path before fetching'
+        required: false
+        type: boolean
+        default: true
+
     using: 'composite'
     
 
     steps:
+      - name: remove path if required
+        if: ${{ inputs.remove == true }}
+        run: |
+          rm -rf ${{ inputs.path }}
+        shell: bash
           
       - name: Set up Git
         run: |
-          rm -rf ${{ inputs.path }} ;
           git restore --source ${{ inputs.branch_name }} --staged --worktree ${{ inputs.path }} ;
-
         shell: bash
