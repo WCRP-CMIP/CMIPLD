@@ -23,7 +23,7 @@ runs:
         token: ${{ inputs.token }}
         commit-message: ${{ inputs.message }}
         branch: "update-jsonld-automation"
-        base: "${ { inputs.branch } }"
+        base: ${{ inputs.branch }}
         title: "Automated Update of JSONLD Files"
         body: "This pull request contains automated updates to JSONLD files."
         delete-branch: false
@@ -35,9 +35,6 @@ runs:
         if [ "${{ steps.create-pr.outputs.pull-request-number }}" != "" ]; then
           PR_NUM=${{ steps.create-pr.outputs.pull-request-number }}
           echo "Created PR #$PR_NUM"
-          
-          # if gh pr merge $PR_NUM --merge --auto; then
-
 
           if gh pr merge $PR_NUM --merge --admin --delete-branch ; then
             echo "✅ PR merged successfully"
@@ -47,7 +44,7 @@ runs:
             exit 1
           fi
         fi
-        
+
         # Always cleanup branch
         gh api repos/:owner/:repo/git/refs/heads/update-jsonld-automation --method DELETE 2>/dev/null || true
       env:
