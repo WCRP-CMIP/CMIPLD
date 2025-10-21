@@ -18,12 +18,10 @@ jobs:
       - name: Find subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
-          # Find only top-level visible directories, excluding .
           directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
             | sed 's|^\./||' \
             | sort \
             | jq -R -s -c 'split("\n")[:-1]')
-          
           echo "directories=$directories" >> $GITHUB_OUTPUT
           echo "📂 Subdirectories to process: $directories" >> $GITHUB_STEP_SUMMARY
 
@@ -35,49 +33,57 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
- 
-
-      # - name: Set up GitHub CLI
-      #   uses: cli/cli-action@v2
-      #   with:
-      #     version: latest
+      - name: Download synced files artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: synced-files
+          path: .
 
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
-
           if ls *.json 1> /dev/null 2>&1 && ls *@context* 1> /dev/null 2>&1; then
-            # Get repo name to build base URL
             REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
             BASE_URL="https://$(echo $REPO | cut -d'/' -f1).github.io/$(echo $REPO | cut -d'/' -f2)"
-
             CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
-
-            # Remove old graph.json if it exists
             rm -f graph.json
-
-            # Initialize graph.json with base structure
             echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.json
-
-            # Process and append each JSON file
             for file in *.json; do
               [ "$file" = "graph.json" ] && continue
-
               content=$(jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
                         jq --arg f "$file" '{_source: $f, _content: .}')
-
               jq --argjson new "$content" '.data += [$new]' graph.json > tmp.json && mv tmp.json graph.json
             done
-
             echo "✅ Generated graph.json in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
           fi
-
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Upload modified files
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-files-${{ matrix.directory }}
+          path: ${{ matrix.directory }}
+      
+
+  combine-artifacts:
+    needs: process-directories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all synced-files artifacts
+        run: |
+          mkdir combined
+          # For each directory, download its artifact
+          for dir in ${{ join(fromJson(needs.find-directories.outputs.directories), ' ') }}; do
+            echo "Downloading artifact for $dir"
+            gh run download-artifact --name matrix-files-$dir --dir $dir || echo "No artifact for $dir"
+          done
+
+      # Optional: merge graph.json files from all directories into one big graph.json here
+
+      - name: Upload combined artifact
         uses: actions/upload-artifact@v4
         with:
           name: synced-files
