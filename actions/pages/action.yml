@@ -7,6 +7,12 @@ on:
   #   branches: 
   #     - "production"
 
+
+outputs:
+  page_url:
+    description: "The deployed GitHub Pages URL"
+    value: ${{ steps.deployment.outputs.page_url }}
+
 permissions:
   contents: read
   pages: write
@@ -18,9 +24,9 @@ concurrency:
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # environment:
+    #   name: github-pages
+    #   url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,3 +47,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Display Deployed URL in GitHub Summary
+        run: echo "### 🚀 Pages deployed at: [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
