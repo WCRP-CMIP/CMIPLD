@@ -43,19 +43,23 @@ jobs:
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
+
+          REPO="${GITHUB_REPOSITORY}"
+          BASE_URL="https://${REPO%%/*}.github.io/${REPO##*/}"
+          CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
+
           if ls *.json 1> /dev/null 2>&1 && ls *@context* 1> /dev/null 2>&1; then
-            REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-            BASE_URL="https://$(echo $REPO | cut -d'/' -f1).github.io/$(echo $REPO | cut -d'/' -f2)"
-            CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
-            rm -f graph.json
-            echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.json
+
+            rm -f graph.jsonld graph.min.jsonld
+
+            echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.jsonld
             for file in *.json; do
-              [ "$file" = "graph.json" ] && continue
+              [ "$file" = "graph.jsonld" ] && continue
               content=$(jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
                         jq --arg f "$file" '{_source: $f, _content: .}')
-              jq --argjson new "$content" '.data += [$new]' graph.json > tmp.json && mv tmp.json graph.json
+              jq --argjson new "$content" '.data += [$new]' graph.json > tmp.json && mv tmp.json graph.jsonld
             done
-            echo "✅ Generated graph.json in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Generated graph.jsonld in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
           fi
