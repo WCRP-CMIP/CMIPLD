@@ -1,8 +1,6 @@
 name: JSONLD Graph Builder Workflow
 
 on:
-  # pull_request:
-  #   branches: [ src-data ]
   workflow_dispatch:
 
 jobs:
@@ -11,7 +9,6 @@ jobs:
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      - uses: actions/checkout@v4
       
       - name: Find directories
         id: find-dirs
@@ -27,11 +24,12 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
-      # - uses: actions/checkout@v4
-      #   with:
-      #     ref: production
-      #     fetch-depth: 0
       
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update
+          sudo apt install -y gh
+
       - name: Process directory
         run: |
           cd "${{ matrix.directory }}"
@@ -57,4 +55,4 @@ jobs:
             done
           fi
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
