@@ -1,33 +1,35 @@
 name: fetch_branch_path
-on:
-  workflow_call:
-    inputs:
-      branch:
-        description: 'branch we want'
-        required: true
-        type: string
-      path:
-        description: 'path of the directory of file we want'
-        required: true
-        type: string
-      remove:
-        description: 'whether to remove the path before fetching'
-        required: false
-        type: boolean
-        default: true
+description: Fetch a path from a given branch and optionally remove the existing path first.
 
-    using: 'composite'
-    
+inputs:
+  branch:
+    description: "Branch we want"
+    required: true
+  path:
+    description: "Path of the directory or file we want"
+    required: true
+  remove:
+    description: "Whether to remove the path before fetching (true/false)"
+    required: false
+    default: "true"
 
-    steps:
-      - name: remove path if required
-        if: ${{ inputs.remove }} == 'true'
-        run: |
-          echo "Removing path: ${{ inputs.path }}"
-          rm -rf ${{ inputs.path }}
-        shell: bash
-          
-      - name: Set up Git
-        run: |
-          git restore --source ${{ inputs.branch }} --staged --worktree ${{ inputs.path }} ;
-        shell: bash
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure target branch is available
+      shell: bash
+      run: |
+        # Make sure the branch ref exists locally
+        git fetch --no-tags --prune --depth=0 origin "${{ inputs.branch }}"
+
+    - name: Remove path if required
+      if: ${{ inputs.remove == 'true' }}
+      shell: bash
+      run: |
+        echo "Removing path: ${{ inputs.path }}"
+        rm -rf -- "${{ inputs.path }}"
+
+    - name: Restore path from branch
+      shell: bash
+      run: |
+        git restore --source "origin/${{ inputs.branch }}" --staged --worktree -- "${{ inputs.path }}"
