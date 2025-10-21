@@ -10,8 +10,8 @@ jobs:
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      # - name: Checkout repository
-      #   uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Find subdirectories (excluding . and hidden dirs)
         id: find-dirs
@@ -33,11 +33,11 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
-      # - name: Checkout repository
-      #   uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # # - name: Set up GitHub CLI
-      # #   uses: cli/cli-action@v2
+      # - name: Set up GitHub CLI
+      #   uses: cli/cli-action@v2
       #   with:
       #     version: latest
 
