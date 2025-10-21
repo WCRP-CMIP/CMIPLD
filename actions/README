@@ -1,2 +1,15 @@
-workflows are standalone .yml file
-composite actions are in the folders. 
+workflows are standalone .yml file ad need to live in the workflows folders of the other repos 
+```
+jobs:
+  publish-pages:
+    uses: WCRP-CMIP/CMIPLD/.github/workflows/pages.yml@main
+    with:
+      branch: production
+      force: true
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+
+composite actions are in the folders located here 
+
