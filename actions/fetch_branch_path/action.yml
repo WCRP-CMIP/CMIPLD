@@ -17,6 +17,10 @@ runs:
   using: "composite"
   steps:
 
+    - name: Fetch branches
+      run: |
+        git fetch origin ${{ inputs.branch }} --depth=1
+      shell: bash
 
     - name: Remove path if required
       if: ${{ inputs.remove == 'true' }}
@@ -28,4 +32,4 @@ runs:
     - name: Restore path from branch
       shell: bash
       run: |
-        git restore --source "${{ inputs.branch }}" --staged --worktree -- "${{ inputs.path }}"
+        git restore --source "origin/${{ inputs.branch }}" --staged --worktree -- "${{ inputs.path }}"
