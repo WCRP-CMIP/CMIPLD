@@ -4,19 +4,26 @@ on:
   workflow_dispatch:
   workflow_call:
 
-
 jobs:
   find-directories:
     runs-on: ubuntu-latest
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      
-      - name: Find directories
+      # - name: Checkout repository
+      #   uses: actions/checkout@v3
+
+      - name: Find subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
-          directories=$(find . -type d -not -path '*/.*' -maxdepth 2 | sed 's|^\./||' | grep -v '^$' | sort | jq -R -s -c 'split("\n")[:-1]')
+          # Find only top-level visible directories, excluding .
+          directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
+            | sed 's|^\./||' \
+            | sort \
+            | jq -R -s -c 'split("\n")[:-1]')
+          
           echo "directories=$directories" >> $GITHUB_OUTPUT
+          echo "📂 Subdirectories to process: $directories" >> $GITHUB_STEP_SUMMARY
 
   process-directories:
     needs: find-directories
@@ -26,35 +33,44 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
-      
-      - name: Install GitHub CLI
-        run: |
-          sudo apt update
-          sudo apt install -y gh
+      # - name: Checkout repository
+      #   uses: actions/checkout@v3
 
-      - name: Process directory
+      # # - name: Set up GitHub CLI
+      # #   uses: cli/cli-action@v2
+      #   with:
+      #     version: latest
+
+      - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
-          
+
           if ls *.json 1> /dev/null 2>&1 && ls *@context* 1> /dev/null 2>&1; then
+            # Get repo name to build base URL
             REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
             BASE_URL="https://$(echo $REPO | cut -d'/' -f1).github.io/$(echo $REPO | cut -d'/' -f2)"
-            
-            if [ "${{ matrix.directory }}" = "." ]; then
-              CONTEXT_URL="$BASE_URL/@context"
-            else
-              CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
-            fi
-            
-            echo '{"@context":"'$CONTEXT_URL'","data":[]}' > graph.json
-            
+
+            CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
+
+            # Remove old graph.json if it exists
+            rm -f graph.json
+
+            # Initialize graph.json with base structure
+            echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.json
+
+            # Process and append each JSON file
             for file in *.json; do
               [ "$file" = "graph.json" ] && continue
-              jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
-                jq -s --arg f "$file" '{"_source":$f,"_content":.[0]}' | \
-                jq -s '.[0] as $new | (.[1] // {"@context":"'$CONTEXT_URL'","data":[]}) | .data += [$new]' - graph.json > tmp.json
-              mv tmp.json graph.json
+
+              content=$(jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
+                        jq --arg f "$file" '{_source: $f, _content: .}')
+
+              jq --argjson new "$content" '.data += [$new]' graph.json > tmp.json && mv tmp.json graph.json
             done
+
+            echo "✅ Generated graph.json in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
