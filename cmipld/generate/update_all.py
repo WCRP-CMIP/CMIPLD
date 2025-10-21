@@ -8,6 +8,10 @@ import tqdm
 def main():
     """Main function for update_all command"""
     
+    
+    branch = os.popen('git rev-parse --abbrev-ref HEAD 2>/dev/null').read().strip()
+    assert branch == 'src-data', f"Please switch to 'src-data' branch from '{branch}' before running update_all."
+    
     # Update contexts - this will call the Python function directly
     print("Updating contexts...")
     try:
@@ -17,10 +21,13 @@ def main():
         # Fallback to os.system for backward compatibility
         os.system('update_ctx')
     
-    # os.system('update_schema')
-    # os.system('update_issues')
     
     # Validate JSON-LD files - use shell wrapper
+    
+    # changed since last commit. 
+    # git diff HEAD~1 --name-only | grep -E '\.(json|jsonld)$'
+    
+    
     print("Validating JSON-LD files...")
     try:
         from ..utils.shell_wrappers import run_shell_script
@@ -31,7 +38,7 @@ def main():
     
     # Generate graphs for all src-data directories
     print("Generating graphs...")
-    for i in tqdm.tqdm(glob.glob('src-data/*/')):
+    for i in tqdm.tqdm(glob.glob('./*/')):
         try:
             from ..utils.shell_wrappers import run_shell_script
             run_shell_script('ld2graph', [i])
