@@ -10,8 +10,7 @@ import os
 from ..locations import reverse_mapping
 reverse = reverse_mapping
 
-repo = os.popen("git remote get-url origin").read().replace('.git',
-                                                            '').strip('\n').split('/')[-2:]
+repo = os.popen("git remote get-url origin").read().replace('.git','').strip('\n').split('/')[-2:]
 base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
 # sort by length of key
 mapping = dict(sorted(mapping.items(), key=lambda item: len(item[0])))
@@ -30,7 +29,7 @@ def main():
     # note, an easier, but messier way can achieved by speifying two contexts in the file.
     # @context: [context1, context2]
 
-    ctxs = glob.glob('src-data/*/*_context_')
+    ctxs = glob.glob('*/*@context')
     print('Updating contexts: to match latest repository prefixes')
     for cx in tqdm.tqdm(ctxs):
         # print(cx)
@@ -81,7 +80,7 @@ def main():
             continue
 
     # lets write the root repo
-    with open('./src-data/_context_', 'w') as f:
+    with open('./@context', 'w') as f:
         data = {"@context": mapping}
 
         data['@context']['@base'] = base
