@@ -35,6 +35,9 @@ def main():
     except ImportError:
         # Fallback to os.system for backward compatibility
         os.system('validjsonld')
+        
+        
+        
     
     # Generate graphs for all src-data directories
     print("Generating graphs...")
