@@ -16,11 +16,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Ensure target branch is available
-      shell: bash
-      run: |
-        # Make sure the branch ref exists locally
-        git fetch --no-tags --prune --depth=0 origin "${{ inputs.branch }}"
+
 
     - name: Remove path if required
       if: ${{ inputs.remove == 'true' }}
