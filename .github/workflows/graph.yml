@@ -1,0 +1,57 @@
+name: JSONLD Graph Builder Workflow
+
+on:
+  # pull_request:
+  #   branches: [ src-data ]
+  workflow_dispatch:
+
+jobs:
+  find-directories:
+    runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.find-dirs.outputs.directories }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Find directories
+        id: find-dirs
+        run: |
+          directories=$(find . -type d -not -path '*/.*' -maxdepth 2 | sed 's|^\./||' | grep -v '^$' | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "directories=$directories" >> $GITHUB_OUTPUT
+
+  process-directories:
+    needs: find-directories
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Process directory
+        run: |
+          cd "${{ matrix.directory }}"
+          
+          if ls *.json 1> /dev/null 2>&1 && ls *@context* 1> /dev/null 2>&1; then
+            REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+            BASE_URL="https://$(echo $REPO | cut -d'/' -f1).github.io/$(echo $REPO | cut -d'/' -f2)"
+            
+            if [ "${{ matrix.directory }}" = "." ]; then
+              CONTEXT_URL="$BASE_URL/@context"
+            else
+              CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
+            fi
+            
+            echo '{"@context":"'$CONTEXT_URL'","data":[]}' > graph.json
+            
+            for file in *.json; do
+              [ "$file" = "graph.json" ] && continue
+              jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
+                jq -s --arg f "$file" '{"_source":$f,"_content":.[0]}' | \
+                jq -s '.[0] as $new | (.[1] // {"@context":"'$CONTEXT_URL'","data":[]}) | .data += [$new]' - graph.json > tmp.json
+              mv tmp.json graph.json
+            done
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
