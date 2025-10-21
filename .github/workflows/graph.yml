@@ -27,10 +27,10 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: production
-          fetch-depth: 0
+      # - uses: actions/checkout@v4
+      #   with:
+      #     ref: production
+      #     fetch-depth: 0
       
       - name: Process directory
         run: |
