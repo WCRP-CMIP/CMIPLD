@@ -10,8 +10,10 @@ jobs:
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download synced files
+        uses: actions/download-artifact@v4
+        with:
+          name: synced-files
 
       - name: Find subdirectories (excluding . and hidden dirs)
         id: find-dirs
@@ -33,8 +35,7 @@ jobs:
         directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
       fail-fast: false
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+ 
 
       # - name: Set up GitHub CLI
       #   uses: cli/cli-action@v2
@@ -72,5 +73,12 @@ jobs:
           else
             echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
           fi
+
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload modified files
+        uses: actions/upload-artifact@v4
+        with:
+          name: synced-files
+          path: .
