@@ -1,4 +1,4 @@
-name: Deploy static content to Pages
+name: Deploy Static Content to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -6,12 +6,6 @@ on:
   # push:
   #   branches: 
   #     - "production"
-
-
-outputs:
-  page_url:
-    description: "The deployed GitHub Pages URL"
-    value: ${{ steps.deployment.outputs.page_url }}
 
 permissions:
   contents: read
@@ -24,21 +18,25 @@ concurrency:
 
 jobs:
   deploy:
+    # Uncomment and configure this if using GitHub environments
     # environment:
     #   name: github-pages
     #   url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - name: Checkout
+      - name: Checkout production branch
         uses: actions/checkout@v4
         with:
           ref: production
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-
-      - name: Upload artifact
+      - name: Upload site content
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
@@ -48,5 +46,5 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Display Deployed URL in GitHub Summary
+      - name: Display deployed URL in summary
         run: echo "### 🚀 Pages deployed at [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
