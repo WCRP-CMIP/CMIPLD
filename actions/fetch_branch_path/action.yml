@@ -28,5 +28,5 @@ on:
           
       - name: Set up Git
         run: |
-          git restore --source ${{ inputs.branch_name }} --staged --worktree ${{ inputs.path }} ;
+          git restore --source ${{ inputs.branch }} --staged --worktree ${{ inputs.path }} ;
         shell: bash
