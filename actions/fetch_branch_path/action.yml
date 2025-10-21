@@ -21,7 +21,7 @@ on:
 
     steps:
       - name: remove path if required
-        if: ${{ inputs.remove == 'true' }}
+        if: ${{ inputs.remove }} == 'true'
         run: |
           echo "Removing path: ${{ inputs.path }}"
           rm -rf ${{ inputs.path }}
