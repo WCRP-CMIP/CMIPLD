@@ -2,6 +2,19 @@ name: Deploy Static Content to GitHub Pages
 
 on:
   workflow_call:
+    inputs:
+      branch:
+        required: false
+        type: string
+        default: production
+      force:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      token:
+        required: true
+
     outputs:
       page_url:
         description: "The deployed GitHub Pages URL"
@@ -27,7 +40,7 @@ jobs:
       - name: Checkout production branch
         uses: actions/checkout@v4
         with:
-          ref: production
+          ref: ${{ inputs.branch }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -41,6 +54,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          force: ${{ inputs.force }}
 
       - name: Display deployed URL in summary
         run: echo "### 🚀 Pages deployed at [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
