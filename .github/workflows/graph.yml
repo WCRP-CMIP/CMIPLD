@@ -79,12 +79,14 @@ jobs:
     steps:
       - name: Download all synced-files artifacts
         run: |
-          mkdir combined
           # For each directory, download its artifact
-          for dir in ${{ join(fromJson(needs.find-directories.outputs.directories), ' ') }}; do
+          for dir in $DIRS; do
+
             echo "Downloading artifact for $dir"
             gh run download-artifact --name matrix-files-$dir --dir $dir || echo "No artifact for $dir"
           done
+        env:
+          DIRS: ${{ join(fromJson(needs.find-directories.outputs.directories), ' ') }}
 
       # Optional: merge graph.json files from all directories into one big graph.json here
 
