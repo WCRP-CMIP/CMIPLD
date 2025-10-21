@@ -10,7 +10,7 @@ def main():
     
     
     branch = os.popen('git rev-parse --abbrev-ref HEAD 2>/dev/null').read().strip()
-    assert branch == 'src-data', f"Please switch to 'src-data' branch from '{branch}' before running update_all."
+    assert branch in ['src-data','production'], f"Please switch to 'src-data' or 'production' branch from '{branch}' before running update_all."
     
     # Update contexts - this will call the Python function directly
     print("Updating contexts...")
