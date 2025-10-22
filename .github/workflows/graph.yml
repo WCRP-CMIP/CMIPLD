@@ -52,19 +52,27 @@ jobs:
 
             rm -f graph.jsonld graph.min.jsonld
 
+            # Initialize graph.jsonld
             echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.jsonld
+
             for file in *.json; do
+              # Skip the generated graph file
               [ "$file" = "graph.jsonld" ] && continue
+
+              # Inject @context and wrap content
               content=$(jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
                         jq --arg f "$file" '{_source: $f, _content: .}')
-              jq --argjson new "$content" '.data += [$new]' graph.json > tmp.json && mv tmp.json graph.jsonld
+
+              # Append to graph.jsonld
+              tmp=$(mktemp)
+              jq --argjson new "$content" '.data += [$new]' graph.jsonld > "$tmp" && mv "$tmp" graph.jsonld
             done
+
             echo "✅ Generated graph.jsonld in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
           fi
-        # env:
-        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Upload modified files
         uses: actions/upload-artifact@v4
