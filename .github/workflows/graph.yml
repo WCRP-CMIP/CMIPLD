@@ -18,6 +18,8 @@ jobs:
         with:
           name: synced-files
 
+
+      # TO ADD IF CHANGED, ELSE try all
       - name: Find subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
@@ -46,6 +48,8 @@ jobs:
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
+
+          git diff --name-only HEAD~2 HEAD | grep -q "^$PWD/"
 
           REPO="${GITHUB_REPOSITORY}"
           BASE_URL="https://${REPO%%/*}.github.io/${REPO##*/}"
