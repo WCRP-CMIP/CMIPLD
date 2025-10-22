@@ -27,7 +27,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] || [[ $# -eq 0 ]]; then
     echo "  and merges all JSON objects into a single @graph array."
     echo ""
     echo "Arguments:"
-    echo "  directory    Directory containing JSON-LD files and _context_ file"
+    echo "  directory    Directory containing JSON-LD files and @context_ file"
     echo ""
     echo "Examples:"
     echo "  ld2graph src-data/experiment/"
@@ -35,7 +35,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] || [[ $# -eq 0 ]]; then
     echo ""
     echo "Requirements:"
     echo "  - jq command-line JSON processor"
-    echo "  - Directory must contain a _context_ file"
+    echo "  - Directory must contain a @context_ file"
     echo "  - Directory should contain .json files to process"
     exit 0
 fi
@@ -51,7 +51,7 @@ fi
 
 # Initialize the JSON-LD structure
 output_file="$DIR/graph.jsonld"
-context_file="$DIR/_context_"
+context_file="$DIR/@context"
 
 # Read main context
 if [[ ! -f "$context_file" ]]; then
@@ -161,8 +161,8 @@ for file in "$DIR"/*.json; do
     [[ ! -f "$file" ]] && continue
     
     # Skip the context file (which might have .json extension in some cases)
-    [[ "$(basename "$file")" == "_context_" ]] && continue
-    [[ "$(basename "$file")" == "_context_.json" ]] && continue
+    [[ "$(basename "$file")" == "@context" ]] && continue
+    [[ "$(basename "$file")" == "@context.json" ]] && continue
     
     echo "Processing: $file" >&2
     
