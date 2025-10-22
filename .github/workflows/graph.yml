@@ -3,6 +3,9 @@ name: JSONLD Graph Builder Workflow
 on:
   workflow_dispatch:
   workflow_call:
+permissions:
+  actions: write
+  contents: read
 
 jobs:
   find-directories:
@@ -91,6 +94,22 @@ jobs:
           path: .
 
       # Optional: merge graph.jsonld files here
+
+
+      - name: Delete existing artifact (if any)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          artifact_name="synced-files"
+          run_id="${{ github.run_id }}"
+          # get artifact id for this run (returns empty or "null" if none)
+          artifact_id=$(gh api repos/${{ github.repository }}/actions/runs/${run_id}/artifacts --jq ".artifacts[] | select(.name==\"${artifact_name}\") | .id")
+          if [ -n "$artifact_id" ] && [ "$artifact_id" != "null" ]; then
+            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id
+            echo "Deleted artifact ${artifact_name} (${artifact_id})"
+          else
+            echo "No existing artifact named ${artifact_name} found for run ${run_id}"
+          fi
 
       - name: Upload combined artifact
         uses: actions/upload-artifact@v4
