@@ -88,7 +88,8 @@ jobs:
           cd "${{ matrix.directory }}"
 
 
-          bash <(curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph)
+          # bash <(curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph)../${{ matrix.directory }}
+          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s ../${{ matrix.directory }}
 
 
       - name: Install jsonld CLI
