@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       updated:
-        description: 'Only process updated directories?'
+        description: "Only process updated directories?"
         required: true
         default: false
         type: boolean
   workflow_call:
     inputs:
       updated:
-        description: 'Only process updated directories?'
+        description: "Only process updated directories?"
         required: true
         default: false
         type: boolean
@@ -35,7 +35,7 @@ jobs:
           dir_names: true
           json: true
           dir_names_exclude_current_dir: true
-      - run: echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+      - run: echo '📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}' >> "$GITHUB_STEP_SUMMARY"
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
@@ -51,8 +51,8 @@ jobs:
             | sed 's|^\./||' \
             | sort \
             | jq -R -s -c 'split("\n")[:-1]')
-          echo "directories=$directories" >> $GITHUB_OUTPUT
-          echo "📂 Subdirectories to process: $directories" >> $GITHUB_STEP_SUMMARY
+          echo "directories=$directories" >> "$GITHUB_OUTPUT"
+          echo '📂 Subdirectories to process:' "$directories" >> "$GITHUB_STEP_SUMMARY"
 
   # 🔧 Combine outputs dynamically
   set-directories:
@@ -64,9 +64,9 @@ jobs:
       - id: set
         run: |
           if [ "${{ inputs.updated }}" = "true" ]; then
-            echo "directories='${{ needs.find-updated-directories.outputs.directories }}'" >> $GITHUB_OUTPUT
+            echo "directories=${{ needs.find-updated-directories.outputs.directories }}" >> "$GITHUB_OUTPUT"
           else
-            echo "directories='${{ needs.find-all-directories.outputs.directories }}'" >> $GITHUB_OUTPUT
+            echo "directories=${{ needs.find-all-directories.outputs.directories }}" >> "$GITHUB_OUTPUT"
           fi
 
   process-directories:
@@ -84,12 +84,12 @@ jobs:
 
       - name: Set GitHub Pages URL
         run: |
-          echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_ENV
+          echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
 
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
-          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s ../${{ matrix.directory }}
+          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}"
 
       - name: Install jsonld CLI
         run: npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
