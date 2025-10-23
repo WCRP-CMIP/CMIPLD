@@ -354,7 +354,7 @@ def main():
     
     script_dir = Path.cwd()
     template_dir = args.template_dir or script_dir / ".github" / "GEN_ISSUE_TEMPLATE"
-    output_dir = args.output_dir or script_dir / "docs" / "template_guides_docx"
+    output_dir = args.output_dir or script_dir / ".github" / "template_guides_docx"
     
     print(f"Template dir: {template_dir}")
     print(f"Output dir: {output_dir}")
