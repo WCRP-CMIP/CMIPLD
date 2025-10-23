@@ -26,20 +26,28 @@ jobs:
     if: ${{ inputs.updated == true }}
     runs-on: ubuntu-latest
     outputs:
-      directories: ${{ steps.changed-files.outputs.all_changed_files }}
+      directories: ${{ steps.set-dirs.outputs.directories }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: production
-      - uses: tj-actions/changed-files@v40
-        id: changed-files
-        with:
-          dir_names: true
-          json: true
-          dir_names_exclude_current_dir: true
-      - run: |
-          echo '📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}' >> $GITHUB_STEP_SUMMARY
+
+      - id: set-dirs
+        run: |
+          # Get list of changed files between HEAD and production branch
+          changed_files=$(git diff --name-only origin/production HEAD || echo "")
+
+          # Extract directories from changed files
+          directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+
+          # If nothing changed, output empty JSON array
+          if [ -z "$directories" ]; then
+            directories='[]'
+          fi
+
+          echo "directories=$directories" >> $GITHUB_OUTPUT
+          echo "📂 Updated directories: $directories" >> $GITHUB_STEP_SUMMARY
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
@@ -51,6 +59,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: production
+
       - name: Find all subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
@@ -59,9 +68,8 @@ jobs:
             | sort \
             | jq -R -s -c 'split("\n")[:-1]')
           echo "directories=$directories" >> "$GITHUB_OUTPUT"
-          echo '📂 Subdirectories to process:' "$directories" >> "$GITHUB_STEP_SUMMARY"
+          echo "📂 Subdirectories to process: $directories" >> "$GITHUB_STEP_SUMMARY"
 
-  #  Combine outputs dynamically
   set-directories:
     runs-on: ubuntu-latest
     needs:
@@ -79,7 +87,7 @@ jobs:
             dirs='${{ needs.find-all-directories.outputs.directories }}'
           fi
 
-          # Fallback if nothing found
+          # fallback if no directories found
           if [ "$dirs" = "" ] || [ "$dirs" = "[]" ]; then
             dirs='["."]'
           fi
