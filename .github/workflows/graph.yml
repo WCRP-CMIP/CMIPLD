@@ -94,6 +94,7 @@ jobs:
 
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
           echo "📦 Directories selected for processing: $dirs" >> "$GITHUB_STEP_SUMMARY"
+        continue-on-error: true
 
   process-directories:
     needs: set-directories
