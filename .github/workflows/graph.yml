@@ -106,7 +106,7 @@ jobs:
         with:
           commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
           branch: production
-          file_pattern: "${{ matrix.directory }}/graph.jsonld"
+          file_pattern: "${{ matrix.directory }}/graph*"
           author_name: "cmip-ipo"
           author_email: "actions@wcrp-cmip.org"
           commit_user_name: "cmip-ipo"
