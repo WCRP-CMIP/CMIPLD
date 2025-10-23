@@ -2,14 +2,11 @@ name: JSONLD Graph Builder Workflow
 
 on:
   workflow_dispatch:
-        inputs:
+    inputs:
       updated:
         description: 'Only process updated directories?'
         required: true
-        default: 'false'
-        options:
-          - 'true'
-          - 'false'
+        default: false
         type: boolean
   workflow_call:
     inputs:
