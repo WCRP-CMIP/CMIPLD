@@ -29,6 +29,9 @@ jobs:
       directories: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
       - uses: tj-actions/changed-files@v40
         id: changed-files
         with:
@@ -45,6 +48,9 @@ jobs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
       - name: Find all subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
