@@ -50,13 +50,13 @@ template_update = "cmipld.generate.template_generator:main" # Generate GitHub is
 packages = ["cmipld"]
 include-package-data = true
 script-files = [
-    "bin/ld2graph",
-    "bin/validjsonld",
-    "bin/dev",
-    "bin/rmbak",
-    "bin/rmgraph",
-    "bin/coauthor_file",
-    "bin/cmipld-help"
+    "static/bin/ld2graph",
+    "static/bin/validjsonld",
+    "static/bin/dev",
+    "static/bin/rmbak",
+    "static/bin/rmgraph",
+    "static/bin/coauthor_file",
+    "static/bin/cmipld-help"
 ]
 
 [tool.setuptools.package-data]
