@@ -61,10 +61,12 @@ jobs:
           echo "directories=$directories" >> "$GITHUB_OUTPUT"
           echo '📂 Subdirectories to process:' "$directories" >> "$GITHUB_STEP_SUMMARY"
 
-  # 🔧 Combine outputs dynamically
+  #  Combine outputs dynamically
   set-directories:
     runs-on: ubuntu-latest
-    needs: [find-updated-directories, find-all-directories]
+    needs:
+      - find-updated-directories
+      - find-all-directories
     if: ${{ always() && (needs.find-updated-directories.result == 'success' || needs.find-all-directories.result == 'success') }}
     outputs:
       directories: ${{ steps.set.outputs.directories }}
@@ -72,10 +74,18 @@ jobs:
       - id: set
         run: |
           if [ "${{ inputs.updated }}" = "true" ]; then
-            echo "directories=${{ needs.find-updated-directories.outputs.directories }}" >> "$GITHUB_OUTPUT"
+            dirs='${{ needs.find-updated-directories.outputs.directories }}'
           else
-            echo "directories=${{ needs.find-all-directories.outputs.directories }}" >> "$GITHUB_OUTPUT"
+            dirs='${{ needs.find-all-directories.outputs.directories }}'
           fi
+
+          # Fallback if nothing found
+          if [ "$dirs" = "" ] || [ "$dirs" = "[]" ]; then
+            dirs='["."]'
+          fi
+
+          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
+          echo "📦 Directories selected for processing: $dirs" >> "$GITHUB_STEP_SUMMARY"
 
   process-directories:
     needs: set-directories
