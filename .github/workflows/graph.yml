@@ -16,7 +16,6 @@ on:
         default: false
         type: boolean
 
-
 permissions:
   actions: write
   contents: read
@@ -24,8 +23,8 @@ permissions:
 jobs:
 
   find-updated-directories:
-    runs-on: ubuntu-latest
     if: ${{ inputs.updated == true }}
+    runs-on: ubuntu-latest
     outputs:
       directories: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
@@ -36,16 +35,15 @@ jobs:
           dir_names: true
           json: true
           dir_names_exclude_current_dir: true
-      - run: |
-          echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+      - run: echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
 
   find-all-directories:
+    if: ${{ inputs.updated == false }}
     runs-on: ubuntu-latest
-    if : ${{ inputs.updated == false }}
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      # TO ADD IF CHANGED, ELSE try all
+      - uses: actions/checkout@v4
       - name: Find all subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
@@ -56,58 +54,54 @@ jobs:
           echo "directories=$directories" >> $GITHUB_OUTPUT
           echo "📂 Subdirectories to process: $directories" >> $GITHUB_STEP_SUMMARY
 
+  # 🔧 Combine outputs dynamically
+  set-directories:
+    runs-on: ubuntu-latest
+    needs: [find-updated-directories, find-all-directories]
+    outputs:
+      directories: ${{ steps.set.outputs.directories }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ inputs.updated }}" = "true" ]; then
+            echo "directories='${{ needs.find-updated-directories.outputs.directories }}'" >> $GITHUB_OUTPUT
+          else
+            echo "directories='${{ needs.find-all-directories.outputs.directories }}'" >> $GITHUB_OUTPUT
+          fi
 
   process-directories:
-    needs: find-directories
+    needs: set-directories
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.find-directories.outputs.directories) }}
+        directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
       fail-fast: false
     steps:
-
-
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: production
 
       - name: Set GitHub Pages URL
-        id: set-url
         run: |
-          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          echo "PAGES_URL=$PAGES_URL" >> $GITHUB_ENV
-        shell: bash
+          echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_ENV
 
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
-
-
-          # bash <(curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph)../${{ matrix.directory }}
           curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s ../${{ matrix.directory }}
 
-
       - name: Install jsonld CLI
-        run: |
-          npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
-        shell: bash
+        run: npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
 
       - name: Validate JSON-LD from URL
-        run: |
-          jsonld lint "$PAGES_URL/graph.jsonld" || exit 1
-        shell: bash
+        run: jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld"
 
-      - name: Commit and Push Changes
-        uses: stefanzweifel/git-auto-commit-action@v4
+      - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
           branch: production
           file_pattern: "${{ matrix.directory }}/graph*"
           author_name: "cmip-ipo"
           author_email: "actions@wcrp-cmip.org"
-          commit_user_name: "cmip-ipo"
-          commit_user_email: "actions@wcrp-cmip.org"
           push_options: "--force"
-
