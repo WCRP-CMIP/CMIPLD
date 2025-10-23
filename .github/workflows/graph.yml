@@ -2,25 +2,54 @@ name: JSONLD Graph Builder Workflow
 
 on:
   workflow_dispatch:
+        inputs:
+      updated:
+        description: 'Only process updated directories?'
+        required: true
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
+        type: boolean
   workflow_call:
+    inputs:
+      updated:
+        description: 'Only process updated directories?'
+        required: true
+        default: false
+        type: boolean
+
+
 permissions:
   actions: write
   contents: read
 
 jobs:
-  find-directories:
+
+  find-updated-directories:
     runs-on: ubuntu-latest
+    if: ${{ inputs.updated == true }}
+    outputs:
+      directories: ${{ steps.changed-files.outputs.all_changed_files }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tj-actions/changed-files@v40
+        id: changed-files
+        with:
+          dir_names: true
+          json: true
+          dir_names_exclude_current_dir: true
+      - run: |
+        echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+
+  find-all-directories:
+    runs-on: ubuntu-latest
+    if : ${{ inputs.updated == false }}
     outputs:
       directories: ${{ steps.find-dirs.outputs.directories }}
     steps:
-      - name: Download synced files
-        uses: actions/download-artifact@v4
-        with:
-          name: synced-files
-
-
       # TO ADD IF CHANGED, ELSE try all
-      - name: Find subdirectories (excluding . and hidden dirs)
+      - name: Find all subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
           directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
@@ -29,6 +58,7 @@ jobs:
             | jq -R -s -c 'split("\n")[:-1]')
           echo "directories=$directories" >> $GITHUB_OUTPUT
           echo "📂 Subdirectories to process: $directories" >> $GITHUB_STEP_SUMMARY
+
 
   process-directories:
     needs: find-directories
@@ -39,87 +69,47 @@ jobs:
       fail-fast: false
     steps:
 
-      - name: Download synced files artifact
-        uses: actions/download-artifact@v4
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
-          name: synced-files
-          path: .
+          fetch-depth: 0
+          ref: production
+
+      - name: Set GitHub Pages URL
+        id: set-url
+        run: |
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "PAGES_URL=$PAGES_URL" >> $GITHUB_ENV
+        shell: bash
 
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           cd "${{ matrix.directory }}"
 
 
-          #  bash <(curl -s http://mywebsite.example/myscript.txt)
-
-          git diff --name-only HEAD~2 HEAD | grep -q "^$PWD/"
-
-          REPO="${GITHUB_REPOSITORY}"
-          BASE_URL="https://${REPO%%/*}.github.io/${REPO##*/}"
-          CONTEXT_URL="$BASE_URL/${{ matrix.directory }}/@context"
-
-          if ls *.json 1> /dev/null 2>&1 && ls *@context* 1> /dev/null 2>&1; then
-
-            rm -f graph.jsonld graph.min.jsonld
-
-            # Initialize graph.jsonld
-            echo '{"@context":"'"$CONTEXT_URL"'","data":[]}' > graph.jsonld
-
-            for file in *.json; do
-              # Skip the generated graph file
-              [ "$file" = "graph.jsonld" ] && continue
-
-              # Inject @context and wrap content
-              content=$(jq --arg url "$CONTEXT_URL" '.["@context"] = $url' "$file" | \
-                        jq --arg f "$file" '{_source: $f, _content: .}')
-
-              # Append to graph.jsonld
-              tmp=$(mktemp)
-              jq --argjson new "$content" '.data += [$new]' graph.jsonld > "$tmp" && mv "$tmp" graph.jsonld
-            done
-
-            echo "✅ Generated graph.jsonld in ${{ matrix.directory }}" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Skipping ${{ matrix.directory }} — missing *.json or @context file" >> $GITHUB_STEP_SUMMARY
-          fi
+          bash <(curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph)
 
 
-      - name: Upload modified files
-        uses: actions/upload-artifact@v4
-        with:
-          name: matrix-files-${{ matrix.directory }}
-          path: ${{ matrix.directory }}
-      
-  combine-artifacts:
-    needs: process-directories
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all matrix artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: matrix-files-*
-          path: .
-
-      # Optional: merge graph.jsonld files here
-
-
-      - name: Delete existing artifact (if any)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install jsonld CLI
         run: |
-          artifact_name="synced-files"
-          run_id="${{ github.run_id }}"
-          # get artifact id for this run (returns empty or "null" if none)
-          artifact_id=$(gh api repos/${{ github.repository }}/actions/runs/${run_id}/artifacts --jq ".artifacts[] | select(.name==\"${artifact_name}\") | .id")
-          if [ -n "$artifact_id" ] && [ "$artifact_id" != "null" ]; then
-            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id
-            echo "Deleted artifact ${artifact_name} (${artifact_id})"
-          else
-            echo "No existing artifact named ${artifact_name} found for run ${run_id}"
-          fi
+          npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
+        shell: bash
 
-      - name: Upload combined artifact
-        uses: actions/upload-artifact@v4
+      - name: Validate JSON-LD from URL
+        run: |
+          jsonld lint "$PAGES_URL/graph.jsonld" || exit 1
+        shell: bash
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          name: synced-files
-          path: .
+          commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
+          branch: production
+          file_pattern: "${{ matrix.directory }}/graph.jsonld"
+          author_name: "cmip-ipo"
+          author_email: "actions@wcrp-cmip.org"
+          commit_user_name: "cmip-ipo"
+          commit_user_email: "actions@wcrp-cmip.org"
+          push_options: "--force"
+

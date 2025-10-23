@@ -1,7 +1,7 @@
 # CMIP-LD
 CMIP Linked Data Utilities Library
 
-<image style='width:400px;' src="https://wcrp-cmip.github.io/CMIP-LD/static/logo.jpg"/>
+<image style='width:400px;' src="https://wcrp-cmip.github.io/CMIP-LD/img/logo.jpg"/>
 
 
 
