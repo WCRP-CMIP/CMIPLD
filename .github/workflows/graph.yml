@@ -37,7 +37,7 @@ jobs:
           json: true
           dir_names_exclude_current_dir: true
       - run: |
-        echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
+          echo "📂 Updated directories: ${{ steps.changed-files.outputs.all_changed_files }}" >> $GITHUB_STEP_SUMMARY
 
   find-all-directories:
     runs-on: ubuntu-latest
