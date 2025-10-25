@@ -1,71 +1,127 @@
-name: Matrix Test - Minimal
+name: JSONLD Graph Builder Workflow
 
 on:
   workflow_dispatch:
+    inputs:
+      updated:
+        description: "Only process updated directories?"
+        required: true
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      updated:
+        description: "Only process updated directories?"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  actions: write
+  contents: read
 
 jobs:
-  
-  # Test 1: Hardcoded matrix (should always work)
-  test-hardcoded-matrix:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directory: ["del", "experiment", "project"]
-    steps:
-      - name: Test hardcoded
-        run: echo "✅ Hardcoded matrix works: ${{ matrix.directory }}"
-
-  # Test 2: Simple job output
-  create-directories:
+  find-updated-directories:
+    if: ${{ inputs.updated == true }}
     runs-on: ubuntu-latest
     outputs:
-      dirs: ${{ steps.set.outputs.dirs }}
+      directories: ${{ steps.set-dirs.outputs.directories }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
+
+      - id: set-dirs
+        run: |
+          changed_files=$(git diff --name-only origin/production HEAD || echo "")
+          echo "Changed files: $changed_files"
+          directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          if [ -z "$directories" ] || [ "$directories" = '[""]' ]; then
+            directories='[]'
+          fi
+          echo "directories=$directories" >> $GITHUB_OUTPUT
+          echo "Updated directories: $directories"
+
+  find-all-directories:
+    if: ${{ inputs.updated == false }}
+    runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.find-dirs.outputs.directories }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
+
+      - name: Find all subdirectories (excluding . and hidden dirs)
+        id: find-dirs
+        run: |
+          directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
+            | sed 's|^\./||' \
+            | sort \
+            | jq -R -s -c 'split("\n")[:-1]')
+          echo "directories=$directories" >> "$GITHUB_OUTPUT"
+          echo "Subdirectories to process: $directories"
+
+  set-directories:
+    runs-on: ubuntu-latest
+    needs:
+      - find-updated-directories
+      - find-all-directories
+    if: ${{ always() && (needs.find-updated-directories.result == 'success' || needs.find-all-directories.result == 'success') }}
+    outputs:
+      directories: ${{ steps.set.outputs.directories }}
     steps:
       - id: set
         run: |
-          # Use your exact working output
-          dirs='["del","experiment","project"]'
-          echo "dirs=$dirs" >> $GITHUB_OUTPUT
-          echo "Created dirs: $dirs"
+          if [ "${{ inputs.updated }}" = "true" ]; then
+            dirs='${{ needs.find-updated-directories.outputs.directories }}'
+          else
+            dirs='${{ needs.find-all-directories.outputs.directories }}'
+          fi
 
-  # Test 3: Matrix from job output (this is where it might fail)
-  test-job-output-matrix:
-    needs: create-directories
+          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ]; then
+            dirs='["."]'
+          fi
+
+          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
+          echo "Directories selected for processing: $dirs"
+        continue-on-error: true
+
+  process-directories:
+    needs: set-directories
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.create-directories.outputs.dirs) }}
+        directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
+      fail-fast: false
     steps:
-      - name: Test from job output
-        run: echo "✅ Job output matrix works: ${{ matrix.directory }}"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
 
-  # Test 4: Matrix with explicit condition
-  test-conditional-matrix:
-    needs: create-directories
-    runs-on: ubuntu-latest
-    if: needs.create-directories.outputs.dirs != '[]'
-    strategy:
-      matrix:
-        directory: ${{ fromJson(needs.create-directories.outputs.dirs) }}
-    steps:
-      - name: Test with condition
-        run: echo "✅ Conditional matrix works: ${{ matrix.directory }}"
-
-  # Test 5: Debug what's actually being passed
-  debug-outputs:
-    needs: create-directories
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug job outputs
+      - name: Set GitHub Pages URL
         run: |
-          echo "Raw output: '${{ needs.create-directories.outputs.dirs }}'"
-          echo "Length: $(echo '${{ needs.create-directories.outputs.dirs }}' | wc -c)"
-          echo "JSON test:"
-          echo '${{ needs.create-directories.outputs.dirs }}' | jq .
-          
-          # Test fromJson by showing what it would expand to
-          dirs='${{ needs.create-directories.outputs.dirs }}'
-          echo "fromJson would expand to:"
-          echo "$dirs" | jq -r '.[]' | while read dir; do
-            echo "- Matrix job for: $dir"
-          done
+          echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+
+      - name: Process JSON-LD files in ${{ matrix.directory }}
+        run: |
+          cd "${{ matrix.directory }}"
+          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}"
+
+      - name: Install jsonld CLI
+        run: npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
+
+      - name: Validate JSON-LD from URL
+        run: jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld"
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
+          branch: production
+          file_pattern: "*graph*"
+          commit_user_name: "cmip-ipo"
+          commit_user_email: "actions@wcrp-cmip.org"
+          push_options: "--force"
