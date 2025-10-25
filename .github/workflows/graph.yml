@@ -62,5 +62,10 @@ jobs:
           echo "Length: $(echo '${{ needs.create-directories.outputs.dirs }}' | wc -c)"
           echo "JSON test:"
           echo '${{ needs.create-directories.outputs.dirs }}' | jq .
-          echo "fromJson test:"
-          echo "This would create matrix for: ${{ fromJson(needs.create-directories.outputs.dirs) }}"
+          
+          # Test fromJson by showing what it would expand to
+          dirs='${{ needs.create-directories.outputs.dirs }}'
+          echo "fromJson would expand to:"
+          echo "$dirs" | jq -r '.[]' | while read dir; do
+            echo "- Matrix job for: $dir"
+          done
