@@ -35,13 +35,27 @@ jobs:
 
       - id: set-dirs
         run: |
+          echo "## 🔄 Finding Updated Directories" >> $GITHUB_STEP_SUMMARY
+          
           changed_files=$(git diff --name-only origin/production HEAD || echo "")
+          echo "- **Changed files:** \`$changed_files\`" >> $GITHUB_STEP_SUMMARY
+          
           directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
           if [ -z "$directories" ] || [ "$directories" = '[""]' ]; then
             directories='[]'
           fi
           echo "directories=$directories" >> $GITHUB_OUTPUT
-          echo "📂 Updated directories: $directories"
+          
+          echo "- **Updated directories:** \`$directories\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Show individual directories if any
+          if [ "$directories" != "[]" ]; then
+            echo "$directories" | jq -r '.[]' | while read dir; do
+              echo "- 📁 \`$dir\`" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "- 📭 No directories have changes" >> $GITHUB_STEP_SUMMARY
+          fi
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
@@ -57,12 +71,20 @@ jobs:
       - name: Find all subdirectories
         id: find-dirs
         run: |
+          echo "## 📂 Finding All Directories" >> $GITHUB_STEP_SUMMARY
+          
           directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
             | sed 's|^\./||' \
             | sort \
             | jq -R -s -c 'split("\n")[:-1]')
           echo "directories=$directories" >> "$GITHUB_OUTPUT"
-          echo "📂 Subdirectories to process: $directories"
+          
+          echo "- **Found directories:** \`$directories\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Show individual directories
+          echo "$directories" | jq -r '.[]' | while read dir; do
+            echo "- 📁 \`$dir\`" >> $GITHUB_STEP_SUMMARY
+          done
 
   set-directories:
     runs-on: ubuntu-latest
@@ -73,21 +95,64 @@ jobs:
     steps:
       - id: set
         run: |
+          echo "## 🔍 Debug: set-directories job" >> $GITHUB_STEP_SUMMARY
+          echo "- inputs.updated: ${{ inputs.updated }}" >> $GITHUB_STEP_SUMMARY
+          echo "- find-updated-directories.result: ${{ needs.find-updated-directories.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- find-all-directories.result: ${{ needs.find-all-directories.result }}" >> $GITHUB_STEP_SUMMARY
+          
           if [ "${{ inputs.updated }}" = "true" ]; then
             dirs='${{ needs.find-updated-directories.outputs.directories }}'
+            echo "- Using UPDATED directories" >> $GITHUB_STEP_SUMMARY
           else
             dirs='${{ needs.find-all-directories.outputs.directories }}'
+            echo "- Using ALL directories" >> $GITHUB_STEP_SUMMARY
           fi
           
-          if [ "$dirs" = "" ] || [ "$dirs" = "[]" ]; then
+          echo "- Raw dirs value: \`$dirs\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ]; then
             dirs='["."]'
+            echo "- 🔄 Applied fallback to current directory" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
-          echo "📦 Final directories: $dirs"
+          echo "- **📦 Final directories output:** \`$dirs\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Validate JSON
+          if echo "$dirs" | jq . >/dev/null 2>&1; then
+            echo "- ✅ JSON is valid" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ JSON is INVALID!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  debug-matrix-input:
+    needs: set-directories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug matrix input
+        run: |
+          echo "## 🔍 Matrix Debug Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Raw output from set-directories:** \`${{ needs.set-directories.outputs.directories }}\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Test JSON parsing
+          dirs='${{ needs.set-directories.outputs.directories }}'
+          echo "- Testing JSON parsing..." >> $GITHUB_STEP_SUMMARY
+          
+          if [ -z "$dirs" ]; then
+            echo "- ❌ **PROBLEM:** dirs variable is empty!" >> $GITHUB_STEP_SUMMARY
+          elif [ "$dirs" = "null" ]; then
+            echo "- ❌ **PROBLEM:** dirs variable is null!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ dirs variable has content: \`$dirs\`" >> $GITHUB_STEP_SUMMARY
+            
+            # Parse with jq to show individual items
+            echo "$dirs" | jq -r '.[]' | while read dir; do
+              echo "- 📁 Will create matrix job for: \`$dir\`" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
 
   process-directories:
-    needs: set-directories
+    needs: [set-directories, debug-matrix-input]
     runs-on: ubuntu-latest
     # Remove the problematic if condition temporarily
     strategy:
@@ -97,6 +162,7 @@ jobs:
     steps:
       - name: Start processing
         run: |
+          echo "## 🚀 Processing Directory: \`${{ matrix.directory }}\`" >> $GITHUB_STEP_SUMMARY
           echo "🚀 STARTING to process directory: ${{ matrix.directory }}"
           echo "Current time: $(date)"
           
@@ -154,5 +220,6 @@ jobs:
           
       - name: Completion
         run: |
+          echo "✅ **COMPLETED** processing directory: \`${{ matrix.directory }}\`" >> $GITHUB_STEP_SUMMARY
           echo "✅ COMPLETED processing directory: ${{ matrix.directory }}"
           echo "Final time: $(date)"
