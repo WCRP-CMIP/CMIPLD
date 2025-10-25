@@ -1,225 +1,66 @@
-name: JSONLD Graph Builder Workflow - Simplified
+name: Matrix Test - Minimal
 
 on:
   workflow_dispatch:
-    inputs:
-      updated:
-        description: "Only process updated directories?"
-        required: true
-        default: false
-        type: boolean
-  workflow_call:
-    inputs:
-      updated:
-        description: "Only process updated directories?"
-        required: true
-        default: false
-        type: boolean
-
-permissions:
-  actions: write
-  contents: read
 
 jobs:
-
-  find-updated-directories:
-    if: ${{ inputs.updated == true }}
+  
+  # Test 1: Hardcoded matrix (should always work)
+  test-hardcoded-matrix:
     runs-on: ubuntu-latest
-    outputs:
-      directories: ${{ steps.set-dirs.outputs.directories }}
+    strategy:
+      matrix:
+        directory: ["del", "experiment", "project"]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: production
+      - name: Test hardcoded
+        run: echo "✅ Hardcoded matrix works: ${{ matrix.directory }}"
 
-      - id: set-dirs
-        run: |
-          echo "## 🔄 Finding Updated Directories" >> $GITHUB_STEP_SUMMARY
-          
-          changed_files=$(git diff --name-only origin/production HEAD || echo "")
-          echo "- **Changed files:** \`$changed_files\`" >> $GITHUB_STEP_SUMMARY
-          
-          directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          if [ -z "$directories" ] || [ "$directories" = '[""]' ]; then
-            directories='[]'
-          fi
-          echo "directories=$directories" >> $GITHUB_OUTPUT
-          
-          echo "- **Updated directories:** \`$directories\`" >> $GITHUB_STEP_SUMMARY
-          
-          # Show individual directories if any
-          if [ "$directories" != "[]" ]; then
-            echo "$directories" | jq -r '.[]' | while read dir; do
-              echo "- 📁 \`$dir\`" >> $GITHUB_STEP_SUMMARY
-            done
-          else
-            echo "- 📭 No directories have changes" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  find-all-directories:
-    if: ${{ inputs.updated == false }}
+  # Test 2: Simple job output
+  create-directories:
     runs-on: ubuntu-latest
     outputs:
-      directories: ${{ steps.find-dirs.outputs.directories }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: production
-
-      - name: Find all subdirectories
-        id: find-dirs
-        run: |
-          echo "## 📂 Finding All Directories" >> $GITHUB_STEP_SUMMARY
-          
-          directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
-            | sed 's|^\./||' \
-            | sort \
-            | jq -R -s -c 'split("\n")[:-1]')
-          echo "directories=$directories" >> "$GITHUB_OUTPUT"
-          
-          echo "- **Found directories:** \`$directories\`" >> $GITHUB_STEP_SUMMARY
-          
-          # Show individual directories
-          echo "$directories" | jq -r '.[]' | while read dir; do
-            echo "- 📁 \`$dir\`" >> $GITHUB_STEP_SUMMARY
-          done
-
-  set-directories:
-    runs-on: ubuntu-latest
-    needs: [find-updated-directories, find-all-directories]
-    if: always()
-    outputs:
-      directories: ${{ steps.set.outputs.directories }}
+      dirs: ${{ steps.set.outputs.dirs }}
     steps:
       - id: set
         run: |
-          echo "## 🔍 Debug: set-directories job" >> $GITHUB_STEP_SUMMARY
-          echo "- inputs.updated: ${{ inputs.updated }}" >> $GITHUB_STEP_SUMMARY
-          echo "- find-updated-directories.result: ${{ needs.find-updated-directories.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- find-all-directories.result: ${{ needs.find-all-directories.result }}" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ inputs.updated }}" = "true" ]; then
-            dirs='${{ needs.find-updated-directories.outputs.directories }}'
-            echo "- Using UPDATED directories" >> $GITHUB_STEP_SUMMARY
-          else
-            dirs='${{ needs.find-all-directories.outputs.directories }}'
-            echo "- Using ALL directories" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "- Raw dirs value: \`$dirs\`" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ]; then
-            dirs='["."]'
-            echo "- 🔄 Applied fallback to current directory" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
-          echo "- **📦 Final directories output:** \`$dirs\`" >> $GITHUB_STEP_SUMMARY
-          
-          # Validate JSON
-          if echo "$dirs" | jq . >/dev/null 2>&1; then
-            echo "- ✅ JSON is valid" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ JSON is INVALID!" >> $GITHUB_STEP_SUMMARY
-          fi
+          # Use your exact working output
+          dirs='["del","experiment","project"]'
+          echo "dirs=$dirs" >> $GITHUB_OUTPUT
+          echo "Created dirs: $dirs"
 
-  debug-matrix-input:
-    needs: set-directories
+  # Test 3: Matrix from job output (this is where it might fail)
+  test-job-output-matrix:
+    needs: create-directories
     runs-on: ubuntu-latest
-    steps:
-      - name: Debug matrix input
-        run: |
-          echo "## 🔍 Matrix Debug Information" >> $GITHUB_STEP_SUMMARY
-          echo "- **Raw output from set-directories:** \`${{ needs.set-directories.outputs.directories }}\`" >> $GITHUB_STEP_SUMMARY
-          
-          # Test JSON parsing
-          dirs='${{ needs.set-directories.outputs.directories }}'
-          echo "- Testing JSON parsing..." >> $GITHUB_STEP_SUMMARY
-          
-          if [ -z "$dirs" ]; then
-            echo "- ❌ **PROBLEM:** dirs variable is empty!" >> $GITHUB_STEP_SUMMARY
-          elif [ "$dirs" = "null" ]; then
-            echo "- ❌ **PROBLEM:** dirs variable is null!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ✅ dirs variable has content: \`$dirs\`" >> $GITHUB_STEP_SUMMARY
-            
-            # Parse with jq to show individual items
-            echo "$dirs" | jq -r '.[]' | while read dir; do
-              echo "- 📁 Will create matrix job for: \`$dir\`" >> $GITHUB_STEP_SUMMARY
-            done
-          fi
-
-  process-directories:
-    needs: [set-directories, debug-matrix-input]
-    runs-on: ubuntu-latest
-    # Remove the problematic if condition temporarily
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
-      fail-fast: false
+        directory: ${{ fromJson(needs.create-directories.outputs.dirs) }}
     steps:
-      - name: Start processing
-        run: |
-          echo "## 🚀 Processing Directory: \`${{ matrix.directory }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 STARTING to process directory: ${{ matrix.directory }}"
-          echo "Current time: $(date)"
-          
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: production
+      - name: Test from job output
+        run: echo "✅ Job output matrix works: ${{ matrix.directory }}"
 
-      - name: Verify directory exists
-        run: |
-          echo "📁 Checking if directory exists: ${{ matrix.directory }}"
-          if [ -d "${{ matrix.directory }}" ]; then
-            echo "✅ Directory exists"
-            ls -la "${{ matrix.directory }}" | head -10
-          else
-            echo "❌ Directory does not exist!"
-            echo "Current working directory contents:"
-            ls -la
-          fi
+  # Test 4: Matrix with explicit condition
+  test-conditional-matrix:
+    needs: create-directories
+    runs-on: ubuntu-latest
+    if: needs.create-directories.outputs.dirs != '[]'
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.create-directories.outputs.dirs) }}
+    steps:
+      - name: Test with condition
+        run: echo "✅ Conditional matrix works: ${{ matrix.directory }}"
 
-      - name: Set GitHub Pages URL
+  # Test 5: Debug what's actually being passed
+  debug-outputs:
+    needs: create-directories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug job outputs
         run: |
-          echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-          echo "🌐 Pages URL: $PAGES_URL"
-
-      - name: Process JSON-LD files in ${{ matrix.directory }}
-        run: |
-          echo "🔄 Processing JSON-LD files in: ${{ matrix.directory }}"
-          cd "${{ matrix.directory }}"
-          echo "📍 Current directory: $(pwd)"
-          echo "📋 Files in directory:"
-          ls -la
-          
-          echo "🌐 Downloading ld2graph script..."
-          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}"
-
-      - name: Install jsonld CLI
-        run: |
-          echo "📦 Installing jsonld CLI..."
-          npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
-
-      - name: Validate JSON-LD from URL
-        run: |
-          echo "✅ Validating: $PAGES_URL/${{ matrix.directory }}/graph.jsonld"
-          jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld"
-
-      - uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
-          branch: production
-          file_pattern: "*graph*"
-          commit_user_name: "cmip-ipo"
-          commit_user_email: "actions@wcrp-cmip.org"
-          push_options: "--force"
-          
-      - name: Completion
-        run: |
-          echo "✅ **COMPLETED** processing directory: \`${{ matrix.directory }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "✅ COMPLETED processing directory: ${{ matrix.directory }}"
-          echo "Final time: $(date)"
+          echo "Raw output: '${{ needs.create-directories.outputs.dirs }}'"
+          echo "Length: $(echo '${{ needs.create-directories.outputs.dirs }}' | wc -c)"
+          echo "JSON test:"
+          echo '${{ needs.create-directories.outputs.dirs }}' | jq .
+          echo "fromJson test:"
+          echo "This would create matrix for: ${{ fromJson(needs.create-directories.outputs.dirs) }}"
