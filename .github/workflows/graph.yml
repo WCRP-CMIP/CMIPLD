@@ -37,17 +37,20 @@ jobs:
         run: |
           # Get list of changed files between HEAD and production branch
           changed_files=$(git diff --name-only origin/production HEAD || echo "")
+          
+          echo "🔍 Changed files: $changed_files"
 
           # Extract directories from changed files
           directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
 
           # If nothing changed, output empty JSON array
-          if [ -z "$directories" ]; then
+          if [ -z "$directories" ] || [ "$directories" = '[""]' ]; then
             directories='[]'
           fi
 
           echo "directories=$directories" >> $GITHUB_OUTPUT
           echo "📂 Updated directories: $directories" >> $GITHUB_STEP_SUMMARY
+          echo "🔍 DEBUG: directories output = $directories"
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
@@ -69,41 +72,69 @@ jobs:
             | jq -R -s -c 'split("\n")[:-1]')
           echo "directories=$directories" >> "$GITHUB_OUTPUT"
           echo "📂 Subdirectories to process: $directories" >> "$GITHUB_STEP_SUMMARY"
+          echo "🔍 DEBUG: directories output = $directories"
 
   set-directories:
     runs-on: ubuntu-latest
     needs:
       - find-updated-directories
       - find-all-directories
-    if: ${{ always() && (needs.find-updated-directories.result == 'success' || needs.find-all-directories.result == 'success') }}
+    if: ${{ always() }}
     outputs:
       directories: ${{ steps.set.outputs.directories }}
     steps:
       - id: set
         run: |
+          echo "🔍 DEBUG: inputs.updated = ${{ inputs.updated }}"
+          echo "🔍 DEBUG: find-updated-directories.result = ${{ needs.find-updated-directories.result }}"
+          echo "🔍 DEBUG: find-all-directories.result = ${{ needs.find-all-directories.result }}"
+          
           if [ "${{ inputs.updated }}" = "true" ]; then
             dirs='${{ needs.find-updated-directories.outputs.directories }}'
+            echo "🔍 DEBUG: Using updated directories: $dirs"
           else
             dirs='${{ needs.find-all-directories.outputs.directories }}'
+            echo "🔍 DEBUG: Using all directories: $dirs"
           fi
 
           # fallback if no directories found
-          if [ "$dirs" = "" ] || [ "$dirs" = "[]" ]; then
+          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ]; then
+            echo "⚠️ No directories found, using current directory as fallback"
             dirs='["."]'
           fi
 
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
           echo "📦 Directories selected for processing: $dirs" >> "$GITHUB_STEP_SUMMARY"
-        continue-on-error: true
+          echo "🔍 DEBUG: Final directories = $dirs"
 
-  process-directories:
+  debug-matrix:
     needs: set-directories
     runs-on: ubuntu-latest
+    steps:
+      - name: Debug matrix setup
+        run: |
+          echo "🔍 DEBUG: Directories from set-directories: ${{ needs.set-directories.outputs.directories }}"
+          echo "🔍 DEBUG: JSON parsed: ${{ fromJson(needs.set-directories.outputs.directories) }}"
+          echo "🔍 DEBUG: Array length: $(echo '${{ needs.set-directories.outputs.directories }}' | jq 'length')"
+
+  process-directories:
+    needs: 
+      - set-directories
+      - debug-matrix
+    runs-on: ubuntu-latest
+    # Add explicit condition to ensure job runs
+    if: ${{ needs.set-directories.outputs.directories != '[]' && needs.set-directories.outputs.directories != '' }}
     strategy:
       matrix:
         directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
       fail-fast: false
     steps:
+      - name: Debug current directory
+        run: |
+          echo "🔍 Processing directory: ${{ matrix.directory }}"
+          echo "🔍 Repository: ${{ github.repository }}"
+          echo "🔍 Owner: ${{ github.repository_owner }}"
+          
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -115,6 +146,7 @@ jobs:
 
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
+          echo "🔄 Processing directory: ${{ matrix.directory }}"
           cd "${{ matrix.directory }}"
           curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}"
 
