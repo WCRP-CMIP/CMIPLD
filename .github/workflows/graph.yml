@@ -115,11 +115,11 @@ jobs:
 
   process-directories:
     needs: set-directories
-    if: ${{ needs.set-directories.outputs.directories != '[]' && needs.set-directories.outputs.directories != '' }}
+    if: ${{ always() && needs.set-directories.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
+        directory: ${{ fromJson(needs.set-directories.outputs.directories || '["."]') }}
       fail-fast: false
       max-parallel: 10
     steps:
