@@ -100,10 +100,8 @@ jobs:
           fi
           
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
-          echo "Final directories for matrix: $dirs" >> "$GITHUB_OUTPUT"
+          echo "Final directories for matrix: $dirs"
 
-
-  
   process-directories:
     needs: set-directories
     if: ${{ always() && needs.set-directories.result == 'success' }}
@@ -160,9 +158,6 @@ jobs:
             echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
           fi
           
-
-      
-
       ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -173,4 +168,3 @@ jobs:
           commit_user_email: "actions@wcrp-cmip.org"
           push_options: "--force"
         continue-on-error: true
-          
