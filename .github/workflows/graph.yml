@@ -1807,7 +1807,9 @@ jobs:
       - name: Validate JSON-LD from URL
         run: |
           if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
-            if jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld" 2>/dev/null; then
+
+
+            if jsonld lint "${{ matrix.directory }}/graph.jsonld" 2>/dev/null; then
               echo "✅ Validation passed" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ Validation failed" >> $GITHUB_STEP_SUMMARY
