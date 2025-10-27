@@ -146,10 +146,9 @@ fi
 echo "Final context resolved. Building graph file..." >&2
 
 # Start building the JSON-LD file
-#   "@context": $final_context,
 cat > "$output_file" << EOF
 {
-
+  "@context": $final_context,
   "@graph": [
 EOF
 
@@ -168,8 +167,7 @@ for file in "$DIR"/*.json; do
     echo "Processing: $file" >&2
     
     # Remove @context from individual files and add to graph
-    # content=$(jq 'del(.["@context"])' "$file" 2>/dev/null)
-     content=$(jq "." "$file" 2>/dev/null)
+    content=$(jq 'del(.["@context"])' "$file" 2>/dev/null)
     
     if [[ $? -ne 0 ]] || [[ "$content" == "null" ]]; then
         echo "Warning: Failed to parse $file, skipping" >&2
