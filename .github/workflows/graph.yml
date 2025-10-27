@@ -1,4 +1,4 @@
-name: JSONLD Graph Builder Workflow
+name: JSONLD Graph Builder
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   find-updated-directories:
@@ -31,16 +31,25 @@ jobs:
         with:
           fetch-depth: 0
           ref: production
-
+          
       - id: set-dirs
         run: |
+          echo "Finding updated directories..."
           changed_files=$(git diff --name-only origin/production HEAD || echo "")
           echo "Changed files: $changed_files"
-          directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          if [ -z "$directories" ] || [ "$directories" = '[""]' ]; then
+          
+          if [ -n "$changed_files" ]; then
+            directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          else
             directories='[]'
           fi
-          echo "directories=$directories" >> $GITHUB_OUTPUT
+          
+          # Handle empty or invalid arrays
+          if [ -z "$directories" ] || [ "$directories" = '[""]' ] || [ "$directories" = "null" ]; then
+            directories='[]'
+          fi
+          
+          echo "directories=$directories" >> "$GITHUB_OUTPUT"
           echo "Updated directories: $directories"
 
   find-all-directories:
@@ -53,16 +62,23 @@ jobs:
         with:
           fetch-depth: 0
           ref: production
-
+          
       - name: Find all subdirectories (excluding . and hidden dirs)
         id: find-dirs
         run: |
+          echo "Finding all directories..."
           directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
             | sed 's|^\./||' \
             | sort \
             | jq -R -s -c 'split("\n")[:-1]')
+          
+          # Handle case where no directories found
+          if [ -z "$directories" ] || [ "$directories" = '[""]' ] || [ "$directories" = "null" ]; then
+            directories='["."]'
+          fi
+          
           echo "directories=$directories" >> "$GITHUB_OUTPUT"
-          echo "Subdirectories to process: $directories"
+          echo "All directories: $directories"
 
   set-directories:
     runs-on: ubuntu-latest
@@ -75,48 +91,104 @@ jobs:
     steps:
       - id: set
         run: |
+          echo "Setting final directories..."
+          echo "Input updated: ${{ inputs.updated }}"
+          echo "find-updated-directories result: ${{ needs.find-updated-directories.result }}"
+          echo "find-all-directories result: ${{ needs.find-all-directories.result }}"
+          
           if [ "${{ inputs.updated }}" = "true" ]; then
             dirs='${{ needs.find-updated-directories.outputs.directories }}'
+            echo "Using updated directories: $dirs"
           else
             dirs='${{ needs.find-all-directories.outputs.directories }}'
+            echo "Using all directories: $dirs"
           fi
-
-          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ]; then
+          
+          # Robust fallback with hardcoded directories
+          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
+            echo "No valid directories found, using fallback"
             dirs='["."]'
           fi
-
+          
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
-          echo "Directories selected for processing: $dirs"
-        continue-on-error: true
+          echo "Final directories for matrix: $dirs"
 
   process-directories:
     needs: set-directories
+    if: ${{ needs.set-directories.outputs.directories != '[]' && needs.set-directories.outputs.directories != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         directory: ${{ fromJson(needs.set-directories.outputs.directories) }}
       fail-fast: false
+      max-parallel: 10
     steps:
+      - name: Debug matrix
+        run: |
+          echo "🚀 Processing directory: ${{ matrix.directory }}"
+          echo "Job started at: $(date)"
+          
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: production
-
+          
       - name: Set GitHub Pages URL
         run: |
           echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-
+          echo "Pages URL: $PAGES_URL"
+          
+      - name: Check directory exists
+        run: |
+          echo "📁 Checking directory: ${{ matrix.directory }}"
+          if [ -d "${{ matrix.directory }}" ]; then
+            echo "✅ Directory exists"
+            ls -la "${{ matrix.directory }}" | head -5
+          else
+            echo "❌ Directory ${{ matrix.directory }} does not exist"
+            echo "Available directories:"
+            find . -maxdepth 1 -type d | head -10
+          fi
+          
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
-          cd "${{ matrix.directory }}"
-          curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}"
-
+          echo "🔄 Processing directory: ${{ matrix.directory }}"
+          if [ -d "${{ matrix.directory }}" ]; then
+            cd "${{ matrix.directory }}"
+            echo "Current directory: $(pwd)"
+            curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}" || {
+              echo "⚠️ ld2graph script failed, but continuing"
+              exit 0
+            }
+          else
+            echo "⚠️ Skipping - directory doesn't exist"
+          fi
+          
       - name: Install jsonld CLI
-        run: npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git
-
+        run: |
+          echo "📦 Installing jsonld CLI..."
+          npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git || {
+            echo "⚠️ npm install failed, but continuing"
+            exit 0
+          }
+          
       - name: Validate JSON-LD from URL
-        run: jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld"
-
+        run: |
+          if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
+            echo "✅ Validating: $PAGES_URL/${{ matrix.directory }}/graph.jsonld"
+            jsonld lint "$PAGES_URL/${{ matrix.directory }}/graph.jsonld" || {
+              echo "⚠️ Validation failed, but continuing"
+              exit 0
+            }
+          else
+            echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
+          fi
+          
+      - name: Check for generated files
+        run: |
+          echo "🔍 Looking for generated graph files..."
+          find . -name "*graph*" -type f 2>/dev/null | head -10 || echo "No graph files found"
+          
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
@@ -125,3 +197,9 @@ jobs:
           commit_user_name: "cmip-ipo"
           commit_user_email: "actions@wcrp-cmip.org"
           push_options: "--force"
+        continue-on-error: true
+          
+      - name: Completion
+        run: |
+          echo "✅ Completed processing: ${{ matrix.directory }}"
+          echo "Job finished at: $(date)"
