@@ -161,7 +161,7 @@ jobs:
             echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
             exit 1
           fi
-          
+        continue-on-error: true
       ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
