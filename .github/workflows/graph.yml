@@ -136,7 +136,8 @@ jobs:
           if [ -d "${{ matrix.directory }}" ]; then
             cd "${{ matrix.directory }}"
             # Fixed the curl command and bash execution
-            #curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}/ld2graph" "../${{ matrix.directory }}" || {
+            #curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}/"
+            ld2graph "../${{ matrix.directory }}" || {
               echo "⚠️ ld2graph script failed, but continuing"
               exit 1
             }
