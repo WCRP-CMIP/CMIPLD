@@ -21,6 +21,7 @@ permissions:
   contents: write
 
 jobs:
+
   find-updated-directories:
     if: ${{ inputs.updated == true }}
     runs-on: ubuntu-latest
@@ -111,7 +112,12 @@ jobs:
         directory: ${{ fromJson(needs.set-directories.outputs.directories || '["."]') }}
       fail-fast: false
       max-parallel: 10
+
     steps:
+      
+      - name: Get a list of directories with updated files
+        id: install-cmipld
+        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
 
       - uses: actions/checkout@v4
         with:
@@ -129,7 +135,7 @@ jobs:
           echo "🔄 Processing directory: ${{ matrix.directory }}"
           if [ -d "${{ matrix.directory }}" ]; then
             cd "${{ matrix.directory }}"
-            curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}" || {
+            # curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}ld2graph ../${{ matrix.directory }} || {
               echo "⚠️ ld2graph script failed, but continuing"
               exit 1
             }
@@ -142,18 +148,19 @@ jobs:
           git add -f *graph* || true
 
       ## Validate
-      - name: Install jsonld CLI
-        run: |
-          echo "📦 Installing jsonld CLI..."
-          npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git || {
-            echo "⚠️ npm install failed, but continuing"
-            exit 0
-          }
+      # - name: Install jsonld CLI
+      #   run: |
+      #     echo "📦 Installing jsonld CLI..."
+      #     npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git || {
+      #       echo "⚠️ npm install failed, but continuing"
+      #       exit 0
+      #     }
+
           
       - name: Validate JSON-LD from URL
         run: |
           if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
-            jsonld lint "${{ matrix.directory }}/graph.jsonld" || {
+              pyld test "$file" > /dev/null 2>&1; || {
               echo "⚠️ Validation failed"
               exit 1
             }
@@ -161,7 +168,7 @@ jobs:
             echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
             exit 1
           fi
-        continue-on-error: true
+
       ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:

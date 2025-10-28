@@ -43,7 +43,7 @@ class Loader:
 
         default_loader = requests_document_loader(prefix=list(mapping.keys()) , verify=False)
         
-        log.debug(f"default_loader: {default_loader}")
+        # log.debug(f"default_loader: {default_loader}")
 
         def cached_loader(url, kwargs={}):
             global custom_cache
