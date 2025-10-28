@@ -27,7 +27,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] || [[ $# -eq 0 ]]; then
     echo "  and merges all JSON objects into a single @graph array."
     echo ""
     echo "Arguments:"
-    echo "  directory    Directory containing JSON-LD files and @context_ file"
+    echo "  directory    Directory containing JSON-LD files and _context_ file"
     echo ""
     echo "Examples:"
     echo "  ld2graph src-data/experiment/"
@@ -35,7 +35,7 @@ if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] || [[ $# -eq 0 ]]; then
     echo ""
     echo "Requirements:"
     echo "  - jq command-line JSON processor"
-    echo "  - Directory must contain a @context_ file"
+    echo "  - Directory must contain a _context_ file"
     echo "  - Directory should contain .json files to process"
     exit 0
 fi
@@ -51,7 +51,7 @@ fi
 
 # Initialize the JSON-LD structure
 output_file="$DIR/graph.jsonld"
-context_file="$DIR/@context"
+context_file="$DIR/_context"
 
 # Read main context
 if [[ ! -f "$context_file" ]]; then
@@ -72,11 +72,11 @@ resolve_context() {
         return
     fi
     
-    # Get the @context array from the file
+    # Get the _context array from the file
     local context_array=$(jq '.["@context"]' "$ctx_file" 2>/dev/null)
     
     if [[ "$context_array" == "null" ]]; then
-        echo "Warning: No @context found in $ctx_file" >&2
+        echo "Warning: No _context found in $ctx_file" >&2
         echo "{}"
         return
     fi
@@ -134,7 +134,7 @@ final_context=$(resolve_context "$context_file" "$(dirname "$context_file")")
 # Validate that we have a valid context
 if [[ "$final_context" == "{}" ]] || [[ "$final_context" == "null" ]]; then
     echo "Warning: Failed to resolve context properly. Using original context." >&2
-    final_context=$(jq '.["@context"]' "$context_file")
+    final_context=$(jq '.["_context"]' "$context_file")
     
     # If original is an array, try to flatten it
     if [[ "$(echo "$final_context" | jq 'type')" == '"array"' ]]; then
@@ -162,13 +162,13 @@ for file in "$DIR"/*.json; do
     [[ ! -f "$file" ]] && continue
     
     # Skip the context file (which might have .json extension in some cases)
-    [[ "$(basename "$file")" == "@context" ]] && continue
-    [[ "$(basename "$file")" == "@context.json" ]] && continue
+    [[ "$(basename "$file")" == "_context" ]] && continue
+    [[ "$(basename "$file")" == "_context.json" ]] && continue
     
     echo "Processing: $file" >&2
     
-    # Remove @context from individual files and add to graph
-    # content=$(jq 'del(.["@context"])' "$file" 2>/dev/null)
+    # Remove _context from individual files and add to graph
+    # content=$(jq 'del(.["_context"])' "$file" 2>/dev/null)
      content=$(jq "." "$file" 2>/dev/null)
     
     if [[ $? -ne 0 ]] || [[ "$content" == "null" ]]; then
