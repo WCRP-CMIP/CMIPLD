@@ -135,7 +135,8 @@ jobs:
           echo "🔄 Processing directory: ${{ matrix.directory }}"
           if [ -d "${{ matrix.directory }}" ]; then
             cd "${{ matrix.directory }}"
-            # curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}ld2graph ../${{ matrix.directory }} || {
+            # Fixed the curl command and bash execution
+            curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}/ld2graph" "../${{ matrix.directory }}" || {
               echo "⚠️ ld2graph script failed, but continuing"
               exit 1
             }
@@ -160,7 +161,8 @@ jobs:
       - name: Validate JSON-LD from URL
         run: |
           if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
-              pyld test "$file" > /dev/null 2>&1; || {
+            # Fixed the pyld command syntax
+            pyld test "${{ matrix.directory }}/graph.jsonld" > /dev/null 2>&1 || {
               echo "⚠️ Validation failed"
               exit 1
             }
