@@ -138,6 +138,8 @@ jobs:
             exit 1
           fi
           
+          # graph files are in the gitignore so we need to force add them
+          git add -f experiment/*graph* || true
 
       ## Validate
       - name: Install jsonld CLI
