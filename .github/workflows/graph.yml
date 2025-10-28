@@ -131,10 +131,11 @@ jobs:
             cd "${{ matrix.directory }}"
             curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}" || {
               echo "⚠️ ld2graph script failed, but continuing"
-              exit 0
+              exit 1
             }
           else
             echo "⚠️ Skipping - directory doesn't exist"
+            exit 1
           fi
           
 
@@ -151,11 +152,12 @@ jobs:
         run: |
           if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
             jsonld lint "${{ matrix.directory }}/graph.jsonld" || {
-              echo "⚠️ Validation failed, but continuing"
-              exit 0
+              echo "⚠️ Validation failed"
+              exit 1
             }
           else
             echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
+            exit 1
           fi
           
       ## Auto-commit changes
