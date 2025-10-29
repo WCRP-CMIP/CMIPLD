@@ -292,10 +292,10 @@ class GitCoauthorManager:
         Get information about the git repository.
         
         Returns:
-            Dictionary with repository information
+            Dictionary with repository information including owner, repo, and prefix
         """
         if not self.is_git_repo():
-            return {"status": "Not a git repository"}
+            return {"status": "Not a git repository", "owner": None, "repo": None, "prefix": None}
         
         try:
             # Get current branch
@@ -317,6 +317,44 @@ class GitCoauthorManager:
                 check=True
             )
             has_changes = bool(status_result.stdout.strip())
+            
+            # Get remote origin URL to extract owner and repo
+            remote_result = subprocess.run(
+                ['git', 'config', '--get', 'remote.origin.url'],
+                cwd=self.directory,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            owner = None
+            repo = None
+            prefix = None
+            
+            if remote_result.returncode == 0 and remote_result.stdout.strip():
+                remote_url = remote_result.stdout.strip()
+                # Parse GitHub URL (handles both SSH and HTTPS)
+                # Examples:
+                #   git@github.com:WCRP-CMIP/CMIP-LD.git
+                #   https://github.com/WCRP-CMIP/CMIP-LD.git
+                if 'github.com' in remote_url:
+                    # Remove .git suffix
+                    remote_url = remote_url.rstrip('.git')
+                    
+                    # Extract owner/repo from different URL formats
+                    if remote_url.startswith('git@'):
+                        # SSH format: git@github.com:owner/repo
+                        parts = remote_url.split(':')[-1].split('/')
+                    elif 'github.com/' in remote_url:
+                        # HTTPS format: https://github.com/owner/repo
+                        parts = remote_url.split('github.com/')[-1].split('/')
+                    else:
+                        parts = []
+                    
+                    if len(parts) >= 2:
+                        owner = parts[0]
+                        repo = parts[1]
+                        prefix = f"{owner}/{repo}"
             
             # Get last commit
             commit_result = subprocess.run(
@@ -343,6 +381,9 @@ class GitCoauthorManager:
                 "current_branch": current_branch,
                 "has_uncommitted_changes": has_changes,
                 "last_commit": commit_info,
+                "owner": owner,
+                "repo": repo,
+                "prefix": prefix,
                 "coauthors_enabled": self.add_coauthors,
                 "auto_commit_enabled": self.auto_commit,
                 "use_last_author": self.use_last_author
@@ -352,6 +393,9 @@ class GitCoauthorManager:
             log.warning(f"Failed to get repository info: {e}")
             return {
                 "status": "Git repository (info unavailable)",
+                "owner": None,
+                "repo": None,
+                "prefix": None,
                 "error": str(e)
             }
             

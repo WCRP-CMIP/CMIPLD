@@ -2,8 +2,7 @@
 """
 JSON-LD Context Manager
 
-This module handles JSON-LD context loading, resolution, and context-aware validation.
-It provides functionality to validate JSON-LD documents against their context definitions.
+JSON-LD context loading, resolution, and validation.
 """
 
 import json
