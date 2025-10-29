@@ -94,6 +94,10 @@ jobs:
             echo "Using all directories: $dirs"
           fi
           
+          # Filter out directories to skip
+          SKIP_DIRS='["project", "ignore", ".github"]'
+          dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
+          
           # Robust fallback with hardcoded directories
           if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
             echo "No valid directories found, using fallback"

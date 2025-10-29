@@ -6,7 +6,7 @@ This module contains the main JSONValidator class responsible for validating
 and fixing JSON-LD files according to CMIP-LD standards.
 """
 
-import json
+import json,shutil
 import os
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional
@@ -20,10 +20,12 @@ try:
 except ImportError:
     HAS_TQDM = False
 
+import cmipld
 from ..logging.unique import UniqueLogger, logging
 from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
 from .reporting import ValidationReporter
+
 
 log = UniqueLogger()
 log.logger.setLevel(logging.WARNING)
@@ -86,19 +88,6 @@ class JSONValidator:
         ) if (add_coauthors or use_last_author or auto_commit) else None
         self.reporter = ValidationReporter()
         
-        # Get full repository info
-        # Line 98 in validator.py
-        self.repo_info = self.git_manager.get_repository_info() if self.git_manager else {}
-        # Returns: {'owner': 'WCRP-CMIP', 'repo': 'CMIP-LD', 'prefix': 'WCRP-CMIP/CMIP-LD'}
-        log.info(f"Repository info: {self.repo_info}")
-        
-        # # Just the owner
-        # owner = repo_info['owner']  # 'WCRP-CMIP'
-        # # Just the repo name
-        # repo = repo_info['repo']  # 'CMIP-LD'
-        # # Full prefix
-        # prefix = repo_info['prefix'] 
-        
         
         # Threading and state management
         self.stats = {
@@ -142,15 +131,15 @@ class JSONValidator:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+                # # content = f.read()
+                # content = f.read()
+                # if not content:
+                #     return False, "Empty file"
 
-            if not content:
-                return False, "Empty file"
-
-            try:
-                data = json.loads(content, object_pairs_hook=OrderedDict)
-            except json.JSONDecodeError as e:
-                return False, f"Invalid JSON: {e}"
+                try:
+                    data = json.load(f, object_pairs_hook=OrderedDict)
+                except json.JSONDecodeError as e:
+                    return False, f"Invalid JSON: {e}"
 
             if not isinstance(data, dict):
                 return False, "JSON root is not an object"
@@ -181,8 +170,12 @@ class JSONValidator:
             # Write changes if modified and not in dry-run mode
             if modified and not self.dry_run:
                 with open(file_path, 'w', encoding='utf-8') as f:
+                    # print('##################')
+                    # print(f"Writing changes to {file_path}")
+                    # print('##################')
                     json.dump(data, f, indent=4, ensure_ascii=False)
                     f.write('\n')
+                    
                 with self.modified_files_lock:
                     self.modified_files.append(file_path)
 
@@ -194,16 +187,28 @@ class JSONValidator:
 
     def _handle_file_rename(self, file_path: Path, expected_filename: str) -> bool:
         """Handle file renaming if needed."""
+        
+        
+        expected_filename = expected_filename.replace('-pending','_pending')
+        
         if expected_filename != file_path.stem:
             new_file_path = file_path.parent / (expected_filename + file_path.suffix)
             
             if new_file_path.exists():
+                log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
                 raise FileExistsError(f"Target file already exists: {new_file_path}")
             
             if not self.dry_run:
-                file_path.rename(new_file_path)
+                
+                shutil.move(str(file_path), str(new_file_path))
+                file_path.unlink()
+                
+                # if new_file_path.exists() and not file_path.exists():
+                #     print(f"✅ Moved: {file_path.name} → {new_file_path}")
+
+                # file_path = new_file_path
                 log.info(f"Renamed file: {file_path.name} -> {new_file_path.name}")
-            
+            modified = True
             return True
         return False
 
@@ -217,12 +222,12 @@ class JSONValidator:
             data['@id'] = data['id']
             del data['id']
             modified = True
-            log.warning(f"Missing @id: using id '{data['@id']}' as @id")
+            log.warn(f"Missing @id: using id '{data['@id']}' as @id")
 
         if 'validation-key' not in data and '@id' in data:
             data['validation-key'] = data['@id']
             modified = True
-            log.warning(f"Missing validation-key: using @id '{data['@id']}' as validation-key")
+            log.warn(f"Missing validation-key: using @id '{data['@id']}' as validation-key")
         
         for key in self.required_keys:
             if key not in data:
@@ -243,20 +248,24 @@ class JSONValidator:
         parent_folder = file_path.parent.name
         modified_internal = False
         
+        log.warn(f"Validating @type for file in folder: {parent_folder}")   
+        
         if parent_folder and parent_folder != '.':
             
             if '@type' not in data and 'type' in data:
                 data['@type'] = data['type']
                 del data['type']
                 modified_internal = True
-                log.warning(f"Missing @type: using type '{data['@type']}' as @type")
+                log.warn(f"Missing @type: using type '{data['@type']}' as @type")
             
             esgvoc = ''.join(word.capitalize() for word in parent_folder.split('_'))
+            
             if '-' in parent_folder:
-                log.warning(f"Parent folder '{parent_folder}' contains hyphen '-', "
+                log.warn(f"Parent folder '{parent_folder}' contains hyphen '-', "
                             f"consider using underscores '_' for ESGVoc compliance.")
                 
-            prefix = self.repo_info['prefix'] or 'undefined'
+            prefix = cmipld.reverse_direct.get(cmipld.utils.git.git_core.url().replace('WCRP-CMIP','wcrp-cmip')+'/', 'undefined')
+            
             expected_type_part = [f"wcrp:{parent_folder}", f"esgvoc:{esgvoc}", prefix]
 
             
@@ -267,7 +276,9 @@ class JSONValidator:
                 
             # current_type = [t for t in current_type if not t.startswith(('wcrp:', 'esgvoc:', f"{prefix}:"))]
             
-            for i in current_type:
+            current_type = []
+            
+            for i in list(current_type):
                 if i.startswith(('wcrp:', 'esgvoc:', f"{prefix}:")) and i not in expected_type_part:
                     current_type.remove(i)
                     modified_internal = True
@@ -275,9 +286,12 @@ class JSONValidator:
             
             for part in expected_type_part:
                 if part not in current_type:
-                    current_type.append(expected_type_part)
-                    data['type'] = current_type
+                    current_type.append(part)
+                    
                     modified_internal = True
+                # print(part, current_type)
+            
+            data['@type'] = current_type
 
         return modified_internal
 
@@ -301,7 +315,7 @@ class JSONValidator:
             
             return modified
         except Exception as e:
-            log.warning(f"Context validation failed for {file_path}: {e}")
+            log.warn(f"Context validation failed for {file_path}: {e}")
             return False
 
     def _sort_json_keys(self, data: Dict[str, Any]) -> OrderedDict:
