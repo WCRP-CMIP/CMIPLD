@@ -20,6 +20,7 @@ try:
 except ImportError:
     HAS_TQDM = False
 
+from ..git import git_repo_metadata
 from ..logging.unique import UniqueLogger, logging
 from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
@@ -30,21 +31,21 @@ log.logger.setLevel(logging.WARNING)
 
 # Default required keys for CMIP-LD compliance
 DEFAULT_REQUIRED_KEYS = [
-    'id',
+    '@id',
     'validation-key', 
     'ui-label',
     'description',
     '@context',
-    'type'
+    '@type'
 ]
 
 # Default values for missing keys
 DEFAULT_VALUES = {
-    'id': '',
+    '@id': '',
     'validation-key': '',
     'ui-label': '',
-    '@context': '_context_',
-    'type': [],
+    '@context': '_context',
+    '@type': [],
     'description': ''
 }
 
@@ -85,6 +86,19 @@ class JSONValidator:
             self.directory, add_coauthors, use_last_author, auto_commit
         ) if (add_coauthors or use_last_author or auto_commit) else None
         self.reporter = ValidationReporter()
+        
+        # Get full repository info
+        self.repo_info = git_repo_metadata.get_repository_info()
+        # Returns: {'owner': 'WCRP-CMIP', 'repo': 'CMIP-LD', 'prefix': 'WCRP-CMIP/CMIP-LD'}
+        log.info(f"Repository info: {self.repo_info}")
+        
+        # # Just the owner
+        # owner = repo_info['owner']  # 'WCRP-CMIP'
+        # # Just the repo name
+        # repo = repo_info['repo']  # 'CMIP-LD'
+        # # Full prefix
+        # prefix = repo_info['prefix'] 
+        
         
         # Threading and state management
         self.stats = {
@@ -198,10 +212,17 @@ class JSONValidator:
         modified = False
         
         # Check if validation-key is missing but id exists
-        if 'validation-key' not in data and 'id' in data:
-            data['validation-key'] = data['id']
+        
+        if '@id' not in data and 'id' in data:
+            data['@id'] = data['id']
+            del data['id']
             modified = True
-            log.warning(f"Missing validation-key: using id '{data['id']}' as validation-key")
+            log.warning(f"Missing @id: using id '{data['@id']}' as @id")
+
+        if 'validation-key' not in data and '@id' in data:
+            data['validation-key'] = data['@id']
+            modified = True
+            log.warning(f"Missing validation-key: using @id '{data['@id']}' as validation-key")
         
         for key in self.required_keys:
             if key not in data:
@@ -212,26 +233,53 @@ class JSONValidator:
 
     def _validate_id_field(self, data: Dict[str, Any], expected_id: str) -> bool:
         """Validate and fix the ID field."""
-        if data.get('id') != expected_id:
-            data['id'] = expected_id
+        if data.get('@id') != expected_id:
+            data['@id'] = expected_id
             return True
         return False
 
     def _validate_type_field(self, data: Dict[str, Any], file_path: Path) -> bool:
         """Validate and fix the type field based on parent folder."""
         parent_folder = file_path.parent.name
+        modified_internal = False
+        
         if parent_folder and parent_folder != '.':
-            expected_type_part = f"wcrp:{parent_folder}"
-            current_type = data.get('type', [])
+            
+            if '@type' not in data and 'type' in data:
+                data['@type'] = data['type']
+                del data['type']
+                modified_internal = True
+                log.warning(f"Missing @type: using type '{data['@type']}' as @type")
+            
+            esgvoc = ''.join(word.capitalize() for word in parent_folder.split('_'))
+            if '-' in parent_folder:
+                log.warning(f"Parent folder '{parent_folder}' contains hyphen '-', "
+                            f"consider using underscores '_' for ESGVoc compliance.")
+                
+            prefix = self.repo_info['prefix'] or 'undefined'
+            expected_type_part = [f"wcrp:{parent_folder}", f"esgvoc:{esgvoc}", prefix]
+
+            
+            current_type = data.get('@type', [])
             
             if not isinstance(current_type, list):
                 current_type = [current_type] if current_type else []
+                
+            # current_type = [t for t in current_type if not t.startswith(('wcrp:', 'esgvoc:', f"{prefix}:"))]
             
-            if expected_type_part not in current_type:
-                current_type.append(expected_type_part)
-                data['type'] = current_type
-                return True
-        return False
+            for i in current_type:
+                if i.startswith(('wcrp:', 'esgvoc:', f"{prefix}:")) and i not in expected_type_part:
+                    current_type.remove(i)
+                    modified_internal = True
+                
+            
+            for part in expected_type_part:
+                if part not in current_type:
+                    current_type.append(expected_type_part)
+                    data['type'] = current_type
+                    modified_internal = True
+
+        return modified_internal
 
     def _validate_with_context(self, data: Dict[str, Any], file_path: Path) -> bool:
         """Perform context-aware validation if context manager is available."""
@@ -249,7 +297,7 @@ class JSONValidator:
             modified = self.context_manager.apply_context_fixes(data) or modified
             
             # Normalize linked field values (NEW!)
-            modified = self.context_manager.normalize_link_values(data) or modified
+            # modified = self.context_manager.normalize_link_values(data) or modified
             
             return modified
         except Exception as e:
@@ -263,7 +311,7 @@ class JSONValidator:
         
         # Original CMIP-LD key ordering logic
         sorted_data = OrderedDict()
-        priority_keys = ['id', 'validation-key', 'ui-label', 'description']
+        priority_keys = ['validation-key', 'ui-label', 'description']
         
         # Add priority keys first
         for key in priority_keys:
@@ -273,16 +321,19 @@ class JSONValidator:
         # Add remaining keys alphabetically (excluding @context and type)
         remaining_keys = sorted([
             k for k in data.keys()
-            if k not in priority_keys and k not in ['@context', 'type']
+            if k not in priority_keys and k not in ['@id','@context', '@type']
         ])
         for key in remaining_keys:
             sorted_data[key] = data[key]
 
         # Add @context and type at the end (original order)
+        if '@id' in data:
+            sorted_data['@id'] = data['@id']
         if '@context' in data:
             sorted_data['@context'] = data['@context']
-        if 'type' in data:
-            sorted_data['type'] = data['type']
+        if '@type' in data:
+            sorted_data['@type'] = data['@type']
+        
 
         return sorted_data
 
