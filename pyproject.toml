@@ -43,7 +43,7 @@ update_all = "cmipld.generate.update_all:main"           # Run full update proce
 new_issue = "cmipld.generate.new_issue:main"             # Generate new GitHub issue
 generate_summary = "cmipld.generate.generate_summary:main" # Generate repository summary
 update_readme = "cmipld.generate.create_readme:main"     # Update README files
-validate_json = "cmipld.utils.validate_json:main"        # Validate JSON-LD files
+validate_json = "cmipld.utils.validate_json.cli:main"        # Validate JSON-LD files
 create_readme = "cmipld.generate.create_readme:main"     # Create README files
 template_update = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
 

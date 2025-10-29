@@ -20,7 +20,6 @@ try:
 except ImportError:
     HAS_TQDM = False
 
-from ..git import git_repo_metadata
 from ..logging.unique import UniqueLogger, logging
 from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
@@ -88,7 +87,8 @@ class JSONValidator:
         self.reporter = ValidationReporter()
         
         # Get full repository info
-        self.repo_info = git_repo_metadata.get_repository_info()
+        # Line 98 in validator.py
+        self.repo_info = self.git_manager.get_repository_info() if self.git_manager else {}
         # Returns: {'owner': 'WCRP-CMIP', 'repo': 'CMIP-LD', 'prefix': 'WCRP-CMIP/CMIP-LD'}
         log.info(f"Repository info: {self.repo_info}")
         
@@ -327,13 +327,13 @@ class JSONValidator:
             sorted_data[key] = data[key]
 
         # Add @context and type at the end (original order)
-        if '@id' in data:
-            sorted_data['@id'] = data['@id']
+
         if '@context' in data:
             sorted_data['@context'] = data['@context']
         if '@type' in data:
             sorted_data['@type'] = data['@type']
-        
+        if '@id' in data:
+            sorted_data['@id'] = data['@id']       
 
         return sorted_data
 
