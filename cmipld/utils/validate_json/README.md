@@ -75,7 +75,7 @@ validate_json ./data/experiments
 
 **What it does:**
 - Validates all `.json` files recursively
-- Checks for required keys (`@id`, `validation-key`, `ui-label`, `description`, `@context`, `@type`)
+- Checks for required keys (`@id`, `validation_key`, `ui-label`, `description`, `@context`, `@type`)
 - Adds missing keys with default values
 - Ensures `@id` matches filename
 - Validates `@type` includes parent folder prefix (e.g., `wcrp:experiment`)
@@ -229,7 +229,7 @@ validate_json ./data/experiments --verbose
 **Scenario:** Enforce project-specific requirements
 
 ```bash
-validate_json ./data/experiments --required-keys @id validation-key ui-label custom-field
+validate_json ./data/experiments --required-keys @id validation_key ui-label custom-field
 ```
 
 **What it does:**
@@ -263,7 +263,7 @@ Create `validation_config.json`:
   "context": "_context.json",
   "workers": 8,
   "add_coauthors": true,
-  "required_keys": ["@id", "validation-key", "ui-label", "description"]
+  "required_keys": ["@id", "validation_key", "ui-label", "description"]
 }
 ```
 
@@ -384,10 +384,10 @@ _handle_file_rename(file_path, expected_filename)
 ```python
 _validate_required_keys(data)
     |
-    +-- Check for required keys: @id, validation-key, ui-label, 
+    +-- Check for required keys: @id, validation_key, ui-label, 
     |   description, @context, @type
     +-- Add missing keys with default values
-    +-- Special case: use '@id' value for missing 'validation-key'
+    +-- Special case: use '@id' value for missing 'validation_key'
 ```
 
 **ID Field Validation**
@@ -442,7 +442,7 @@ _sort_json_keys(data)
     |
     +-- If no context:
             |
-            +-- Priority keys: validation-key, ui-label, description
+            +-- Priority keys: validation_key, ui-label, description
             +-- Remaining keys alphabetically
             +-- JSON-LD keys at end: @id, @context, @type
 ```
@@ -461,7 +461,7 @@ if modified and not dry_run:
 
 #### Default Required Keys
 - `@id` - Must match filename (lowercase, hyphenated)
-- `validation-key` - Must exist (defaults to `@id` value)
+- `validation_key` - Must exist (defaults to `@id` value)
 - `ui-label` - User-facing label
 - `description` - Description text
 - `@context` - JSON-LD context reference
@@ -469,7 +469,7 @@ if modified and not dry_run:
 
 #### Default Values
 - `@id`: empty string
-- `validation-key`: empty string (or copied from `@id`)
+- `validation_key`: empty string (or copied from `@id`)
 - `ui-label`: empty string
 - `@context`: `_context`
 - `@type`: empty array
