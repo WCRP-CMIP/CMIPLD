@@ -33,8 +33,8 @@ log.logger.setLevel(logging.WARNING)
 # Default required keys for CMIP-LD compliance
 DEFAULT_REQUIRED_KEYS = [
     '@id',
-    'validation-key', 
-    'ui-label',
+    'validation_key', 
+    'ui_label',
     'description',
     '@context',
     '@type'
@@ -43,8 +43,8 @@ DEFAULT_REQUIRED_KEYS = [
 # Default values for missing keys
 DEFAULT_VALUES = {
     '@id': '',
-    'validation-key': '',
-    'ui-label': '',
+    'validation_key': '',
+    'ui_label': '',
     '@context': '_context',
     '@type': [],
     'description': ''
@@ -149,7 +149,9 @@ class JSONValidator:
             modified = self._handle_file_rename(file_path, current_filename) or modified
             
             # Basic validation and fixing
+            modified = self._validate_key_format(data) or modified
             modified = self._validate_required_keys(data) or modified
+            
             modified = self._validate_id_field(data, current_filename) or modified
             modified = self._validate_type_field(data, file_path) or modified
             
@@ -189,14 +191,29 @@ class JSONValidator:
         if expected_filename != file_path.stem:
             new_file_path = file_path.parent / (expected_filename + file_path.suffix)
             
-            if new_file_path.exists():
-                log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
-                raise FileExistsError(f"Target file already exists: {new_file_path}")
+            # if new_file_path.exists():
+            #     log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
+            #     log.warn(f"Target file already exists: {new_file_path}")
+            #     modified = False
+            #     return modified
             
             if not self.dry_run:
                 
-                shutil.move(str(file_path), str(new_file_path))
-                file_path.unlink()
+                
+                
+                # shutil.move(str(file_path), str(new_file_path))
+                
+                
+                
+                
+                if new_file_path.exists():
+                    new_file_path.unlink()
+                
+                
+                file_path.rename(new_file_path)
+                
+                
+                # file_path.unlink()
                 
                 # if new_file_path.exists() and not file_path.exists():
                 #     print(f"✅ Moved: {file_path.name} → {new_file_path}")
@@ -211,7 +228,7 @@ class JSONValidator:
         """Validate and add missing required keys."""
         modified = False
         
-        # Check if validation-key is missing but id exists
+        # Check if validation_key is missing but id exists
         
         if '@id' not in data and 'id' in data:
             data['@id'] = data['id']
@@ -230,6 +247,83 @@ class JSONValidator:
                 modified = True
                     
         return modified
+
+
+
+    def _validate_key_format(self, data: Dict[str, Any]) -> bool:
+        """Validate and add missing required keys."""
+        modified = False
+        delete = []
+        
+        for key in list(data.keys()):
+            
+            # make sure the key is lowercase
+            if key != key.lower():
+                lower_key = key.lower()
+                data[lower_key] = data[key]
+                delete.append(key)
+                modified = True
+            
+            
+            # no hyphens in keys - convert to underscores
+            if '-' in key:
+                
+                log.warn(f" {data['@id']} Found hyphen '-' in key '{key}', converting to underscore '_'")
+                
+                new_key = key.replace('-', '_')
+                file_id = data.get('@id', 'unknown')
+                
+                # Skip if keys are identical (shouldn't happen, but defensive)
+                if new_key == key:
+                    continue
+                    
+                # Case 1: underscore version doesn't exist → rename
+                if new_key not in data:
+                    data[new_key] = data[key]
+                    delete.append(key)
+                    modified = True
+                    log.warn(f"[{file_id}] Renamed '{key}' to '{new_key}'")
+                    
+                # Case 2: both exist
+                else:
+                    underscore_empty = data[new_key] is None or data[new_key] == ""
+                    hyphen__empty = data[key] is None or data[key] == ""
+                    
+                    log.warn(f"[{file_id}] Both '{key}' and '{new_key}' exist. underscore_empty={underscore_empty}, hyphen__empty={hyphen__empty}")
+                    
+                    # Case 2a: underscore is empty, hyphen has value → use hyphen
+                    if underscore_empty and not hyphen__empty:
+                        data[new_key] = data[key]
+                        delete.append(key)
+                        modified = True
+                        log.warn(f"[{file_id}] Copied '{key}' to empty '{new_key}' and removed '{key}'")
+                        
+                    # Case 2b: hyphen is empty → delete hyphen
+                    elif hyphen__empty:
+                        delete.append(key)
+                        modified = True
+                        log.warn(f"[{file_id}] Removed empty '{key}' in favor of '{new_key}'")
+                        
+                    # Case 2c: both have values and they're identical → delete hyphen
+                    elif data[key] == data[new_key]:
+                        delete.append(key)
+                        modified = True
+                        log.warn(f"[{file_id}] Removed duplicate '{key}' (same value as '{new_key}')")
+                        
+                    # Case 2d: both have different values → conflict
+                    else:
+                        log.warn(f"[{file_id}] CONFLICT: Both '{key}' and '{new_key}' have different values. These are : '{data[key]}' vs '{data[new_key]}'")
+                        
+                        delete.append(key)
+                        modified = True
+                        log.error(f"[{file_id}] CONFLICT: '{key}'={data[key]} vs '{new_key}'={data[new_key]} - manual review needed")
+
+        # delete here as we cannot modify dict while iterating
+        for key in delete:
+            del data[key]
+
+        return modified
+
 
     def _validate_id_field(self, data: Dict[str, Any], expected_id: str) -> bool:
         """Validate and fix the ID field."""
@@ -344,6 +438,7 @@ class JSONValidator:
         if '@id' in data:
             sorted_data['@id'] = data['@id']       
 
+        
         return sorted_data
 
     def process_file(self, file_path: Path) -> Dict[str, Any]:

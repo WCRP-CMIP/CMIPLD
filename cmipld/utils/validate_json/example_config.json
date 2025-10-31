@@ -6,7 +6,7 @@
   "add-coauthors": true,
   "required-keys": [
     "id",
-    "validation-key",
+    "validation_key",
     "ui-label", 
     "description",
     "@context",
