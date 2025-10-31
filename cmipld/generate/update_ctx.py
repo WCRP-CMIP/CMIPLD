@@ -5,6 +5,7 @@ import os
 def snake_to_pascal(name):
     return ''.join(word.capitalize() for word in name.split('_'))
 
+
 def ld(linked):
     if '@context' not in linked:
         return linked
@@ -26,7 +27,7 @@ def main():
                 ctx = json.load(f).get('@context', {})
             
             # Clean dict items without @id (fixes unhashable error)
-            ctx = {k: ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
+            ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
             ctx['@base'] = f"{base}{folder}/"
@@ -71,8 +72,8 @@ def project():
                 
                 if isinstance(ctx, list):
                     ctx = ctx[1]  # Assume second item is the dict we want
-            
-            ctx = {k: ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
+
+            ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
             ctx['@base'] = f"{base}project/"
