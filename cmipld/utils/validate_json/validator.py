@@ -191,26 +191,25 @@ class JSONValidator:
         if expected_filename != file_path.stem:
             new_file_path = file_path.parent / (expected_filename + file_path.suffix)
             
-            # if new_file_path.exists():
-            #     log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
-            #     log.warn(f"Target file already exists: {new_file_path}")
-            #     modified = False
-            #     return modified
+            if new_file_path.exists():
+                log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
+                log.warn(f"Target file already exists: {new_file_path}")
+                modified = False
+                return modified
             
             if not self.dry_run:
                 
                 
                 
-                # shutil.move(str(file_path), str(new_file_path))
                 
                 
+                # if new_file_path.exists():
+                #     new_file_path.unlink()
                 
                 
-                if new_file_path.exists():
-                    new_file_path.unlink()
+                shutil.move(str(file_path), str(new_file_path))
                 
                 
-                file_path.rename(new_file_path)
                 
                 
                 # file_path.unlink()
