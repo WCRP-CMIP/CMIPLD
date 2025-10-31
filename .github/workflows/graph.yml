@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Find updated directories
-        uses: WCRP-CMIP/CMIPLD/actions/find-updated-directories.yml@main
+        uses: WCRP-CMIP/CMIPLD/actions/find-updated-directories@main
         with:
           base-branch: production
 
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Find all directories
-        uses: WCRP-CMIP/CMIPLD/actions/find-all-directories.yml@main
+        uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
 
 
 
