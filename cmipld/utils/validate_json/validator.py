@@ -268,8 +268,6 @@ class JSONValidator:
             # no hyphens in keys - convert to underscores
             if '-' in key:
                 
-                log.warn(f" {data['@id']} Found hyphen '-' in key '{key}', converting to underscore '_'")
-                
                 new_key = key.replace('-', '_')
                 file_id = data.get('@id', 'unknown')
                 
@@ -288,8 +286,6 @@ class JSONValidator:
                 else:
                     underscore_empty = data[new_key] is None or data[new_key] == ""
                     hyphen__empty = data[key] is None or data[key] == ""
-                    
-                    log.warn(f"[{file_id}] Both '{key}' and '{new_key}' exist. underscore_empty={underscore_empty}, hyphen__empty={hyphen__empty}")
                     
                     # Case 2a: underscore is empty, hyphen has value → use hyphen
                     if underscore_empty and not hyphen__empty:
@@ -318,7 +314,7 @@ class JSONValidator:
                         modified = True
                         log.error(f"[{file_id}] CONFLICT: '{key}'={data[key]} vs '{new_key}'={data[new_key]} - manual review needed")
 
-        # delete here as we cannot modify dict while iterating
+        # delete here as we cannot change
         for key in delete:
             del data[key]
 
