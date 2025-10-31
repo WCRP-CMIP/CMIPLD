@@ -43,30 +43,53 @@ def main():
             
 def project():
     # Get repo base URL
-    repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
+    repo = (os.popen("git remote get-url origin").read()).replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
+
+
+
+    from cmipld.utils.validate_json.validator import JSONValidator
+
+
+    v = JSONValidator('.')
+    
+
+
 
     # Process each context file
     for cx in glob.glob('project/*.json'):
         
-        folder = cx.split('/')[-2].split('.json')[0].replace('-', '_')
+        folder = cx.split('/')[-1].split('.json')[0].replace('-', '_')
         esg_name = snake_to_pascal(folder)
         
         try:
             # Load context
             with open(cx) as f:
-                ctx = json.load(f).get('@context', {})
+                data = json.load(f)
+                
+                ctx = data.get('@context', {})
+                
+                if isinstance(ctx, list):
+                    ctx = ctx[1]  # Assume second item is the dict we want
             
-            # Clean dict items without @id (fixes unhashable error)
             ctx = {k: ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
-            ctx['@base'] = f"{base}{project}/"
+            ctx['@base'] = f"{base}project/"
             ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
             
+            data['@context'] = dict(sorted(ctx.items()))
             # Write back
             with open(cx, 'w') as f:
-                json.dump({'@context': dict(sorted(ctx.items()))}, f, indent=4)
-                
+                json.dump(data, f, indent=4)
+
         except Exception as e:
             print(f"Error with {cx}: {e}")
+            
+            
+        
+        # validate_and_fix_json
+        v.project_type = folder
+        
+        v.validate_and_fix_json(cx)
+        

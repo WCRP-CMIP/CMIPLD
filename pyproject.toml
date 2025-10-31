@@ -39,6 +39,7 @@ Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/mai
 cmipld = "cmipld.browse.__main__:main"                    # Main CMIP-LD browser interface
 pyld = "cmipld.cli.pyld:main"                             # pyld wrapper for testing. 
 update_ctx = "cmipld.generate.update_ctx:main"           # Update JSON-LD context files
+update_project = "cmipld.generate.update_ctx:project"           # Update JSON-LD context files
 update_all = "cmipld.generate.update_all:main"           # Run full update process (contexts + graphs)
 new_issue = "cmipld.generate.new_issue:main"             # Generate new GitHub issue
 generate_summary = "cmipld.generate.generate_summary:main" # Generate repository summary
