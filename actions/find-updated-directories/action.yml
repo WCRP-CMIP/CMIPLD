@@ -1,0 +1,36 @@
+name: Find Updated Directories
+description: Find directories that have been modified between production and current branch
+inputs:
+  base-branch:
+    description: 'Base branch to compare against'
+    required: false
+    default: 'production'
+outputs:
+  directories:
+    description: 'JSON array of updated directory names'
+    value: ${{ steps.set-dirs.outputs.directories }}
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.base-branch }}
+    
+    - name: Find updated directories
+      id: set-dirs
+      shell: bash
+      run: |
+        echo "Finding updated directories..."
+        changed_files=$(git diff --name-only origin/${{ inputs.base-branch }} HEAD || echo "")
+        echo "Changed files: $changed_files"
+        
+        if [ -n "$changed_files" ]; then
+          directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
+        else
+          directories='[]'
+        fi
+        
+        echo "directories=$directories" >> "$GITHUB_OUTPUT"
+        echo "Found directories: $directories"
