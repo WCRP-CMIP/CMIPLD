@@ -21,24 +21,25 @@ permissions:
   contents: write
 
 jobs:
-
   find-updated-directories:
     if: ${{ inputs.updated == true }}
     runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.find.outputs.directories }}
     steps:
-      - name: Find updated directories
-        uses: WCRP-CMIP/CMIPLD/actions/find-updated-directories@main
+      - uses: WCRP-CMIP/CMIPLD/actions/find-updated-directories@main
+        id: find
         with:
           base-branch: production
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
     runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.find.outputs.directories }}
     steps:
-      - name: Find all directories
-        uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
-
-
+      - uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
+        id: find
 
   set-directories:
     runs-on: ubuntu-latest
@@ -46,13 +47,11 @@ jobs:
       - find-updated-directories
       - find-all-directories
     if: ${{ always() && ((needs.find-updated-directories.result == 'success') || (needs.find-all-directories.result == 'success')) }}
-
     outputs:
       directories: ${{ steps.set.outputs.directories }}
     steps:
       - id: set
         run: |
-          
           if [ "${{ inputs.updated }}" = "true" ]; then
             dirs='${{ needs.find-updated-directories.outputs.directories }}'
             echo "Using updated directories: $dirs"
@@ -61,11 +60,9 @@ jobs:
             echo "Using all directories: $dirs"
           fi
           
-          # Filter out directories to skip
           SKIP_DIRS='["project", "ignore", ".github"]'
           dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
           
-          # Robust fallback with hardcoded directories
           if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
             echo "No valid directories found, using fallback"
             dirs='["."]'
@@ -83,12 +80,9 @@ jobs:
         directory: ${{ fromJson(needs.set-directories.outputs.directories || '["."]') }}
       fail-fast: false
       max-parallel: 10
-
     steps:
-      
-      - name: Get a list of directories with updated files
+      - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
-        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
 
       - uses: actions/checkout@v4
         with:
@@ -98,42 +92,29 @@ jobs:
       - name: Set GitHub Pages URL
         run: |
           echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-          echo "Pages URL: $PAGES_URL"
           
-      ## Create Graph
       - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
           echo "🔄 Processing directory: ${{ matrix.directory }}"
           if [ -d "${{ matrix.directory }}" ]; then
             cd "${{ matrix.directory }}"
-            # Fixed the curl command and bash execution
-            #curl -s https://wcrp-cmip.github.io/CMIPLD/bin/ld2graph | bash -s "../${{ matrix.directory }}/"
-            ld2graph "../${{ matrix.directory }}" || {
-              echo "⚠️ ld2graph script failed, but continuing"
-              exit 1
-            }
+            ld2graph "../${{ matrix.directory }}" || exit 1
           else
             echo "⚠️ Skipping - directory doesn't exist"
             exit 1
           fi
-          
-          # graph files are in the gitignore so we need to force add them
           git add -f *graph* || true
           
       - name: Validate JSON-LD from URL
         run: |
           if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
-            # Fixed the pyld command syntax
-            pyld test "${{ matrix.directory }}/graph.jsonld" > /dev/null 2>&1 || {
-              echo "⚠️ Validation failed"
-              exit 1
-            }
+            pyld test "${{ matrix.directory }}/graph.jsonld" > /dev/null 2>&1 || exit 1
           else
-            echo "⚠️ No graph.jsonld found in ${{ matrix.directory }}"
+            echo "⚠️ No graph.jsonld found"
             exit 1
           fi
 
-      - name: graph.jsonld files (Minify and Multiply)
+      - name: Minify graph.jsonld files
         run: |
           find . -type f -name "graph.jsonld" -print0 | while IFS= read -r -d '' file; do
             dir=$(dirname "$file")
@@ -142,7 +123,6 @@ jobs:
             cp "$dir/graph.min.json" "$dir/graph.json"
           done
 
-      ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
@@ -153,40 +133,28 @@ jobs:
           push_options: "--force"
         continue-on-error: true
 
-
-
   production-served-files:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout production branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: production
       
-      
-      - name: .json files without extension
+      - name: Copy .json files without extension
         run: |
-          find . -type f -name "*.json" \
-            ! -path "*/docs/*" \
-            ! -path "*/.*" \
-            -print0 | while IFS= read -r -d '' file; do
-              dir=$(dirname "$file")
-              base=$(basename "$file" .json)
-              cp "$file" "$dir/$base"
-            done
-
+          find . -type f -name "*.json" ! -path "*/docs/*" ! -path "*/.*" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            base=$(basename "$file" .json)
+            cp "$file" "$dir/$base"
+          done
       
-      - name: _context to _context.json
+      - name: Copy _context to _context.json
         run: |
-          find . -type f -name "_context" \
-            -print0 | while IFS= read -r -d '' file; do
-              dir=$(dirname "$file")
-              cp "$file" "$dir/_context.json"
-            done
+          find . -type f -name "_context" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            cp "$file" "$dir/_context.json"
+          done
 
-
-      ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Pages files updated"
