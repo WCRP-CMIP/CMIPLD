@@ -80,6 +80,7 @@ class JSONValidator:
         self.max_workers = max_workers
         self.dry_run = dry_run
         self.required_keys = custom_required_keys or DEFAULT_REQUIRED_KEYS.copy()
+        self.project_type = False
         
         # Initialize sub-components
         self.context_manager = ContextManager(context_file) if context_file else None
@@ -131,10 +132,7 @@ class JSONValidator:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                # # content = f.read()
-                # content = f.read()
-                # if not content:
-                #     return False, "Empty file"
+
 
                 try:
                     data = json.load(f, object_pairs_hook=OrderedDict)
@@ -170,9 +168,6 @@ class JSONValidator:
             # Write changes if modified and not in dry-run mode
             if modified and not self.dry_run:
                 with open(file_path, 'w', encoding='utf-8') as f:
-                    # print('##################')
-                    # print(f"Writing changes to {file_path}")
-                    # print('##################')
                     json.dump(data, f, indent=4, ensure_ascii=False)
                     f.write('\n')
                     
@@ -224,11 +219,11 @@ class JSONValidator:
             modified = True
             log.warn(f"Missing @id: using id '{data['@id']}' as @id")
 
-        if 'validation-key' not in data and '@id' in data:
-            data['validation-key'] = data['@id']
+        if 'validation_key' not in data and '@id' in data:
+            data['validation_key'] = data['@id']
             modified = True
-            log.warn(f"Missing validation-key: using @id '{data['@id']}' as validation-key")
-        
+            log.warn(f"Missing validation_key: using @id '{data['@id']}' as validation_key")
+
         for key in self.required_keys:
             if key not in data:
                 data[key] = DEFAULT_VALUES.get(key, '')
@@ -245,10 +240,9 @@ class JSONValidator:
 
     def _validate_type_field(self, data: Dict[str, Any], file_path: Path) -> bool:
         """Validate and fix the type field based on parent folder."""
-        parent_folder = file_path.parent.name
-        modified_internal = False
         
-        log.warn(f"Validating @type for file in folder: {parent_folder}")   
+        parent_folder = file_path.parent.name
+        modified_internal = self.project_type #False unless a custom type is specified, then it forces an update. (default is False)
         
         if parent_folder and parent_folder != '.':
             
@@ -258,7 +252,8 @@ class JSONValidator:
                 modified_internal = True
                 log.warn(f"Missing @type: using type '{data['@type']}' as @type")
             
-            esgvoc = ''.join(word.capitalize() for word in parent_folder.split('_'))
+            
+            esgvoc = ''.join(word.capitalize() for word in (self.project_type or parent_folder).split('_'))
             
             if '-' in parent_folder:
                 log.warn(f"Parent folder '{parent_folder}' contains hyphen '-', "
@@ -266,7 +261,7 @@ class JSONValidator:
                 
             prefix = cmipld.reverse_direct.get(cmipld.utils.git.git_core.url().replace('WCRP-CMIP','wcrp-cmip')+'/', 'undefined')
             
-            expected_type_part = [f"wcrp:{parent_folder}", f"esgvoc:{esgvoc}", prefix]
+            expected_type_part = [f"wcrp:{self.project_type or parent_folder}", f"esgvoc:{esgvoc}", prefix]
 
             
             current_type = data.get('@type', [])
@@ -325,7 +320,7 @@ class JSONValidator:
         
         # Original CMIP-LD key ordering logic
         sorted_data = OrderedDict()
-        priority_keys = ['validation-key', 'ui-label', 'description']
+        priority_keys = ['validation_key', 'ui_label', 'description']
         
         # Add priority keys first
         for key in priority_keys:
