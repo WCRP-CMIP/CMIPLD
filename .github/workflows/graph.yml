@@ -24,20 +24,23 @@ jobs:
 
   find-updated-directories:
     if: ${{ inputs.updated == true }}
-    uses: WCRP-CMIP/CMIP-LD/actions/find-updated-directories@main
+    uses: WCRP-CMIP/CMIP-LD/.github/workflows/find-updated-directories.yml@main
     with:
       base-branch: production
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
-    uses: WCRP-CMIP/CMIP-LD/actions/find-all-directories@main
+    uses: WCRP-CMIP/CMIP-LD/.github/workflows/find-all-directories.yml@main
+
+
 
   set-directories:
     runs-on: ubuntu-latest
     needs:
       - find-updated-directories
       - find-all-directories
-    if: ${{ always() && (needs.find-updated-directories.result == 'success' || needs.find-all-directories.result == 'success') }}
+    if: ${{ always() && ((needs.find-updated-directories.result == 'success') || (needs.find-all-directories.result == 'success')) }}
+
     outputs:
       directories: ${{ steps.set.outputs.directories }}
     steps:
