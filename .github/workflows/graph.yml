@@ -24,55 +24,13 @@ jobs:
 
   find-updated-directories:
     if: ${{ inputs.updated == true }}
-    runs-on: ubuntu-latest
-    outputs:
-      directories: ${{ steps.set-dirs.outputs.directories }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: production
-          
-      - id: set-dirs
-        run: |
-          echo "Finding updated directories..."
-          changed_files=$(git diff --name-only origin/production HEAD || echo "")
-          echo "Changed files: $changed_files"
-          
-          if [ -n "$changed_files" ]; then
-            directories=$(echo "$changed_files" | grep '/' | cut -d/ -f1 | sort -u | jq -R -s -c 'split("\n")[:-1]')
-          else
-            directories='[]'
-          fi
-          
-          echo "directories=$directories" >> "$GITHUB_OUTPUT"
+    uses: WCRP-CMIP/CMIP-LD/actions/find-updated-directories@main
+    with:
+      base-branch: production
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
-    runs-on: ubuntu-latest
-    outputs:
-      directories: ${{ steps.find-dirs.outputs.directories }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: production
-          
-      - name: Find all subdirectories (excluding . and hidden dirs)
-        id: find-dirs
-        run: |
-          echo "Finding all directories..."
-          directories=$(find . -mindepth 1 -maxdepth 1 -type d -not -path '*/.*' \
-            | sed 's|^\./||' \
-            | sort \
-            | jq -R -s -c 'split("\n")[:-1]')
-          
-          # Handle case where no directories found
-          if [ -z "$directories" ] || [ "$directories" = '[""]' ] || [ "$directories" = "null" ]; then
-            directories='[]'
-          fi
-          
-          echo "directories=$directories" >> "$GITHUB_OUTPUT"
+    uses: WCRP-CMIP/CMIP-LD/actions/find-all-directories@main
 
   set-directories:
     runs-on: ubuntu-latest
