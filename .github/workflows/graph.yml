@@ -24,13 +24,13 @@ jobs:
 
   find-updated-directories:
     if: ${{ inputs.updated == true }}
-    uses: WCRP-CMIP/CMIP-LD/.github/workflows/find-updated-directories.yml@main
+    uses: WCRP-CMIP/CMIPLD/.github/workflows/find-updated-directories.yml@main
     with:
       base-branch: production
 
   find-all-directories:
     if: ${{ inputs.updated == false }}
-    uses: WCRP-CMIP/CMIP-LD/.github/workflows/find-all-directories.yml@main
+    uses: WCRP-CMIP/CMIPLD/.github/workflows/find-all-directories.yml@main
 
 
 
