@@ -152,16 +152,6 @@ jobs:
           
           # graph files are in the gitignore so we need to force add them
           git add -f *graph* || true
-
-      ## Validate
-      # - name: Install jsonld CLI
-      #   run: |
-      #     echo "📦 Installing jsonld CLI..."
-      #     npm install -g git+https://github.com/digitalbazaar/jsonld-cli.git || {
-      #       echo "⚠️ npm install failed, but continuing"
-      #       exit 0
-      #     }
-
           
       - name: Validate JSON-LD from URL
         run: |
@@ -176,12 +166,65 @@ jobs:
             exit 1
           fi
 
+      - name: graph.jsonld files (Minify and Multiply)
+        run: |
+          find . -type f -name "graph.jsonld" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            tr -d '[:space:]' < "$file" > "$dir/graph.min.json"
+            cp "$dir/graph.min.json" "$dir/graph"
+            cp "$dir/graph.min.json" "$dir/graph.json"
+          done
+
       ## Auto-commit changes
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
           branch: production
           file_pattern: "${{ matrix.directory }}/*graph*"
+          commit_user_name: "cmip-ipo automation"
+          commit_user_email: "actions@wcrp-cmip.org"
+          push_options: "--force"
+        continue-on-error: true
+
+
+
+  production-served-files:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: production
+      
+      
+      - name: .json files without extension
+        run: |
+          find . -type f -name "*.json" \
+            ! -path "*/docs/*" \
+            ! -path "*/.*" \
+            -print0 | while IFS= read -r -d '' file; do
+              dir=$(dirname "$file")
+              base=$(basename "$file" .json)
+              cp "$file" "$dir/$base"
+            done
+
+      
+      - name: _context to _context.json
+        run: |
+          find . -type f -name "_context" \
+            -print0 | while IFS= read -r -d '' file; do
+              dir=$(dirname "$file")
+              cp "$file" "$dir/_context.json"
+            done
+
+
+      ## Auto-commit changes
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Pages files updated"
+          branch: production
+          file_pattern: "*/*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
           push_options: "--force"
