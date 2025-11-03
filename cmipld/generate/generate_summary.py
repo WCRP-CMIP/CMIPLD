@@ -67,7 +67,9 @@ def normalize_jsonld_data(data):
 
 
 def write(location, me, data):
+    
     """Write summary file with version header and checksum."""
+
     summary = version(data, me, os.path.basename(location))
 
     if os.path.exists(location):
@@ -96,12 +98,17 @@ def run_script(script_path, repo_info):
                 data["@graph"] = [normalize_jsonld_data(item) for item in data["@graph"]]
             return data
 
+
         cmipld.get = normalizing_get
 
-        processed = module.run(**repo_info)
+        processed = list(module.run(**repo_info))
+        
+        
+     
         if processed and len(processed) == 3:
             processed[0] = os.path.join(OUTDIR, processed[0])
             write(*processed)
+            print(f"✅ {os.path.basename(script_path)}: Success")
             return True
         else:
             print(f"❌ {os.path.basename(script_path)}: No output")
@@ -116,6 +123,7 @@ def run_script(script_path, repo_info):
 
 
 def main():
+    
     import sys
 
     if len(sys.argv) != 2:
