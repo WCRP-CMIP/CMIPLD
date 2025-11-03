@@ -97,6 +97,14 @@ def version(data, name, location='./', repo=None):
     header['comment'] = 'This is an automatically generated file. Do not edit.'
 
     output['Header'] = header
-    output[name] = OrderedDict(sorted(data.items(), key=lambda item: item[0]))
+    if isinstance(data, dict):
+        output[name] = OrderedDict(sorted(data.items(), key=lambda item: item[0]))
+    elif isinstance(data, list):
+        if isinstance(data[0], dict):
+            output[name] = [OrderedDict(sorted(d.items(), key=lambda item: item[0])) for d in data]
+        else:
+            output[name] = sorted(data)
+    else:
+        output[name] = data
 
     return output

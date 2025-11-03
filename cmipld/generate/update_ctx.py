@@ -7,17 +7,22 @@ def snake_to_pascal(name):
 
 
 def ld(linked):
-    
-    if '@type' in linked and linked['@type'] == '@id':
-        linked['@container'] = '@set'
-        return linked
+
     if '@context' not in linked:
+        return linked
+    elif '@type' in linked and linked['@type'] == '@id' and '@container'  not in linked:
+        linked['@container'] = '@set'
         return linked
     return {'@context': linked['@context'], "@container":"@set" , '@type':'@id'}
 #  lets make all linked items an array, this makes it easier to handle later
 
 def main():
-    # Get repo base URL
+    data()
+    project()
+    
+    
+def data():
+    # Get repo base URL§
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
 
@@ -45,6 +50,7 @@ def main():
         except Exception as e:
             print(f"Error with {cx}: {e}")
             
+
             
             
 def project():
@@ -58,9 +64,6 @@ def project():
 
 
     v = JSONValidator('.')
-    
-
-
 
     # Process each context file
     for cx in glob.glob('project/*.json'):
@@ -70,13 +73,13 @@ def project():
         
         try:
             # Load context
-            with open(cx) as f:
+            with open(cx,'r') as f:
                 data = json.load(f)
                 
                 ctx = data.get('@context', {})
                 
                 if isinstance(ctx, list):
-                    ctx = ctx[1]  # Assume second item is the dict we want
+                    ctx = ctx[-1]  # Assume last item is the dict we want
 
             ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
@@ -93,9 +96,9 @@ def project():
             print(f"Error with {cx}: {e}")
             
             
-        
-        # validate_and_fix_json
-        v.project_type = folder
-        
-        v.validate_and_fix_json(cx)
-        
+    
+    # validate_and_fix_json
+    v.project_type = folder
+    
+    v.validate_and_fix_json(cx)
+    
