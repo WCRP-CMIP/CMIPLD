@@ -61,3 +61,14 @@ def name_extract(data, fields=None, key='validation_key'):
 
 def sortd(d):
     return OrderedDict(sorted(d.items()))
+
+
+def cvjson_validation_key (e):
+    if not isinstance(e,list):
+        e = [e]
+    return [
+            k.get('validation_key', e.get('@id') if isinstance(e, dict) else None)  # if k is a dict
+            if isinstance(k, dict) 
+            else str(k)  # if k is not a dict
+            for k in e
+            ]
