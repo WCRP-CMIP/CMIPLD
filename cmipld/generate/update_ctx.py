@@ -7,6 +7,10 @@ def snake_to_pascal(name):
 
 
 def ld(linked):
+    
+    if '@type' in linked and linked['@type'] == '@id':
+        linked['@container'] = '@set'
+        return linked
     if '@context' not in linked:
         return linked
     return {'@context': linked['@context'], "@container":"@set" , '@type':'@id'}
