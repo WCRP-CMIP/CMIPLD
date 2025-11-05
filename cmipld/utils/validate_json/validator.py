@@ -143,7 +143,10 @@ class JSONValidator:
                 return False, "JSON root is not an object"
 
             modified = False
-            current_filename = file_path.stem.lower().replace('_', '-')
+            if 'project' not in file_path.parts:
+                current_filename = file_path.stem.lower().replace('_', '-')
+            else:
+                current_filename = file_path.stem.lower()
             
             # Handle file renaming
             modified = self._handle_file_rename(file_path, current_filename) or modified

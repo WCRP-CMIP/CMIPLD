@@ -214,3 +214,22 @@ def get_github_raw_url(prefix):
 def get_repo_info(prefix):
     """Get repository owner and name for prefix"""
     return _prefix_data.get(prefix, {})
+
+
+def prefixify(data):
+    # if we are using a dictionary, convert to a compact string
+    if isinstance(data, dict):
+        quick_compact = json.dumps(data)
+    else:
+        quick_compact = str(data)
+        
+    # batch find and replace
+    for i,j in cmipld.mapping.items():
+        quick_compact = re.sub(j, i+':', quick_compact)
+        print(i,j)
+        
+    # if we started with a dict, convert back
+    if not isinstance(data, dict):
+        quick_compact = json.loads(quick_compact)
+        
+    return quick_compact
