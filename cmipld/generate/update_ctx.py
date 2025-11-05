@@ -17,17 +17,22 @@ def ld(linked):
 #  lets make all linked items an array, this makes it easier to handle later
 
 def main():
+    from cmipld.utils.validate_json.validator import JSONValidator
+
+    global v
+    v = JSONValidator('.')
     data()
     project()
     
     
 def data():
+    
     # Get repo base URL§
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
 
     # Process each context file
-    for cx in glob.glob('*/*_context'):
+    for cx in glob.glob('*/_context'):
         folder = cx.split('/')[-2].replace('-', '_')
         esg_name = snake_to_pascal(folder)
         
@@ -35,6 +40,9 @@ def data():
             # Load context
             with open(cx) as f:
                 ctx = json.load(f).get('@context', {})
+                
+            if isinstance(ctx, list):
+                ctx = ctx[-1]  # Assume last item is the dict we want
             
             # Clean dict items without @id (fixes unhashable error)
             ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
@@ -44,6 +52,8 @@ def data():
             ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}."
             
             # Write back
+            
+            print (f"Updating context file: {cx}")
             with open(cx, 'w') as f:
                 json.dump({'@context': dict(sorted(ctx.items()))}, f, indent=4)
                 
@@ -51,19 +61,18 @@ def data():
             print(f"Error with {cx}: {e}")
             
 
+
             
             
 def project():
+    global v
     # Get repo base URL
     repo = (os.popen("git remote get-url origin").read()).replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
 
 
 
-    from cmipld.utils.validate_json.validator import JSONValidator
 
-
-    v = JSONValidator('.')
 
     # Process each context file
     for cx in glob.glob('project/*.json'):
@@ -95,10 +104,8 @@ def project():
         except Exception as e:
             print(f"Error with {cx}: {e}")
             
-            
-    
-    # validate_and_fix_json
-    v.project_type = folder
-    
-    v.validate_and_fix_json(cx)
+        # validate_and_fix_json
+        v.project_type = data.get('@id')
+
+        v.validate_and_fix_json(cx)    
     

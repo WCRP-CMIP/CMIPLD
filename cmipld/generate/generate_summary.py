@@ -15,6 +15,7 @@ from cmipld.utils.git.repo_info import cmip_info
 from cmipld.utils.server_tools.offline import LD_server
 from cmipld.utils.checksum import version
 from cmipld.utils import io  # explicit import for jr/jw
+from p_tqdm import p_map
 
 OUTDIR = ".summaries"
 os.makedirs(OUTDIR, exist_ok=True)
@@ -98,15 +99,16 @@ def run_script(script_path, repo_info):
                 data["@graph"] = [normalize_jsonld_data(item) for item in data["@graph"]]
             return data
 
-
         cmipld.get = normalizing_get
 
-        processed = list(module.run(**repo_info))
+        processed = module.run(**repo_info)
         
         
      
         if processed and len(processed) == 3:
-            processed[0] = os.path.join(OUTDIR, processed[0])
+            # processed[0] = os.path.join(OUTDIR, processed[0])
+            # print(processed[0],OUTDIR)
+            
             write(*processed)
             print(f"✅ {os.path.basename(script_path)}: Success")
             return True
@@ -134,6 +136,8 @@ def main():
 
     print("🔍 Getting repository information...")
     repo = cmip_info()
+    # # repo['path'] = f"{repo['path']}/{OUTDIR}"
+    # print('aaaaa',repo['path'])
 
     print("🖥️  Setting up local LD server...")
     location = repo.path
@@ -152,7 +156,17 @@ def main():
         ]
         print(f"🚀 Running {len(scripts)} summary scripts...\n")
 
+
+        # append the output directory only for the write function
+        repo['path'] = f"{repo['path']}/{OUTDIR}"
+        # go write 
         success = sum(run_script(s, dict(repo)) for s in tqdm.tqdm(scripts))
+        
+        # success_list = p_map(lambda s: run_script(s, dict(repo)), scripts)
+        
+        # success = sum(1 for result in success_list if result is True)
+        
+        
         print(f"\n✅ Summary: {success}/{len(scripts)} scripts successful")
 
     finally:
