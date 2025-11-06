@@ -5,11 +5,16 @@ Per-File Template Generator - Fixed for Select Multiple Fields
 Handles select fields properly without value attributes.
 """
 
-import csv
+import csv,os,json
 import sys
 import yaml
 import argparse
 from pathlib import Path
+import random
+import subprocess
+
+def random_color():
+    return f"{random.randint(0, 0xFFFFFF):06X}"
 
 failed = []
 
@@ -196,7 +201,10 @@ def process_template_pair(template_name, csv_file, py_file, output_dir):
             print(f"    No TEMPLATE_CONFIG found")
             return False
         
+        
+        
         print(f"    Loaded: {config['name']}")
+        makelabel(config)
         
         fields = load_csv_fields(csv_file)
         print(f"    Fields: {len(fields)}")
@@ -225,6 +233,7 @@ def parse_arguments():
     parser.add_argument('-t', '--template-dir', type=Path, help='Template directory')
     parser.add_argument('-o', '--output-dir', type=Path, help='Output directory')
     parser.add_argument('--template', type=str, help='Generate specific template')
+    parser.add_argument('--no-docs', action='store_false', help='Disable documentation generation')
     return parser.parse_args()
 
 def main():
@@ -263,26 +272,151 @@ def main():
     
     print(f"Processing {len(csv_files)} templates")
     
+    
+    created = []
+    
     success_count = 0
     for csv_file in csv_files:
         template_name = csv_file.stem
         py_file = template_dir / f"{template_name}.py"
         
+        
+        
         if py_file.exists():
             if process_template_pair(template_name, csv_file, py_file, output_dir):
                 success_count += 1
+                
+            created.append(template_name)
     
     print(f"Results: {success_count}/{len(csv_files)} successful")
     
     for i in range(len(failed)):
         print(f"\nFailed YAML {i+1}:\n")
         print(failed[i])
+        
+    
+    
+    # other functions 
+    print('MAKE THIS OPTIONAL')
+
+    import subprocess
+    # Get repo info using gh
+    output = subprocess.check_output(["gh", "repo", "view", "--json", "url,name,owner"], text=True)
+    data = json.loads(output)
+
+    repo_url = data["url"]
+    io_url = f"https://{data['owner']['login']}.github.io/{data['name']}/"
+
+    print("Repo URL:", repo_url)
+    print("GitHub Pages URL:", io_url)
+
+    if args.no_docs:
+        contributing = '''
+# Contribution Guidelines
+Possible links to contribute are provided here. 
+
+'''
+    else:
+
+
+            
+        
+        contributing = f'''
+# Contribution Guidelines
+
+## Submitting or Modifying Controlled Vocabularies
+Please ensure that any additions or modifications to controlled vocabularies adhere to the established standards and formats. Refer to the [Controlled Vocabularies Documentation]({repo.io}/doc) for guidance.
+
+The following forms are available for this repository, and can be used to add or modify entries. The complete submission pipeline is outlines in [add link here]().
+
+
+'''
+    
+    if os.path.exists(f'{template_dir}/config.json'):
+        with open(f'{template_dir}/config.json', 'r') as f:
+            config_data = json.load(f)
+            
+        for group_name,v in config_data.get('grouping',{}).items():
+            contributing += f"### {group_name}\n\n"
+            for t in v:
+                template_file = output_dir / f"{t}.yml"
+                if template_file.exists():
+                    templateurl = f"{repo_url}/issues/new?template={t}.yml"
+                    contributing += f"- [{t}]({templateurl})\n"
+                    created.remove(t)
+
+        if len(created) > 0:
+            contributing += f"### Ungrouped Forms\n\n"
+
+            for t in created:
+                    templateurl = f"{repo_url}/issues/new?template={t}.yml"
+                    contributing += f"- [{t}]({templateurl})\n"
+    
+        
+        with open( output_dir / "../CONTRIBUTING.md", 'w', encoding='utf-8') as f:
+            f.write(contributing)
+        
+
+        # ##### make links file 
+        # with open( output_dir / "../config.yml", 'w', encoding='utf-8') as f:
+        #     f.write("blank_issues_enabled: false\n")
+        #     f.write("contact_links:\n")
+        #     for t in config_data.get('links',[]):
+        #         f.write(f"  - name: {t['name']}\n")
+        #         f.write(f"    url: {t['url']}\n")
+        #         f.write(f"    description: {t['description']}\n")
+        
+        # import yaml
+        # from pathlib import Path
+
+        output_file = Path(output_dir) / "config.yml"
+        # Build dictionary for YAML
+        yaml_data = {
+            "blank_issues_enabled": False,
+            "contact_links": config_data.get("links", [])
+        }
+        # Write YAML file
+        with open(output_file, "w", encoding="utf-8") as f:
+            yaml.dump(
+                yaml_data,
+                f,
+                sort_keys=False,      # keep order
+                default_flow_style=False,  # use block style
+                allow_unicode=True
+            )
+            
+    
+    
+    # templateurl = f"{repo.url}//issues/new?template={template_name}.yml"
     
     
     
     return success_count > 0
 
 
+existing = subprocess.run(
+    ["gh", "label", "list", "--json", "name"],
+    capture_output=True,
+    text=True
+)
+existing_labels = [l["name"] for l in json.loads(existing.stdout)]
+
+def makelabel(config):
+
+    for label in config.get('labels', []):
+        if label in existing_labels:
+            continue
+        try:
+            color = random_color()
+            subprocess.run([
+                "gh", "label", "create",
+                label,
+                "--color", color,
+                "--description", label
+            ])
+            print(f"Created label: {label['name']} with color #{color}")
+        except subprocess.CalledProcessError:
+            pass
 
 
 if __name__ == '__main__':
