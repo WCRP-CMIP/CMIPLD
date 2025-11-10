@@ -401,13 +401,16 @@ The following forms are available for this repository, and can be used to add or
     
     return success_count > 0
 
-
-existing = subprocess.run(
-    ["gh", "label", "list", "--json", "name"],
-    capture_output=True,
-    text=True
-)
-existing_labels = [l["name"] for l in json.loads(existing.stdout)]
+try:
+    existing = subprocess.run(
+        ["gh", "label", "list", "--json", "name"],
+        capture_output=True,
+        text=True
+    )
+    existing_labels = [l["name"] for l in json.loads(existing.stdout)]
+except Exception as e:
+    print(f"Error fetching existing labels: {e}")
+    existing_labels = []
 
 def makelabel(config):
 
