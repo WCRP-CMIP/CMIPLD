@@ -345,30 +345,8 @@ The following forms are available for this repository, and can be used to add or
                     contributing += f"- [{t}]({templateurl})\n"
                     created.remove(t)
 
-        if len(created) > 0:
-            contributing += f"### Ungrouped Forms\n\n"
-
-            for t in created:
-                    templateurl = f"{repo_url}/issues/new?template={t}.yml"
-                    contributing += f"- [{t}]({templateurl})\n"
-    
         
-        with open( output_dir / "../CONTRIBUTING.md", 'w', encoding='utf-8') as f:
-            f.write(contributing)
-        
-
-        # ##### make links file 
-        # with open( output_dir / "../config.yml", 'w', encoding='utf-8') as f:
-        #     f.write("blank_issues_enabled: false\n")
-        #     f.write("contact_links:\n")
-        #     for t in config_data.get('links',[]):
-        #         f.write(f"  - name: {t['name']}\n")
-        #         f.write(f"    url: {t['url']}\n")
-        #         f.write(f"    description: {t['description']}\n")
-        
-        # import yaml
-        # from pathlib import Path
-
+        # Create config.yml for GitHub
         output_file = Path(output_dir) / "config.yml"
         # Build dictionary for YAML
         yaml_data = {
@@ -384,7 +362,34 @@ The following forms are available for this repository, and can be used to add or
                 default_flow_style=False,  # use block style
                 allow_unicode=True
             )
-            
+                
+
+    if len(created) > 0:
+        contributing += f"### Ungrouped Forms\n\n"
+
+        for t in created:
+                templateurl = f"{repo_url}/issues/new?template={t}.yml"
+                contributing += f"- [{t}]({templateurl})\n"
+
+    
+    with open( output_dir / "../CONTRIBUTING.md", 'w', encoding='utf-8') as f:
+        f.write(contributing)
+        print('💾 CONTRIBUTING.md written')
+        
+
+        # ##### make links file 
+        # with open( output_dir / "../config.yml", 'w', encoding='utf-8') as f:
+        #     f.write("blank_issues_enabled: false\n")
+        #     f.write("contact_links:\n")
+        #     for t in config_data.get('links',[]):
+        #         f.write(f"  - name: {t['name']}\n")
+        #         f.write(f"    url: {t['url']}\n")
+        #         f.write(f"    description: {t['description']}\n")
+        
+        # import yaml
+        # from pathlib import Path
+
+
     
     
     # templateurl = f"{repo.url}//issues/new?template={template_name}.yml"

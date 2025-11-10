@@ -70,7 +70,7 @@ def normalize_jsonld_data(data):
 def write(location, me, data):
     
     """Write summary file with version header and checksum."""
-
+    
     summary = version(data, me, os.path.basename(location))
 
     if os.path.exists(location):
@@ -102,6 +102,7 @@ def run_script(script_path, repo_info):
         cmipld.get = normalizing_get
 
         processed = module.run(**repo_info)
+        # location, me , data
         
         
      
@@ -134,6 +135,9 @@ def main():
 
     script_dir = sys.argv[1]
 
+
+
+
     print("🔍 Getting repository information...")
     repo = cmip_info()
     # # repo['path'] = f"{repo['path']}/{OUTDIR}"
@@ -145,6 +149,19 @@ def main():
     local = [(location, cmipld.mapping[prefix], prefix)]
 
     server = LD_server(copy=local, use_ssl=False)
+
+
+    # True if NOT running in GitHub Actions
+    if os.getenv("GITHUB_ACTIONS") != "true":
+        print("Running locally (not on GitHub Actions). Running ld2graph to generate latest data...")
+        print(f"updating all folders in {server.temp_dir.name}/{prefix}")
+        for folder in tqdm.tqdm(glob.glob(f"{server.temp_dir.name}/{prefix}/*/")):
+            os.popen(f"ld2graph {folder}  > /dev/null 2>&1").read()
+        
+    else:
+        print("Running on GitHub Actions")
+    
+    
 
     try:
         base_url = server.start_server(port=8081)
@@ -159,6 +176,10 @@ def main():
 
         # append the output directory only for the write function
         repo['path'] = f"{repo['path']}/{OUTDIR}"
+        
+        
+
+        
         # go write 
         success = sum(run_script(s, dict(repo)) for s in tqdm.tqdm(scripts))
         
