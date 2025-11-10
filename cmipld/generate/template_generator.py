@@ -203,10 +203,13 @@ def process_template_pair(template_name, csv_file, py_file, output_dir):
         
         
         
+        
         print(f"    Loaded: {config['name']}")
         makelabel(config)
         
+        
         fields = load_csv_fields(csv_file)
+        
         print(f"    Fields: {len(fields)}")
         
         yaml_content = generate_template_yaml(config, fields, data)
@@ -220,7 +223,7 @@ def process_template_pair(template_name, csv_file, py_file, output_dir):
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(yaml_content)
         
-        print(f"    Generated {template_name}.yml")
+        print(f"    Generated {template_name}.yml at {output_file}")
         return True
         
     except Exception as e:
@@ -332,8 +335,8 @@ The following forms are available for this repository, and can be used to add or
 
 '''
     
-    if os.path.exists(f'{template_dir}/config.json'):
-        with open(f'{template_dir}/config.json', 'r') as f:
+    if os.path.exists(f'{template_dir}/_config.json'):
+        with open(f'{template_dir}/_config.json', 'r') as f:
             config_data = json.load(f)
             
         for group_name,v in config_data.get('grouping',{}).items():
@@ -419,7 +422,7 @@ def makelabel(config):
                 "--color", color,
                 "--description", label
             ])
-            print(f"Created label: {label['name']} with color #{color}")
+            print(f"Created label: {label} with color #{color}")
         except subprocess.CalledProcessError:
             pass
 
