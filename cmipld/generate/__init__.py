@@ -9,6 +9,6 @@ Contains utilities for generating various outputs including:
 - GitHub issue templates
 """
 
-from . import template_generator
+# from . import template_generator
 
-__all__ = ['template_generator']
+# # __all__ = ['template_generator']
