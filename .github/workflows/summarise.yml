@@ -1,0 +1,99 @@
+name: ⌮ Summarise
+description: generate a summary from the src-data branch and sync to production
+permissions:
+  contents: write
+  pages: write
+  actions: write
+  id-token: write
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      output-path:
+        description: 'path to output summaries'
+        required: false
+        default: './content_summaries/'
+
+
+jobs:
+  gen-summaries:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Install CMIPLD
+        id: install-cmipld
+        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
+      
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: src-data
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: generate graph files
+        run: |
+          for d in */; do ld2graph "${d%/}"; done
+
+      - name: generate the summaries
+        run: |
+          generate_summary .github/GENERATE_SUMMARIES/
+
+      - name: List summary files
+        run: ls -R .summaries/
+      
+
+      - name: Upload folder as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: summaries
+          path: .summaries/
+          include-hidden-files: true
+          
+      
+  display-main:
+    needs: gen-summaries
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: remove old summaries
+        run: |
+          # Extract repo name and convert to lowercase
+          REPO_LOWER="${GITHUB_REPOSITORY##*/}"
+          REPO_LOWER=$(echo "$REPO_LOWER" | tr '[:upper:]' '[:lower:]')
+
+          mkdir -p ${{inputs.output-path}}
+
+          # Remove JSON files starting with repo name
+          find ${{inputs.output-path}} -type f -name "${REPO_LOWER}_*.json" -exec rm -v {} \;
+
+          git add -A 
+          git commit -m 'Automated Cleanup'
+          
+        shell: bash
+
+      - name: Download summaries artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: summaries
+          path: ${{inputs.output-path}}
+
+      - name: Commit and Push Changes
+        # if: steps.check_changes.outputs.no_changes == 'false'
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: '.'
+          author_name: 'cmip-ipo'
+          author_email: 'actions@wcrp-cmip.org'
+          message: 'Automated summary generate from src-data branch.'
+          branch: main
+          push: true
+          
+
