@@ -61,6 +61,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Configure Git
+        run: |
+          git config user.name "cmip-ipo"
+          git config user.email "actions@wcrp-cmip.org"
+
       - name: remove old summaries
         run: |
           # Extract repo name and convert to lowercase
