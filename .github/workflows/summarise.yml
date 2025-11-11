@@ -98,5 +98,4 @@ jobs:
           author_name: 'cmip-ipo'
           author_email: 'actions@wcrp-cmip.org'
           message: 'Automated summary generate from src-data branch.'
-          branch: main
           push: true
