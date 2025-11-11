@@ -77,8 +77,11 @@ jobs:
           # Remove JSON files starting with repo name
           find ${{inputs.output-path}} -type f -name "${REPO_LOWER}_*.json" -exec rm -v {} \;
 
-          git add -A 
-          git commit -m 'Automated Cleanup'
+          # Only commit if there are changes
+          if ! git diff --quiet --exit-code; then
+            git add -A 
+            git commit -m 'Automated Cleanup'
+          fi
           
         shell: bash
 

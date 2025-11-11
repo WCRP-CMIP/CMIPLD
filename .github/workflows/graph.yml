@@ -65,7 +65,7 @@ jobs:
           
           if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
             echo "No valid directories found, using fallback"
-            dirs='["."]'
+            dirs='[]'
           fi
           
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
