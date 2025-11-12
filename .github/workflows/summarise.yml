@@ -61,12 +61,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Configure Git
-        run: |
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
+      # - name: Configure Git
+      #   run: |
+      #     git config user.name "${{ github.actor }}"
+      #     git config user.email "${{ github.actor }}@users.noreply.github.com"
 
-      # - name: remove old summaries
+      # # - name: remove old summaries
       #   run: |
       #     # Extract repo name and convert to lowercase
       #     REPO_LOWER="${GITHUB_REPOSITORY##*/}"
