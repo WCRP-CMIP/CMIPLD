@@ -146,14 +146,13 @@ jobs:
         run: |
           {
             echo "# Prepublish Scripts Report"
-            echo "---"
             
             if [ -d "$PREPUBLISH_DIR" ]; then
               for file in $PREPUBLISH_DIR/*.{sh,py}; do
                 [ -f "$file" ] || continue
-                echo -e "\n#### $(basename "$file")\n"
+          s
                 echo '```'
-                
+                echo -e "#### $(basename "$file")\n"
                 if [[ "$file" == *.py ]]; then
                   chmod +x "$file"
                   python "$file" 2>&1
@@ -172,7 +171,9 @@ jobs:
             echo "Completed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           } >> $GITHUB_STEP_SUMMARY
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+
+      - name: Commit and Push Pages Updates
+        uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Pages files updated"
           branch: production
