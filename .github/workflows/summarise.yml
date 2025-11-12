@@ -66,24 +66,24 @@ jobs:
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
-      - name: remove old summaries
-        run: |
-          # Extract repo name and convert to lowercase
-          REPO_LOWER="${GITHUB_REPOSITORY##*/}"
-          REPO_LOWER=$(echo "$REPO_LOWER" | tr '[:upper:]' '[:lower:]')
+      # - name: remove old summaries
+      #   run: |
+      #     # Extract repo name and convert to lowercase
+      #     REPO_LOWER="${GITHUB_REPOSITORY##*/}"
+      #     REPO_LOWER=$(echo "$REPO_LOWER" | tr '[:upper:]' '[:lower:]')
 
-          mkdir -p ${{inputs.output-path}}
+      #     mkdir -p ${{inputs.output-path}}
 
-          # Remove JSON files starting with repo name
-          find ${{inputs.output-path}} -type f -name "${REPO_LOWER}_*.json" -exec rm -v {} \;
+      #     # Remove JSON files starting with repo name
+      #     find ${{inputs.output-path}} -type f -name "${REPO_LOWER}_*.json" -exec rm -v {} \;
 
-          # # Only commit if there are changes
-          # if ! git diff --quiet --exit-code; then
-          #   git add -A 
-          #   git commit -m 'Automated Cleanup'
-          # fi
+      #     # # Only commit if there are changes
+      #     # if ! git diff --quiet --exit-code; then
+      #     #   git add -A 
+      #     #   git commit -m 'Automated Cleanup'
+      #     # fi
           
-        shell: bash
+      #   shell: bash
 
       - name: Download summaries artifact
         uses: actions/download-artifact@v4
