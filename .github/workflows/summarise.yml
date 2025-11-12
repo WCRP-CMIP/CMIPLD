@@ -97,7 +97,7 @@ jobs:
       - name: Commit and Push Changes
         uses: EndBug/add-and-commit@v9
         with:
-          add: '${{inputs.output-path}}**'
+          add: '${{inputs.output-path}}**/**'
           author_name: ${{ github.actor }}
           author_email: ${{ github.actor }}@users.noreply.github.com
           message: 'Automated summary generate from src-data branch.'
