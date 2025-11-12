@@ -100,5 +100,5 @@ jobs:
           add: '${{inputs.output-path}}'
           author_name: ${{ github.actor }}
           author_email: ${{ github.actor }}@users.noreply.github.com
-          message: 'Automated summary generate from src-data branch.'
+          message: 'Automated summary generation from src-data branch.'
           push: true
