@@ -150,7 +150,7 @@ jobs:
             if [ -d "$PREPUBLISH_DIR" ]; then
               for file in $PREPUBLISH_DIR/*.{sh,py}; do
                 [ -f "$file" ] || continue
-          s
+          
                 echo '```'
                 echo -e "#### $(basename "$file")\n"
                 if [[ "$file" == *.py ]]; then
