@@ -63,8 +63,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config user.name "cmip-ipo"
-          git config user.email "actions@wcrp-cmip.org"
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: remove old summaries
         run: |
@@ -95,7 +95,7 @@ jobs:
         uses: EndBug/add-and-commit@v9
         with:
           add: '${{inputs.output-path}}/*'
-          author_name: 'cmip-ipo'
-          author_email: 'actions@wcrp-cmip.org'
+          author_name: ${{ github.actor }}
+          author_email: ${{ github.actor }}@users.noreply.github.com
           message: 'Automated summary generate from src-data branch.'
           push: true
