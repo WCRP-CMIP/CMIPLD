@@ -33,7 +33,10 @@ jobs:
 
       - name: generate graph files
         run: |
-          for d in */; do ld2graph "${d%/}"; done
+          for d in */; do
+            [[ "$d" == "project/" ]] && continue
+            ld2graph "${d%/}"
+          done
 
       - name: generate the summaries
         run: |
