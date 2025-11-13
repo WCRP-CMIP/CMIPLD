@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.set-directories.outputs.directories || '["."]') }}
+        directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
       fail-fast: false
       max-parallel: 10
     steps:

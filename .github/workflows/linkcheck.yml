@@ -1,0 +1,52 @@
+name: JSONLD Graph Builder
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  find-all-directories:
+    runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.set.outputs.directories }}
+    steps:
+      - uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
+        id: find
+
+      - id: set
+        run: |
+          dirs='${{ steps.find.outputs.directories }}'
+          
+          SKIP_DIRS='["ignore", ".github",'.src']'
+          dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
+          
+          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
+            echo "No valid directories found, using fallback"
+            dirs='[]'
+          fi
+          
+          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
+          echo "Final directories for matrix: $dirs"
+
+  process-directories:
+    needs: set-directories
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
+      fail-fast: false
+      max-parallel: 10
+    steps:
+      - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
+        id: install-cmipld
+
+          
+      - name: LinkCheck ${{ matrix.directory }}
+        run: |
+          linkcheck ${{ matrix.directory }} >> ${GITHUB_STEP_SUMMARY} 2>&1
