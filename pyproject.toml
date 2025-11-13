@@ -49,7 +49,7 @@ create_readme = "cmipld.generate.create_readme:main"     # Create README files
 template_update = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
 commit_author = "cmipld.generate.commit_author:main" # commit a file with another author. 
 ci = "cmipld.generate.ci:main" # check files,
-linkcheck = "cmipld.linkchecker:main"
+linkcheck = "cmipld.generate.linkchecker:main"
 
 [tool.setuptools]
 packages = ["cmipld"]
