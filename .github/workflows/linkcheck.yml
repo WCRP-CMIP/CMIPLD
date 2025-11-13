@@ -33,13 +33,13 @@ jobs:
         run: |
           dirs='${{ steps.find.outputs.directories }}'
           
-          SKIP_DIRS='["ignore", ".github",'.src']'
-          dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
+          # SKIP_DIRS='["ignore", ".github",'.src']'
+          # dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
           
-          if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
-            echo "No valid directories found, using fallback"
-            dirs='[]'
-          fi
+          # if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
+          #   echo "No valid directories found, using fallback"
+          #   dirs='[]'
+          # fi
           
           echo "directories=$dirs" >> "$GITHUB_OUTPUT"
           echo "Final directories for matrix: $dirs"
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
+        directory: ${{ fromJson(needs.find-all-directories.outputs.directories || '[]') }}
       fail-fast: false
       max-parallel: 10
     steps:
