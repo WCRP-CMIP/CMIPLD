@@ -63,4 +63,4 @@ jobs:
       
       - name: LinkCheck ${{ matrix.directory }}
         run: |
-          linkcheck ${{ matrix.directory }} >> ${GITHUB_STEP_SUMMARY}
+          linkcheck ${{ matrix.directory }}
