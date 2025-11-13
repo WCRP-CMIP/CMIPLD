@@ -1,7 +1,7 @@
 import cmipld,glob,sys
 from pyld import jsonld
 from cmipld.utils.git.repo_info import cmip_info
-from cmipld.utils.git.
+
 
 def check(file):
     expanded = jsonld.expand(file)
