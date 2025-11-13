@@ -1,4 +1,4 @@
-import cmipld,glob,sys
+import cmipld,glob,sys,json
 from pyld import jsonld
 from cmipld.utils.git.repo_info import cmip_info
 
@@ -53,7 +53,7 @@ def broken_links_summary(url):
     return summary
 
 
-def main(file):
+def main():
     # file = 'cmip7:experiment/graph.json'
     
     prefix = cmip_info()['whoami']
