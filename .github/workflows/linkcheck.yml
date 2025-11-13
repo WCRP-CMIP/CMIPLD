@@ -34,7 +34,7 @@ jobs:
           echo "Final directories for matrix: $dirs"
 
   process-directories:
-    needs: set-directories
+    needs: find-all-directories
     if: ${{ always() }}
     runs-on: ubuntu-latest
     strategy:
@@ -43,10 +43,10 @@ jobs:
       fail-fast: false
       max-parallel: 10
     steps:
+
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
 
-          
       - name: LinkCheck ${{ matrix.directory }}
         run: |
           linkcheck ${{ matrix.directory }} >> ${GITHUB_STEP_SUMMARY} 2>&1
