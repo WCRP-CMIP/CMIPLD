@@ -24,7 +24,7 @@ jobs:
 
       - name: List all directories
         id: list
-        run: ls -a'
+        run: ls -a
 
       - uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
         id: find
