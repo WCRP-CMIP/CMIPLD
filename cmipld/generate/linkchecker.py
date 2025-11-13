@@ -3,6 +3,8 @@ from pyld import jsonld
 from cmipld.utils.git.repo_info import cmip_info
 
 
+
+
 def check(file):
     expanded = jsonld.expand(file)
     # assert (expanded)<2, "This check is not inten"
@@ -56,6 +58,10 @@ def broken_links_summary(url):
 def main():
     # file = 'cmip7:experiment/graph.json'
     
+    summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
+    
+    summary = open(summary_file, 'a')
+    
     prefix = cmip_info()['whoami']
     
     if sys.argv[1] == 'project':
@@ -71,17 +77,22 @@ def main():
                 broken = f"#### Error checking file: {file}"
                 
             if broken:
-                print(broken)
-                print('\n\n')
+                summary.write(broken)
+                summary.write('\n\n')
     
     
     else:
         file = f'{prefix}:{sys.argv[1]}/graph.jsonld'
         print(f"Checking {file}...")
-        broken = broken_links_summary(file)
+        
+        try:
+            broken = broken_links_summary(file)
+        except Exception as ex:
+            broken = f"#### Error checking file: {file}\n\n"
+            
 
         if broken:
-            print(broken)
+            summary.write(broken)
             
                 
     print("Finished.")

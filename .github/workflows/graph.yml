@@ -180,5 +180,6 @@ jobs:
           file_pattern: "*/*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
-          push_options: "--force"
-        continue-on-error: true
+          pull_options: '--rebase --autostash'  # Add this
+          push_options: '--force-with-lease'  
+        continue-on-error: false
