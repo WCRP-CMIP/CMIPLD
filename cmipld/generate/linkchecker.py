@@ -1,4 +1,4 @@
-import cmipld,glob,sys,json
+import cmipld,glob,sys,json,os
 from pyld import jsonld
 from cmipld.utils.git.repo_info import cmip_info
 
@@ -30,6 +30,10 @@ def check(file):
         results[entry.get('@id')] = {'broken_links': broken, 'all_links': ids}
         
     return results
+
+
+def check_individual(file):
+    
 
 
 def compact(log):
