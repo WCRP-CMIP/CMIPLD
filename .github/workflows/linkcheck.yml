@@ -47,6 +47,13 @@ jobs:
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
 
+      - name: Checkout src-data branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          ref: src-data
+      
       - name: LinkCheck ${{ matrix.directory }}
         run: |
           linkcheck ${{ matrix.directory }} >> ${GITHUB_STEP_SUMMARY} 2>&1
