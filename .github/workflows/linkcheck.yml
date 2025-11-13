@@ -55,6 +55,11 @@ jobs:
 
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
+
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: LinkCheck ${{ matrix.directory }}
         run: |
