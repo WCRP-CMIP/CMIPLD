@@ -32,7 +32,7 @@ def check(file):
     return results
 
 
-def check_individual(file):
+# def check_individual(file):
     
 
 
