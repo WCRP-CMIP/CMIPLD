@@ -4,13 +4,20 @@ outputs:
   directories:
     description: 'JSON array of all directory names'
     value: ${{ steps.find-dirs.outputs.directories }}
+inputs: 
+  branch:
+    description: 'set branch if you dont want src-data'
+    required: false
+    default: 'src-data'
+    type: string
 runs:
   using: composite
   steps:
-    # - name: Checkout code
-    #   uses: actions/checkout@v4
-    #   with:
-    #     fetch-depth: 1
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        ref: ${{ inputs.branch }}
     
     - name: Find all subdirectories
       id: find-dirs
