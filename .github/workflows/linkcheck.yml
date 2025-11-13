@@ -15,6 +15,13 @@ jobs:
     outputs:
       directories: ${{ steps.set.outputs.directories }}
     steps:
+
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production
+
       - uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
         id: find
 
@@ -46,13 +53,6 @@ jobs:
 
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
-
-      - name: Checkout src-data branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: true
-          ref: src-data
       
       - name: LinkCheck ${{ matrix.directory }}
         run: |
