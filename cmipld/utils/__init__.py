@@ -11,3 +11,5 @@ from .jsontools import *
 
 # validate_json is available as a module but not imported by default
 # to avoid circular imports. Use: from cmipld.utils import validate_json
+
+from . import texttools
