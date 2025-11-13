@@ -76,7 +76,7 @@ def main():
     
     
     else:
-        file = f'{prefix}:{sys.argv[1]}/graph.json'
+        file = f'{prefix}:{sys.argv[1]}/graph.jsonld'
         print(f"Checking {file}...")
         broken = broken_links_summary(file)
 
@@ -84,5 +84,4 @@ def main():
             print(broken)
             
                 
-    
-    
+    print("Finished.")
