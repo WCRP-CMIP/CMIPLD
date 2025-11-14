@@ -43,7 +43,7 @@ class GitCoauthorManager:
         
         # Validate git repository
         if not self.is_git_repo():
-            log.warning("Not in a git repository. Git features will be disabled.")
+            log.warn("Not in a git repository. Git features will be disabled.")
             self.add_coauthors = False
             self.use_last_author = False
             self.auto_commit = False
@@ -55,7 +55,7 @@ class GitCoauthorManager:
                 from ..git import coauthors as git_coauthors
                 self._git_coauthors = git_coauthors
             except ImportError:
-                log.warning("Git coauthors module not available")
+                log.warn("Git coauthors module not available")
                 self._git_coauthors = None
         return self._git_coauthors
 
@@ -93,7 +93,7 @@ class GitCoauthorManager:
         try:
             return git_coauthors.get_coauthor_lines(file_path)
         except Exception as e:
-            log.warning(f"Failed to get co-authors for {file_path}: {e}")
+            log.warn(f"Failed to get co-authors for {file_path}: {e}")
             return []
 
     def get_last_commit_author(self, file_path: Optional[Path] = None) -> Optional[Dict[str, str]]:
@@ -127,7 +127,7 @@ class GitCoauthorManager:
                 return {'name': name, 'email': email}
         
         except (subprocess.CalledProcessError, ValueError) as e:
-            log.warning(f"Failed to get last commit author: {e}")
+            log.warn(f"Failed to get last commit author: {e}")
         
         return None
 
@@ -168,7 +168,7 @@ class GitCoauthorManager:
         try:
             subprocess.run(
                 ['git', 'add', str(file_path)],
-                cwd=self.directory,
+                # cwd=self.directory,
                 check=True
             )
             return True
@@ -205,7 +205,7 @@ class GitCoauthorManager:
             if result.returncode == 0:
                 return True
             else:
-                log.warning(f"Git commit failed: {result.stderr}")
+                log.warn(f"Git commit failed: {result.stderr}")
                 return False
         
         except subprocess.CalledProcessError as e:
@@ -222,6 +222,8 @@ class GitCoauthorManager:
         Returns:
             Dictionary with commit statistics
         """
+        
+        
         if not self.auto_commit or not modified_files:
             return {
                 'commits_created': 0,
@@ -284,7 +286,7 @@ class GitCoauthorManager:
         log.info(f"\n📊 Commit Summary:")
         log.info(f"   ✅ Successful commits: {successful}")
         if failed > 0:
-            log.warning(f"   ❌ Failed commits: {failed}")
+            log.warn(f"   ❌ Failed commits: {failed}")
         log.info(f"   Total files: {total}")
 
     def get_repository_info(self) -> Dict[str, Any]:
@@ -390,7 +392,7 @@ class GitCoauthorManager:
             }
         
         except subprocess.CalledProcessError as e:
-            log.warning(f"Failed to get repository info: {e}")
+            log.warn(f"Failed to get repository info: {e}")
             return {
                 "status": "Git repository (info unavailable)",
                 "owner": None,
@@ -450,7 +452,7 @@ class GitCoauthorManager:
             )
         
         except subprocess.CalledProcessError as e:
-            log.warning(f"Failed to check git configuration: {e}")
+            log.warn(f"Failed to check git configuration: {e}")
             config_status["error"] = str(e)
         
         return config_status
