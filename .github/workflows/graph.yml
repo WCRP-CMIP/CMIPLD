@@ -235,10 +235,10 @@ jobs:
                 echo -e "#### $(basename "$file")\n"
                 if [[ "$file" == *.py ]]; then
                   chmod +x "$file"
-                  python "$file" 2>&1
+                  python "$file" 
                 elif [[ "$file" == *.sh ]]; then
                   chmod +x "$file"
-                  bash "$file" 2>&1
+                  bash "$file" 
                 fi
                 
                 echo -e '```\n'
@@ -256,7 +256,7 @@ jobs:
         with:
           commit_message: "Pages files updated"
           branch: production
-          file_pattern: "*/*"
+          file_pattern: "*/**"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
         continue-on-error: false
