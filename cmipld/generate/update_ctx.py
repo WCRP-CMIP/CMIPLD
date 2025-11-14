@@ -11,9 +11,9 @@ def ld(linked):
     if '@context' not in linked:
         return linked
     elif '@type' in linked and linked['@type'] == '@id' and '@container'  not in linked:
-        linked['@container'] = '@set'
+        linked['@container'] = '@list'
         return linked
-    return {'@context': linked['@context'], "@container":"@set" , '@type':'@id'}
+    return {'@context': linked['@context'], "@container":"@list" , '@type':'@id'}
 #  lets make all linked items an array, this makes it easier to handle later
 
 def main():
