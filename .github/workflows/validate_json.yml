@@ -31,7 +31,7 @@ jobs:
 
             echo "#### Validating JSON in directory: $d" >> $GITHUB_STEP_SUMMARY
             [[ ! -f "$d/_context" && "$d" != "production" ]] && continue 
-            validate_json "$d" --add-coauthors --use-last-author --auto-commit  >> $GITHUB_STEP_SUMMARY
+            validate_json "$d" --add-coauthors --use-last-author --auto-commit --quiet  >> $GITHUB_STEP_SUMMARY
           done
 
       - name: Commit and Push Pages Updates
