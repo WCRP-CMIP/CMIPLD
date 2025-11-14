@@ -1,279 +1,5 @@
-name: JSONLD Graph Builder # 🔒 Prevent race-condition push failures # Ensures only ONE run of this workflow may push to `production` at a time concurrency: group: jsonld-graph-builder-production cancel-in-progress: false on: workflow_dispatch: inputs: updated: descriptio
-
-pasted
-
-change the matrix into a set of loopw with reporting in a minimal md document (in table format per dir)
-
-I'll help you convert the matrix strategy into sequential loops with markdown table reporting. Here's the modified workflow:
-
-
-Failed to edit
-Document
-Let me create the modified workflow file for you:
-
-
-Creating the modified GitHub Actions workflow with sequential loops and markdown table reporting instead of matrix strategy
-jsonld-graph-builder-sequential.yml
-Perfect! I've converted the workflow from a matrix strategy to sequential loops with a markdown table report. Here are the key changes:
-
-Main Changes:
-Removed Matrix Strategy: Replaced the strategy.matrix configuration with a sequential loop that processes directories one by one
-Added Report Table: Created a markdown table in the GitHub Actions summary with columns for:
-Directory name
-Overall status
-Processing status
-Validation status
-Minification status
-Commit status
-Status Tracking: Each step now tracks success (✅), failure (❌), or warning (⚠️) status
-Single Commit: Instead of committing after each directory, all changes are committed once at the end
-Better Error Handling: The loop continues even if one directory fails, and reports the status for each
-The report will look like this in the GitHub Actions summary:
-
-| Directory | Status | Processing | Validation | Minification | Commit |
-|-----------|--------|------------|------------|--------------|--------|
-| dir1      | ✅     | ✅         | ✅         | ✅           | ✅     |
-| dir2      | ❌     | ✅         | ❌         | ✅           | ✅     |
-View your modified workflow
-
-Jsonld graph builder sequential
-YML 
-does this loop over all directories
-
-Looking at the code more carefully, there's actually a potential issue with the loop. The problem is that the while read loop in a pipeline creates a subshell, which means:
-
-Changes to variables inside the loop won't persist
-More critically, the cd commands and git add commands might not work as expected across iterations
-Let me fix this to ensure it properly loops over all directories:
-
-
-Fix the loop to properly iterate over all directories using a safer array-based approach that avoids subshell issues
-+97
--68
-jsonld-graph-builder-sequential.yml
-Yes! Now it definitely loops over all directories. Here are the key improvements:
-
-What I Fixed:
-Array-based loop instead of pipe: Used mapfile to convert the JSON array into a proper bash array, then iterate with a standard for loop
-bash
-   mapfile -t DIR_ARRAY < <(echo "$DIRECTORIES" | jq -r '.[]')
-   for dir in "${DIR_ARRAY[@]}"; do
-Subshell for cd operations: Wrapped the cd command in a subshell ( ) so it doesn't affect the working directory for subsequent iterations
-Better logging: Added more verbose output so you can see:
-Total number of directories to process
-Clear separators between directory processing
-Status of each operation
-Proper error handling: The loop will process ALL directories even if some fail, and report status for each one
-The previous version had the pipe (|) issue where the while read creates a subshell, which could cause problems with cd and variable persistence. This new version ensures all directories are processed sequentially and reliably.
-
-View your updated workflow
-
-Jsonld graph builder sequential
-YML 
-table imperfect DirectoryStatusProcessingValidationMinificationCommit
-| activity | ✅ | ✅ | ✅ | ✅ | ✅ | | archive_id | ✅ | ✅ | ✅ | ✅ | ✅ | | frequency | ✅ | ✅ | ✅ | ✅ | ✅ | | license | ✅ | ✅ | ✅ | ✅ | ✅ | | mip | ✅ | ✅ | ✅ | ✅ | ✅ | | model_calendar | ✅ | ✅ | ✅ | ✅ | ✅ | | model_component_type | ✅ | ✅ | ✅ | ✅ | ✅ | | model_family | ✅ | ✅ | ✅ | ✅ | ✅ | | native_horizontal_grid_region | ✅ | ✅ | ✅ | ✅ | ✅ | | native_horizontal_grid_temporal_refinement | ✅ | ✅ | ✅ | ✅ | ✅ | | native_horizontal_grid_type | ✅ | ✅ | ✅ | ✅ | ✅ | | native_vertical_grid_coordinate | ✅ | ✅ | ✅ | ✅ | ✅ | | native_vertical_grid_units | ✅ | ✅ | ✅ | ✅ | ✅ | | organisation | ✅ | ✅ | ✅ | ✅ | ✅ | | product | ✅ | ✅ | ✅ | ✅ | ✅ | | realm | ✅ | ✅ | ✅ | ✅ | ✅ | | region | ✅ | ✅ | ✅ | ✅ | ✅ | | resolution | ✅ | ✅ | ✅ | ✅ | ✅ | | source_type | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-Show more
-I see the issue - the table header row is missing the proper markdown separator. The header needs to be output before the loop starts. Let me fix this:
-
-
-Fix the markdown table by ensuring the header is properly initialized before the loop begins
-+8
--8
-jsonld-graph-builder-sequential.yml
-Now let me also verify the table rows are being written correctly:
-
-
-Check how the table rows are being generated in the process loop
-Show working file
-The table structure looks correct. The issue you're seeing might be a rendering problem. Let me create a test to show what the output should look like and ensure proper formatting:
-
-
-Creating a test markdown file to verify the table format works correctly
-test-table.md
-The table format in the workflow is correct. The issue you're seeing where the header appears without separation is likely a GitHub Actions rendering issue or the header was written at a different time than expected.
-
-Let me adjust the workflow to ensure proper table formatting by using a more robust method:
-
-
-Improve table initialization to ensure proper markdown rendering with explicit newlines
-+8
--8
-jsonld-graph-builder-sequential.yml
-Now, let me also add a completion summary at the end:
-
-
-Add a summary footer to the report table
-+14
--5
-jsonld-graph-builder-sequential.yml
-Perfect! The workflow now has:
-
-✅ Proper table header with all columns
-✅ Loops over ALL directories sequentially
-✅ Each row reports status for that directory
-✅ Summary footer with timestamp and count
-The table will render correctly in GitHub Actions. If you're seeing the header smashed together, it might be:
-
-A copy/paste rendering issue
-GitHub's markdown preview not refreshing
-Missing the blank line after the header
-The workflow file now ensures proper spacing and formatting.
-
-View your finalized workflow
-
-Jsonld graph builder sequential
-YML 
-src-data-change.yml" -> "WCRP-CMIP/CMIPLD/.github/workflows/graph.yml@main" (source branch with sha:307b145037e7e44c45199aa049bb3f374661d7dc) : You have an error in your yaml syntax on line 3
-
-Let me check line 3 of the workflow file:
-
-
-Check the YAML syntax around line 3
-Show working file
-The issue is the emoji in the comment on line 3! YAML parsers can be sensitive to emojis in comments. Let me fix this:
-
-
-Remove emoji from comment to fix YAML syntax error
-+5
--5
-jsonld-graph-builder-sequential.yml
-Now let me check if there are any other emojis or special characters that might cause issues:
-
-
-Check for emojis in the workflow file that might cause YAML parsing issues
-
-
-Those emojis are fine because they're inside the run: script blocks (shell strings), not in YAML structure. Let me validate the YAML syntax:
-
-
-Validate the YAML syntax
-
-
-Great! The YAML is now valid. The issue was the emoji (🔒) in the comment on line 3. I've removed it and the file should now work correctly.
-
-Here's what was fixed:
-
-Line 3: Removed the lock emoji from the comment
-All other emojis are safe because they're inside shell script strings, not YAML structure
-View your corrected workflow
-
-The workflow should now run without YAML syntax errors!
-
-Jsonld graph builder sequential
-YML 
-this is the raw markdown print - [x] Installed CMIPLD library from branch main
-
-# JSON-LD Graph Processing Report
-
-| Directory | Status | Processing | Validation | Minification | Commit |
-|-----------|--------|------------|------------|--------------|--------|
-
-| activity | ✅ | ✅ | ✅ | ✅ | ✅ |
-| archive_id | ✅ | ✅ | ✅ | ✅ | ✅ |
-| frequency | ✅ | ✅ | ✅ | ✅ | ✅ |
-| license | ✅ | ✅ | ✅ | ✅ | ✅ |
-| mip | ✅ | ✅ | ✅ | ✅ | ✅ |
-| model_calendar | ✅ | ✅ | ✅ | ✅ | ✅ |
-| model_component_type | ✅ | ✅ | ✅ | ✅ | ✅ |
-| model_family | ✅ | ✅ | ✅ | ✅ | ✅ |
-| native_horizontal_grid_region | ✅ | ✅ | ✅ | ✅ | ✅ |
-| native_horizontal_grid_temporal_refinement | ✅ | ✅ | ✅ | ✅ | ✅ |
-| native_horizontal_grid_type | ✅ | ✅ | ✅ | ✅ | ✅ |
-| native_vertical_grid_coordinate | ✅ | ✅ | ✅ | ✅ | ✅ |
-| native_vertical_grid_units | ✅ | ✅ | ✅ | ✅ | ✅ |
-| organisation | ✅ | ✅ | ✅ | ✅ | ✅ |
-| product | ✅ | ✅ | ✅ | ✅ | ✅ |
-| realm | ✅ | ✅ | ✅ | ✅ | ✅ |
-| region | ✅ | ✅ | ✅ | ✅ | ✅ |
-| resolution | ✅ | ✅ | ✅ | ✅ | ✅ |
-| source_type | ✅ | ✅ | ✅ | ✅ | ✅ |
-
----
-**Completed:** 2025-11-14 18:43:14 UTC
-
-**Total directories processed:** 19
-
-Show more
-I see the issue! There's a blank line between the table header and the first data row, which breaks the markdown table rendering. The table rows need to immediately follow the separator line with no blank lines in between.
-
-Let me fix this:
-
-
-Remove the blank line between table initialization and first row by making the table header part of the processing loop initialization
-+118
--106
-jsonld-graph-builder-sequential.yml
-Now I need to remove the separate "Initialize Report" step since we're doing it all in one step:
-
-
-Remove the separate Initialize Report step since we now handle it in the Process All Directories step
-+5
--14
-jsonld-graph-builder-sequential.yml
-Perfect! Now let me create a test to verify the markdown will render correctly:
-
-
-Create a test script to verify the table renders correctly without blank lines
-test-report.sh
-
-Test the report generation to verify no blank lines between header and rows
-
-
-Perfect! The output now has no blank line between the header separator and the first data row. The key changes:
-
-Buffered writing: All table content is written to /tmp/report.md first, then appended to $GITHUB_STEP_SUMMARY at the end
-Single atomic write: This prevents any steps from accidentally inserting blank lines between the header and rows
-Removed separate initialization step: The header is now created at the start of the processing loop
-The table will now render correctly in GitHub Actions!
-
-View your fixed workflow
-
-Jsonld graph builder sequential
-YML 
-also graph / production-served-files
-Unexpected input(s) 'pull_options', valid inputs are ['commit_message', 'branch', 'commit_options', 'add_options', 'status_options', 'file_pattern', 'repository', 'commit_user_name', 'commit_user_email', 'commit_author', 'tagging_message', 'push_options', 'skip_dirty_check', 'skip_fetch', 'skip_checkout', 'disable_globbing', 'create_branch', 'internal_git_binary']
-graph / process-directories
-Unexpected input(s) 'pull_options', valid inputs are ['commit_message', 'branch', 'commit_options', 'add_options', 'status_options', 'file_pattern', 'repository', 'commit_user_name', 'commit_user_email', 'commit_author', 'tagging_message', 'push_options', 'skip_dirty_check', 'skip_fetch', 'skip_checkout', 'disable_globbing', 'create_branch', 'internal_git_binary']
-
-Show more
-The stefanzweifel/git-auto-commit-action@v4 doesn't support pull_options. Let me remove those invalid parameters:
-
-
-Remove invalid pull_options parameter from the first git-auto-commit-action
-+9
--10
-jsonld-graph-builder-sequential.yml
-
-Remove invalid pull_options parameter from the second git-auto-commit-action in production-served-files job
-+9
--10
-jsonld-graph-builder-sequential.yml
-Perfect! I've removed the invalid pull_options parameter from both git-auto-commit-action steps. The action will handle pulling/rebasing automatically if needed.
-
-The workflow should now run without validation errors!
-
-View your corrected workflow
-
-Jsonld graph builder sequential
-YML 
-
-
-How can I help you today?
-
-
-
-
-
-
- 
-Jsonld graph builder sequential · YML
-Copy
-
 name: JSONLD Graph Builder
 
-# Prevent race-condition push failures
-# Ensures only ONE run of this workflow may push to `production` at a time  
 concurrency:
   group: jsonld-graph-builder-production
   cancel-in-progress: false
@@ -371,7 +97,6 @@ jobs:
         run: |
           DIRECTORIES='${{ needs.set-directories.outputs.directories }}'
           
-          # Write table header
           {
             echo "# JSON-LD Graph Processing Report"
             echo ""
@@ -385,16 +110,14 @@ jobs:
             exit 0
           fi
           
-          # Convert JSON array to bash array
           mapfile -t DIR_ARRAY < <(echo "$DIRECTORIES" | jq -r '.[]')
           
           echo "Total directories to process: ${#DIR_ARRAY[@]}"
           
-          # Loop through each directory
           for dir in "${DIR_ARRAY[@]}"; do
             echo ""
             echo "========================================"
-            echo "🔄 Processing directory: $dir"
+            echo "Processing directory: $dir"
             echo "========================================"
             
             PROCESS_STATUS="✅"
@@ -403,15 +126,14 @@ jobs:
             COMMIT_STATUS="✅"
             OVERALL_STATUS="✅"
             
-            # Process JSON-LD files
             if [ -d "$dir" ]; then
-              echo "📁 Directory exists, processing..."
+              echo "Directory exists, processing..."
               (
                 cd "$dir" || exit 1
                 if ld2graph "../$dir" 2>&1; then
-                  echo "✅ Processing completed"
+                  echo "Processing completed"
                 else
-                  echo "❌ Processing failed"
+                  echo "Processing failed"
                   exit 1
                 fi
               )
@@ -423,53 +145,49 @@ jobs:
               fi
               git add -f "$dir"/*graph* 2>/dev/null || true
             else
-              echo "⚠️ Directory doesn't exist: $dir"
+              echo "Directory doesn't exist: $dir"
               PROCESS_STATUS="⚠️"
               OVERALL_STATUS="⚠️"
               echo "| \`$dir\` | $OVERALL_STATUS | $PROCESS_STATUS | - | - | - |" >> /tmp/report.md
               continue
             fi
             
-            # Validate JSON-LD
-            echo "🔍 Validating JSON-LD..."
+            echo "Validating JSON-LD..."
             if [ -f "$dir/graph.jsonld" ]; then
               if pyld test "$dir/graph.jsonld" > /dev/null 2>&1; then
                 VALIDATE_STATUS="✅"
-                echo "✅ Validation passed"
+                echo "Validation passed"
               else
                 VALIDATE_STATUS="❌"
                 OVERALL_STATUS="❌"
-                echo "❌ Validation failed"
+                echo "Validation failed"
               fi
             else
-              echo "⚠️ No graph.jsonld found in $dir"
+              echo "No graph.jsonld found in $dir"
               VALIDATE_STATUS="⚠️"
               OVERALL_STATUS="⚠️"
             fi
             
-            # Minify graph.jsonld
-            echo "📦 Minifying..."
+            echo "Minifying..."
             if [ -f "$dir/graph.jsonld" ]; then
               if tr -d '[:space:]' < "$dir/graph.jsonld" > "$dir/graph.min.json" && \
                  cp "$dir/graph.min.json" "$dir/graph" && \
                  cp "$dir/graph.min.json" "$dir/graph.json"; then
                 MINIFY_STATUS="✅"
-                echo "✅ Minification completed"
+                echo "Minification completed"
               else
                 MINIFY_STATUS="❌"
                 OVERALL_STATUS="❌"
-                echo "❌ Minification failed"
+                echo "Minification failed"
               fi
             else
               MINIFY_STATUS="⚠️"
             fi
             
-            # Write row to report
             echo "| \`$dir\` | $OVERALL_STATUS | $PROCESS_STATUS | $VALIDATE_STATUS | $MINIFY_STATUS | $COMMIT_STATUS |" >> /tmp/report.md
             echo "Status reported for: $dir"
           done
           
-          # Add summary footer
           {
             echo ""
             echo "---"
@@ -478,12 +196,11 @@ jobs:
             echo "**Total directories processed:** ${#DIR_ARRAY[@]}"
           } >> /tmp/report.md
           
-          # Write complete report to summary
           cat /tmp/report.md >> $GITHUB_STEP_SUMMARY
           
           echo ""
           echo "========================================"
-          echo "✅ All directories processed"
+          echo "All directories processed"
           echo "========================================"
 
       - uses: stefanzweifel/git-auto-commit-action@v4
@@ -527,7 +244,7 @@ jobs:
                 echo -e '```\n'
               done
             else
-              echo "⚠️ No prepublish directory found at $PREPUBLISH_DIR"
+              echo "No prepublish directory found at $PREPUBLISH_DIR"
             fi
             
             echo "---"
