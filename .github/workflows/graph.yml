@@ -89,7 +89,7 @@ jobs:
       matrix:
         directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 25
     steps:
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
@@ -140,8 +140,8 @@ jobs:
           file_pattern: "${{ matrix.directory }}/*graph*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
-          # Safer than raw --force
-          push_options: "--force-with-lease"
+          pull_options: '--rebase --autostash'
+          push_options: ''
         continue-on-error: true
 
   production-served-files:
