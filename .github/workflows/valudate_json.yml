@@ -1,0 +1,39 @@
+name: JSONLD Graph Builder
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  validate-json:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout src-data branch
+        uses: actions/checkout@v4
+        with:
+          ref: src-data
+          fetch-depth: 0
+          persist-credentials: true
+      
+      - name: Validate JSON files
+        run: |
+          for d in */; do
+            d="${d%/}"
+            [[ ! -f "$d/_context" && "$d" != "production" ]] && continue 
+            validate_json "$d" --add-coauthors --use-last-author --auto-commit --quiet >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Commit and Push Pages Updates
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Auto Validation and Fixing of JSON files and formatatting"
+          branch: src-data
+          commit_user_name: "cmip-ipo automation"
+          commit_user_email: "actions@wcrp-cmip.org"
+        continue-on-error: false

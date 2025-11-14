@@ -1,0 +1,66 @@
+name: JSONLD Graph Builder
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  find-all-directories:
+    runs-on: ubuntu-latest
+    outputs:
+      directories: ${{ steps.set.outputs.directories }}
+    steps:
+
+
+
+      - name: List all directories
+        id: list
+        run: ls -a
+
+      - uses: WCRP-CMIP/CMIPLD/actions/find-all-directories@main
+        id: find
+        with:
+          branch: 'production'
+
+      - id: set
+        run: |
+          dirs='${{ steps.find.outputs.directories }}'
+          
+          # SKIP_DIRS='["ignore", ".github",'.src']'
+          # dirs=$(echo "$dirs" | jq -c --argjson skip "$SKIP_DIRS" '. - $skip')
+          
+          # if [ "$dirs" = "" ] || [ "$dirs" = "null" ] || [ "$dirs" = "[]" ] || [ "$dirs" = '[""]' ]; then
+          #   echo "No valid directories found, using fallback"
+          #   dirs='[]'
+          # fi
+          
+          echo "directories=$dirs" >> "$GITHUB_OUTPUT"
+          echo "Final directories for matrix: $dirs"
+
+  process-directories:
+    needs: find-all-directories
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.find-all-directories.outputs.directories || '[]') }}
+      fail-fast: false
+      max-parallel: 10
+    steps:
+
+      - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
+        id: install-cmipld
+
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: LinkCheck ${{ matrix.directory }}
+        run: |
+          linkcheck ${{ matrix.directory }}
