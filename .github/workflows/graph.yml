@@ -163,7 +163,7 @@ jobs:
                 if [[ "$file" == *.py ]]; then
                   chmod +x "$file"
                   python "$file" 2>&1
-                elif [[ "$file" == *.sh" ]]; then
+                elif [[ "$file" == *.sh ]]; then
                   chmod +x "$file"
                   bash "$file" 2>&1
                 fi
