@@ -82,6 +82,14 @@ jobs:
     if: ${{ always() && needs.set-directories.result == 'success' }}
     runs-on: ubuntu-latest
 
+    # concurrency:
+    #   group: jsonld-graph-builder-production-push
+    #   cancel-in-progress: false
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
+      fail-fast: false
+      max-parallel: 25
     steps:
       - uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
         id: install-cmipld
@@ -94,119 +102,42 @@ jobs:
       - name: Set GitHub Pages URL
         run: |
           echo "PAGES_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-      
-      - name: Initialize Report
-        run: |
-          {
-            echo "# JSON-LD Graph Processing Report"
-            echo ""
-            echo "| Directory | Status | Processing | Validation | Minification | Commit |"
-            echo "|-----------|--------|------------|------------|--------------|--------|"
-          } >> $GITHUB_STEP_SUMMARY
           
-      - name: Process All Directories
+      - name: Process JSON-LD files in ${{ matrix.directory }}
         run: |
-          DIRECTORIES='${{ needs.set-directories.outputs.directories }}'
-          
-          if [ "$DIRECTORIES" = "[]" ] || [ "$DIRECTORIES" = "" ]; then
-            echo "| *No directories to process* | ℹ️ | - | - | - | - |" >> $GITHUB_STEP_SUMMARY
-            exit 0
+          echo "🔄 Processing directory: ${{ matrix.directory }}"
+          if [ -d "${{ matrix.directory }}" ]; then
+            cd "${{ matrix.directory }}"
+            ld2graph "../${{ matrix.directory }}" || exit 1
+          else
+            echo "⚠️ Skipping - directory doesn't exist"
+            exit 1
           fi
+          git add -f *graph* || true
           
-          # Convert JSON array to bash array
-          mapfile -t DIR_ARRAY < <(echo "$DIRECTORIES" | jq -r '.[]')
-          
-          echo "Total directories to process: ${#DIR_ARRAY[@]}"
-          
-          # Loop through each directory
-          for dir in "${DIR_ARRAY[@]}"; do
-            echo ""
-            echo "========================================"
-            echo "🔄 Processing directory: $dir"
-            echo "========================================"
-            
-            PROCESS_STATUS="✅"
-            VALIDATE_STATUS="✅"
-            MINIFY_STATUS="✅"
-            COMMIT_STATUS="✅"
-            OVERALL_STATUS="✅"
-            
-            # Process JSON-LD files
-            if [ -d "$dir" ]; then
-              echo "📁 Directory exists, processing..."
-              (
-                cd "$dir" || exit 1
-                if ld2graph "../$dir" 2>&1; then
-                  echo "✅ Processing completed"
-                else
-                  echo "❌ Processing failed"
-                  exit 1
-                fi
-              )
-              if [ $? -eq 0 ]; then
-                PROCESS_STATUS="✅"
-              else
-                PROCESS_STATUS="❌"
-                OVERALL_STATUS="❌"
-              fi
-              git add -f "$dir"/*graph* 2>/dev/null || true
-            else
-              echo "⚠️ Directory doesn't exist: $dir"
-              PROCESS_STATUS="⚠️"
-              OVERALL_STATUS="⚠️"
-              echo "| \`$dir\` | $OVERALL_STATUS | $PROCESS_STATUS | - | - | - |" >> $GITHUB_STEP_SUMMARY
-              continue
-            fi
-            
-            # Validate JSON-LD
-            echo "🔍 Validating JSON-LD..."
-            if [ -f "$dir/graph.jsonld" ]; then
-              if pyld test "$dir/graph.jsonld" > /dev/null 2>&1; then
-                VALIDATE_STATUS="✅"
-                echo "✅ Validation passed"
-              else
-                VALIDATE_STATUS="❌"
-                OVERALL_STATUS="❌"
-                echo "❌ Validation failed"
-              fi
-            else
-              echo "⚠️ No graph.jsonld found in $dir"
-              VALIDATE_STATUS="⚠️"
-              OVERALL_STATUS="⚠️"
-            fi
-            
-            # Minify graph.jsonld
-            echo "📦 Minifying..."
-            if [ -f "$dir/graph.jsonld" ]; then
-              if tr -d '[:space:]' < "$dir/graph.jsonld" > "$dir/graph.min.json" && \
-                 cp "$dir/graph.min.json" "$dir/graph" && \
-                 cp "$dir/graph.min.json" "$dir/graph.json"; then
-                MINIFY_STATUS="✅"
-                echo "✅ Minification completed"
-              else
-                MINIFY_STATUS="❌"
-                OVERALL_STATUS="❌"
-                echo "❌ Minification failed"
-              fi
-            else
-              MINIFY_STATUS="⚠️"
-            fi
-            
-            # Report to summary
-            echo "| \`$dir\` | $OVERALL_STATUS | $PROCESS_STATUS | $VALIDATE_STATUS | $MINIFY_STATUS | $COMMIT_STATUS |" >> $GITHUB_STEP_SUMMARY
-            echo "Status reported for: $dir"
+      - name: Validate JSON-LD from URL
+        run: |
+          if [ -f "${{ matrix.directory }}/graph.jsonld" ]; then
+            pyld test "${{ matrix.directory }}/graph.jsonld" > /dev/null 2>&1 || exit 1
+          else
+            echo "⚠️ No graph.jsonld found"
+            exit 1
+          fi
+
+      - name: Minify graph.jsonld files
+        run: |
+          find . -type f -name "graph.jsonld" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            tr -d '[:space:]' < "$file" > "$dir/graph.min.json"
+            cp "$dir/graph.min.json" "$dir/graph"
+            cp "$dir/graph.min.json" "$dir/graph.json"
           done
-          
-          echo ""
-          echo "========================================"
-          echo "✅ All directories processed"
-          echo "========================================"
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "Update JSON-LD graphs"
+          commit_message: "Update JSON-LD graph in ${{ matrix.directory }}"
           branch: production
-          file_pattern: "*/*graph*"
+          file_pattern: "${{ matrix.directory }}/*graph*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
           pull_options: '--rebase --autostash'
