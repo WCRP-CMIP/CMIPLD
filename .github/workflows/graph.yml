@@ -191,5 +191,4 @@ jobs:
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
           pull_options: '--rebase --autostash'
-          push_options: '--force-with-lease'
         continue-on-error: false
