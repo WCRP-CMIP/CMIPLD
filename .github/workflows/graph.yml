@@ -1,5 +1,11 @@
 name: JSONLD Graph Builder
 
+# 🔒 Prevent race-condition push failures
+# Ensures only ONE run of this workflow may push to `production` at a time  
+concurrency:
+  group: jsonld-graph-builder-production
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -130,7 +136,8 @@ jobs:
           file_pattern: "${{ matrix.directory }}/*graph*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
-          push_options: "--force"
+          # Safer than raw --force
+          push_options: "--force-with-lease"
         continue-on-error: true
 
   production-served-files:
@@ -156,7 +163,7 @@ jobs:
                 if [[ "$file" == *.py ]]; then
                   chmod +x "$file"
                   python "$file" 2>&1
-                elif [[ "$file" == *.sh ]]; then
+                elif [[ "$file" == *.sh" ]]; then
                   chmod +x "$file"
                   bash "$file" 2>&1
                 fi
@@ -171,7 +178,6 @@ jobs:
             echo "Completed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           } >> $GITHUB_STEP_SUMMARY
 
-
       - name: Commit and Push Pages Updates
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -180,6 +186,6 @@ jobs:
           file_pattern: "*/*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
-          pull_options: '--rebase --autostash'  # Add this
-          push_options: '--force-with-lease'  
+          pull_options: '--rebase --autostash'
+          push_options: '--force-with-lease'
         continue-on-error: false
