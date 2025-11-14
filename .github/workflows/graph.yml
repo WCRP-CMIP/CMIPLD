@@ -251,11 +251,16 @@ jobs:
             echo "Completed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           } >> $GITHUB_STEP_SUMMARY
 
+      - name: find all _context* files and echo their paths
+        run: |
+          find . -type f -name "_context*"
+
       - name: Commit and Push Pages Updates
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Pages files updated"
           branch: production
+          file_pattern: "**/*"
           commit_user_name: "cmip-ipo automation"
           commit_user_email: "actions@wcrp-cmip.org"
         continue-on-error: false
