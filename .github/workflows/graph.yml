@@ -81,6 +81,10 @@ jobs:
     needs: set-directories
     if: ${{ always() && needs.set-directories.result == 'success' }}
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: jsonld-graph-builder-production-push
+      cancel-in-progress: false
     strategy:
       matrix:
         directory: ${{ fromJson(needs.set-directories.outputs.directories || '[]') }}
