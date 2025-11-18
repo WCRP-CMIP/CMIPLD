@@ -12,7 +12,7 @@ import importlib.util
 import tqdm
 import cmipld
 from cmipld.utils.git.repo_info import cmip_info
-from cmipld.utils.server_tools.offline import LD_server
+# from cmipld.utils.server_tools.offline import LD_server
 from cmipld.utils.checksum import version
 from cmipld.utils import io  # explicit import for jr/jw
 from p_tqdm import p_map
@@ -146,26 +146,33 @@ def main():
     print("🖥️  Setting up local LD server...")
     location = repo.path
     prefix = repo.whoami
-    local = [(location, cmipld.mapping[prefix], prefix)]
+    # localmap = {location, cmipld.mapping[prefix], prefix)]
 
-    server = LD_server(copy=local, use_ssl=False)
+    # server = LD_server(copy=local, use_ssl=False)
 
 
-    # True if NOT running in GitHub Actions
-    if os.getenv("GITHUB_ACTIONS") != "true":
-        print("Running locally (not on GitHub Actions). Running ld2graph to generate latest data...")
-        print(f"updating all folders in {server.temp_dir.name}/{prefix}")
-        for folder in tqdm.tqdm(glob.glob(f"{server.temp_dir.name}/{prefix}/*/")):
-            os.popen(f"ld2graph {folder}  > /dev/null 2>&1").read()
+    # # True if NOT running in GitHub Actions
+    # if os.getenv("GITHUB_ACTIONS") != "true":
+    #     print("Running locally (not on GitHub Actions). Running ld2graph to generate latest data...")
+    #     print(f"updating all folders in {server.temp_dir.name}/{prefix}")
+    #     for folder in tqdm.tqdm(glob.glob(f"{server.temp_dir.name}/{prefix}/*/")):
+    #         os.popen(f"ld2graph {folder}  > /dev/null 2>&1").read()
         
-    else:
-        print("Running on GitHub Actions")
+    # else:
+    #     print("Running on GitHub Actions")
     
+    # import sys
+    # print(prefixlocal)
+    # sys.error(local)
+    # print(local)
     
+    cmipld.map_current(prefix)
 
     try:
-        base_url = server.start_server(port=8081)
-        print(f"✅ LD server started at {base_url}")
+        # base_url = server.start_server(port=8081)
+        # print(f"✅ LD server started at {base_url}")
+        
+        
 
         scripts = [
             s for s in glob.glob(f"{script_dir}/*.py")
@@ -191,8 +198,8 @@ def main():
         print(f"\n✅ Summary: {success}/{len(scripts)} scripts successful")
 
     finally:
-        print("🛑 Stopping LD server...")
-        server.stop_server()
+        print( "ending..." )
+        # server.stop_server()
 
 
 if __name__ == "__main__":

@@ -16,9 +16,18 @@ runs:
         repository: WCRP-CMIP/CMIPLD
         ref: ${{ inputs.branch }}
 
+    - name: Set up JSONLD-Recursive
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+      run: |
+        npm i -g jsonld-recursive;  &&
+        pip install jsonld-recursive
+
     - name: Install library
       shell: bash
       run: |
+
         pip install git+https://github.com/WCRP-CMIP/CMIPLD.git@${{ inputs.branch }}
 
         echo "- [x] Installed CMIPLD library from branch ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY

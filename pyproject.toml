@@ -48,8 +48,9 @@ validate_json = "cmipld.utils.validate_json.cli:main"        # Validate JSON-LD 
 create_readme = "cmipld.generate.create_readme:main"     # Create README files
 template_update = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
 commit_author = "cmipld.generate.commit_author:main" # commit a file with another author. 
-ci = "cmipld.generate.ci:main" # check files,
+ci = "cmipld.generate.ci:main" # check files
 linkcheck = "cmipld.generate.linkchecker:main"
+template_prefill = "cmipld.generate.template_prefill:main"
 
 [tool.setuptools]
 packages = ["cmipld"]
