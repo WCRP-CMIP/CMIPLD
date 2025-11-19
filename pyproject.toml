@@ -60,7 +60,7 @@ script-files = [
     "static/bin/rmgraph",
     "static/bin/coauthor_file",
     "static/bin/cmipld-help"
-]
+    ]
 
 [tool.setuptools.package-data]
 cmipld = [
