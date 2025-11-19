@@ -29,12 +29,13 @@ classifiers = [
 Homepage = "https://github.com/WCRP-CMIP/CMIP-LD"
 Issues = "https://github.com/WCRP-CMIP/CMIP-LD/issues"
 Documentation = "https://wiki.mipcvs.dev"
-Notebooks = 'https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb'
+Notebooks = "https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb"
 
 [project.scripts]
 # Python entry points only
 cmipld = "cmipld.browse.__main__:main"                    # Main CMIP-LD browser interface
-pyld = "cmipld.cli.pyld:main"                             # pyld wrapper for testing. 
+pyld = "cmipld.cli.pyld:main"                             # pyld wrapper for testing.
+
 update_ctx = "cmipld.generate.update_ctx:main"           # Update JSON-LD context files
 update_project = "cmipld.generate.update_ctx:project"           # Update JSON-LD context files
 update_all = "cmipld.generate.update_all:main"           # Run full update process (contexts + graphs)
@@ -44,7 +45,8 @@ update_readme = "cmipld.generate.create_readme:main"     # Update README files
 validate_json = "cmipld.utils.validate_json.cli:main"        # Validate JSON-LD files
 create_readme = "cmipld.generate.create_readme:main"     # Create README files
 template_update = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
-commit_author = "cmipld.generate.commit_author:main" # commit a file with another author. 
+commit_author = "cmipld.generate.commit_author:main" # commit a file with another author.
+
 ci = "cmipld.generate.ci:main" # check files
 linkcheck = "cmipld.generate.linkchecker:main"
 template_prefill = "cmipld.generate.template_prefill:main"
@@ -60,7 +62,7 @@ script-files = [
     "static/bin/rmgraph",
     "static/bin/coauthor_file",
     "static/bin/cmipld-help"
-    ]
+]
 
 [tool.setuptools.package-data]
 cmipld = [
