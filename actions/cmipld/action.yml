@@ -20,6 +20,8 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
+
+    - name: Install JSONLD-Recursive
       run: |
         npm i -g jsonld-recursive;  &&
         pip install jsonld-recursive
