@@ -112,6 +112,7 @@ def process_folder(f):
     entry = f'''
 <details name={f}>
 <summary>{f.capitalize()}</summary>
+
 {urlgroup}
 </details>
     '''
@@ -128,6 +129,10 @@ def main():
     
     with open(OUTFILE,'w') as outfile:
         outfile.write('# Modify existing:\n\n')
+        outfile.write('''
+The following links will open pre-filled GitHub issues to modify existing entries in the CMIP7-CVs. Please expand your relevant category and select the file you are interested in modifying by clicking the hyperlink.
+        ''')
+        
         folders = glob.glob('*/')
 
         for f in folders:   
