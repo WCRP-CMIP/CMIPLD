@@ -25,7 +25,8 @@ runs:
       shell: bash
       run: |
         npm i -g jsonld-recursive && \
-        pip install jsonld-recursive
+        pip install git+https://github.com/wolfiex/jsonld-recursive
+        # jsonld-recursive
 
     - name: Install CMIPLD Python library
       shell: bash
