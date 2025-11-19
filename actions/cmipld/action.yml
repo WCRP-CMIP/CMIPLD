@@ -1,14 +1,14 @@
-name: 'Install CMIPLD Library'
-description: 'Installs the CMIPLD Python library from a GitHub repository'
+name: Install CMIPLD Library
+description: Installs the CMIPLD Python library from a GitHub repository
 
 inputs:
   branch:
-    description: 'Branch of the repository. Can also be a tag or commit hash'
+    description: Branch of the repository — may also be a tag or commit hash
     required: false
-    default: 'main'
+    default: main
 
 runs:
-  using: 'composite'
+  using: composite
   steps:
     - name: Checkout the library repository
       uses: actions/checkout@v4
@@ -16,20 +16,19 @@ runs:
         repository: WCRP-CMIP/CMIPLD
         ref: ${{ inputs.branch }}
 
-    - name: Set up JSONLD-Recursive
+    - name: Set up Node.js (for JSONLD-Recursive)
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: 18
 
     - name: Install JSONLD-Recursive
-      run: |
-        npm i -g jsonld-recursive;  &&
-        pip install jsonld-recursive
-
-    - name: Install library
       shell: bash
       run: |
+        npm i -g jsonld-recursive && \
+        pip install jsonld-recursive
 
+    - name: Install CMIPLD Python library
+      shell: bash
+      run: |
         pip install git+https://github.com/WCRP-CMIP/CMIPLD.git@${{ inputs.branch }}
-
         echo "- [x] Installed CMIPLD library from branch ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY
