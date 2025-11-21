@@ -11,10 +11,12 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from collections import OrderedDict
 
-from ..logging.unique import UniqueLogger, logging
+# from ..logging.unique import UniqueLogger, logging
 
-log = UniqueLogger()
+# log = UniqueLogger()
 
+from logging import getLogger
+log = getLogger(__name__)
 
 class ContextManager:
     """

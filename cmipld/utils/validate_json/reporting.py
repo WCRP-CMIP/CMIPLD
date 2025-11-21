@@ -9,10 +9,12 @@ including console output, statistics, and detailed error reporting.
 from typing import Dict, Any, List
 from pathlib import Path
 
-from ..logging.unique import UniqueLogger, logging
+# from ..logging.unique import UniqueLogger, logging
 
-log = UniqueLogger()
+# log = UniqueLogger()
 
+from logging import getLogger
+log = getLogger(__name__)
 
 class ValidationReporter:
     """

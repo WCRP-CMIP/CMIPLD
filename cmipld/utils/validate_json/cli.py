@@ -203,13 +203,13 @@ def validate_arguments(args) -> bool:
 
 def configure_logging(args) -> None:
     """Configure logging based on command-line arguments."""
-    if args.verbose:
-        log.logger.setLevel(logging.DEBUG)
-        log.debug("Verbose logging enabled")
-    elif args.quiet:
-        log.logger.setLevel(logging.ERROR)
-    else:
-        log.logger.setLevel(logging.WARNING)
+    # if args.verbose:
+    #     log.logger.setLevel(logging.DEBUG)
+    #     log.debug("Verbose logging enabled")
+    # elif args.quiet:
+    #     log.logger.setLevel(logging.ERROR)
+    # else:
+    #     log.logger.setLevel(logging.WARNING)
 
 
 def merge_config_with_args(args, config: dict):

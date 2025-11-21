@@ -10,10 +10,11 @@ import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from ..logging.unique import UniqueLogger, logging
+# from ..logging.unique import UniqueLogger, logging
 
-log = UniqueLogger()
-
+# log = UniqueLogger()
+from logging import getLogger
+log = getLogger(__name__)
 
 class GitCoauthorManager:
     """
