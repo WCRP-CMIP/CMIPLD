@@ -74,7 +74,8 @@ def process_folder(f):
         match = OrderedDict()
         
         match['template'] = f'{f}.yml'
-        match['title'] = f"Modify: {f.title()}: {jd.get('validation_key',jd['@id'])}"
+        
+        match['title'] = f"Modify: {f.title()}: {jd.get('validation_key',jd.get('@id',"NO ID NO ID NO ID"))}"
         match['issue_kind'] = '"Modify"'
         
         
