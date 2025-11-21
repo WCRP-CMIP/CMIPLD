@@ -17,6 +17,8 @@ def extract(val):
         return val.get('validation_key', val.get('@id'))
     return val
 
+
+
 def print_red(*args, sep=' ', end='\n', flush=False):
     """Print text in red (ANSI) in Jupyter or terminal output."""
     RED = '\033[31m'
@@ -92,7 +94,10 @@ def process_folder(f):
                     entry = extract(value)
                     
                     if key in multi:
-                        entry = ','.join([f'"{e}"' for e in list(entry)])
+                        if isinstance(entry, str):
+                            entry = f'"{entry}"'
+                        else:
+                            entry = ','.join([f'"{e}"' for e in list(entry)])
                     elif key in dropdown:
                         entry = f'"{entry}"'
                     elif isinstance(entry, list): 
