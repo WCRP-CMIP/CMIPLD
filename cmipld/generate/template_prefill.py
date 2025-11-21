@@ -137,7 +137,7 @@ The following links will open pre-filled GitHub issues to modify existing entrie
 
         for f in folders:   
             f = f.strip('/')
-            if f in ['project']:
+            if f in ['project','cmor','content_summary']:
                 continue
             
             entry = process_folder(f)
