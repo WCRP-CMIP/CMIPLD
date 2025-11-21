@@ -25,6 +25,8 @@ if not client._is_server_running():
 def get(url, depth=3):
     return client.compact(url, depth=depth)
 
+def expand(url, depth=1):   
+    return client.expand(url, depth=depth)
 
 def local_mapping_using_prefix(prefix,path):
     # get all mappings

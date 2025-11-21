@@ -1,12 +1,14 @@
 import cmipld,glob,sys,json,os
-from pyld import jsonld
+# from pyld import jsonld
+
+
 from cmipld.utils.git.repo_info import cmip_info
 
 
 
 
 def check(file):
-    expanded = jsonld.expand(file)
+    expanded = cmipld.expand(file)
     # assert (expanded)<2, "This check is not inten"
     
     results = {}
@@ -22,7 +24,7 @@ def check(file):
 
         for i in ids: 
             try:
-                jsonld.expand(i)
+                cmipld.expand(i)
             except Exception as ex:
                 # print(f"Broken link: {i} ({ex})")
                 broken.append(i)
