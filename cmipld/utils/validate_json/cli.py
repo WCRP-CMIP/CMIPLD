@@ -19,7 +19,9 @@ from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
 from .reporting import ValidationReporter
 
-log = UniqueLogger()
+# log = UniqueLogger()
+from logging import getLogger
+log = getLogger(__name__)
 # need to fix 
 
 def create_argument_parser() -> argparse.ArgumentParser:
