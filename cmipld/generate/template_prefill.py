@@ -26,7 +26,12 @@ def print_red(*args, sep=' ', end='\n', flush=False):
 OUTFILE = '.github/modifications.md'
 
 
-
+subprocess.run(
+        ["git", "fetch", "origin"],
+        capture_output=True,
+        text=True,
+        check=True  # Raises exception on error
+    )
 
 
 
@@ -38,7 +43,7 @@ def process_folder(f):
 
     # get yaml 
     yresult = subprocess.run(
-        ["git", "show", "main:.github/ISSUE_TEMPLATE/experiment.yml"],
+        ["git", "show", "refs/remotes/origin/main:.github/ISSUE_TEMPLATE/experiment.yml"],
         capture_output=True,
         text=True,
         check=True  # Raises exception on error
@@ -138,7 +143,7 @@ The following links will open pre-filled GitHub issues to modify existing entrie
 
         for f in folders:   
             f = f.strip('/')
-            if f in ['project','cmor','content_summary']:
+            if f in ['project','cmor','content_summaries']:
                 continue
             
             entry = process_folder(f)

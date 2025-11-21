@@ -13,14 +13,14 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from ..logging.unique import UniqueLogger, logging
+# from ..logging.unique import UniqueLogger, logging
 from .validator import JSONValidator
 from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
 from .reporting import ValidationReporter
 
 log = UniqueLogger()
-
+# need to fix 
 
 def create_argument_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
