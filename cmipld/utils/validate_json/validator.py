@@ -21,14 +21,15 @@ except ImportError:
     HAS_TQDM = False
 
 import cmipld
-from ..logging.unique import UniqueLogger, logging
+# from ..logging.unique import UniqueLogger, logging
 from .context_manager import ContextManager
 from .git_integration import GitCoauthorManager
 from .reporting import ValidationReporter
+from logging import getLogger
+log = getLogger(__name__)
 
-
-log = UniqueLogger()
-log.logger.setLevel(logging.WARNING)
+# log = UniqueLogger()
+# log.logger.setLevel(logging.WARNING)
 
 # Default required keys for CMIP-LD compliance
 DEFAULT_REQUIRED_KEYS = [
