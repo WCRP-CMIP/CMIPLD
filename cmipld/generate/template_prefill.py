@@ -82,7 +82,7 @@ def process_folder(f):
         
         match['template'] = f'{f}.yml'
         
-        match['title'] = f"Modify: {f.title()}: {jd.get('validation_key',jd.get('@id',"NO ID NO ID NO ID"))}"
+        match['title'] = f"Modify: {f.title()}: {jd.get('validation_key',jd.get('@id',f'NO ID NO ID NO ID ({myfile})'))}"
         match['issue_kind'] = '"Modify"'
         
         
