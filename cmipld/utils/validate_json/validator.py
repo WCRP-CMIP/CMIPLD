@@ -157,6 +157,8 @@ class JSONValidator:
             modified = self._validate_required_keys(data) or modified
             
             modified = self._validate_id_field(data, current_filename) or modified
+            
+
             modified = self._validate_type_field(data, file_path) or modified
             
             # Context-aware validation if enabled
@@ -175,6 +177,7 @@ class JSONValidator:
             if modified and not self.dry_run:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=4, ensure_ascii=False)
+                    # print("writing",file_path)
                     f.write('\n')
                     
                 with self.modified_files_lock:
@@ -333,6 +336,8 @@ class JSONValidator:
 
     def _validate_type_field(self, data: Dict[str, Any], file_path: Path) -> bool:
         """Validate and fix the type field based on parent folder."""
+
+
         
         parent_folder = file_path.parent.name
         modified_internal = self.project_type #False unless a custom type is specified, then it forces an update. (default is False)
@@ -345,9 +350,11 @@ class JSONValidator:
                 modified_internal = True
                 log.warn(f"Missing @type: using type '{data['@type']}' as @type")
             
-            
+
             esgvoc = ''.join(word.capitalize() for word in (self.project_type or parent_folder).split('_'))
             
+
+
             if '-' in parent_folder:
                 log.warn(f"Parent folder '{parent_folder}' contains hyphen '-', "
                             f"consider using underscores '_' for ESGVoc compliance.")
@@ -364,7 +371,7 @@ class JSONValidator:
                 
             # current_type = [t for t in current_type if not t.startswith(('wcrp:', 'esgvoc:', f"{prefix}:"))]
             
-            current_type = []
+            # current_type = []
             
             for i in list(current_type):
                 if i.startswith(('wcrp:', 'esgvoc:', f"{prefix}:")) and i not in expected_type_part:
