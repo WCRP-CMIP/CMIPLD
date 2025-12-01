@@ -200,7 +200,7 @@ def main():
 
     finally:
         print( "ending..." )
-        # server.stop_server()
+        cmipld.client.stop_server() 
 
 
 if __name__ == "__main__":
