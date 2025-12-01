@@ -167,6 +167,7 @@ def main():
     # print(local)
     
     cmipld.map_current(prefix)
+    cmipld.client.cache_clear()
 
     try:
         # base_url = server.start_server(port=8081)
