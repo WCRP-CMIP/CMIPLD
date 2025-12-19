@@ -1,0 +1,3215 @@
+[
+    {
+        "name": "Aarhus University",
+        "country": "Denmark",
+        "acronym": null
+    },
+    {
+        "name": "Abdullah G\u00fcl University",
+        "country": "Turkey",
+        "acronym": null
+    },
+    {
+        "name": "Australian Earth-System Simulator National Research Infrastructure",
+        "acronym": "ACCESS-NRI",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Addis Ababa University",
+        "country": "Ethiopia",
+        "acronym": null
+    },
+    {
+        "name": "La Agencia Estatal de Meteorolog\u00eda ",
+        "acronym": "AEMET",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Verisk Atmospheric and Environmental Research",
+        "acronym": "AER",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "AGRIRESEARCH",
+        "acronym": "AGRIRESEARCH",
+        "country": "Rwanda",
+        "ror": []
+    },
+    {
+        "name": "Aice Holdings Group",
+        "country": "Singapore",
+        "acronym": null
+    },
+    {
+        "name": " African Institute for Mathematical Sciences, Rwanda",
+        "country": "Rwanda",
+        "acronym": null
+    },
+    {
+        "name": "Arctic Monitoring and Assessment Programme",
+        "acronym": "AMAP",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Argonne National Laboratory (Argonne), University of Chicago",
+        "acronym": "ANL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Australian National University ",
+        "acronym": "ANU",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Atmosphere and Ocean Research Institute, University of Tokyo",
+        "acronym": "AORI",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "APEC Climate center ",
+        "acronym": "APCC",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Arba Minch University",
+        "country": "Ethiopia",
+        "acronym": null
+    },
+    {
+        "name": "Australian Research Council Centre of Excellence for Climate System Science",
+        "acronym": "ARCCSS",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Aristotle University of Thessaloniki",
+        "country": "Greece",
+        "acronym": null
+    },
+    {
+        "name": "Research Center for Environmental Changes : Academia Sinica",
+        "acronym": "AS-RCEC",
+        "country": "Taiwan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Research Institute of Meteorology and Atmospheric Science",
+        "acronym": "ASMERC",
+        "country": "Iran",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Atria University",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Auburn University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Australian Bureau of Meteorology",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "Alfred Wegener Institute, Helmholtz Centre for Polar and Marine Research",
+        "acronym": "AWI",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "British Antarctic Survey",
+        "acronym": "BAS",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Baylor University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Beijing Climate Centre",
+        "acronym": "BCC",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Bjerknes Centre for Climate Research",
+        "acronym": "BCCR",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Bedford Institute of Oceanography",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "Beijing Normal University ",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Berkeley Earth",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Belgian Institute for Space Aeronomy",
+        "acronym": "BIRA-IASB",
+        "country": "Belgium",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "BlackRock",
+        "acronym": "BlackRock",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Blue Skies Research",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Brookhaven National Laboratory",
+        "acronym": "BNL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Beaconhouse National University",
+        "acronym": "BNU",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Beijing Normal University",
+        "acronym": "BNU",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Bureau of Ocean Energy Management",
+        "acronym": "BOEM",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universidad de agronom\u00eda de Viena",
+        "acronym": "BOKU",
+        "country": "Austria",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Brown University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Brunel University London",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Barcelona Supercomputing Center - Centro Nacional de Supercomputacion",
+        "country": "Spain",
+        "acronym": null
+    },
+    {
+        "name": "Centre for Development of Advanced Computing",
+        "acronym": "C-DAC",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "California State University, Chico",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "California Institute of Technology",
+        "acronym": "Caltech",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Chinese Academy of Medical Sciences",
+        "acronym": "CAMS",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CarbonPlan",
+        "acronym": "CarbonPlan",
+        "country": "USA",
+        "ror": []
+    },
+    {
+        "name": "Carl von Ossietzky Universit\u00e4t Oldenburg",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Carnegie Institute for Science",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Carnegie Mellon University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Chinese Academy of Sciences",
+        "acronym": "CAS",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute of Atmospheric Physics(Czechia)",
+        "acronym": "CAS",
+        "country": "Czech Republic",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CBCL Limited",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "Canadian Centre for Climate Modelling and Analysis",
+        "acronym": "CCCma",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "\nCentre for Climate Change Research\nIndian Institute of Tropical Meteorology, Pune, India",
+        "acronym": "CCCR-IITM",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Centre for Climate Research Singapore",
+        "acronym": "CCRS",
+        "country": "Singapore",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Centre for Environment & Data Analysis ",
+        "acronym": "CEDA",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Research Center for Environmental Modeling and Application",
+        "acronym": "CEMA",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CMA Earth System Modeling and Prediction Center",
+        "acronym": "CEMC",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Companhia Energ\u00e9tica de Minas Gerais",
+        "acronym": "CEMIG",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Coffee Research Center ",
+        "acronym": "CENICAF\u00c9",
+        "country": "Colombia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Center for Strategic Research",
+        "country": "Russian Federation",
+        "acronym": null
+    },
+    {
+        "name": "Centre Europ\u00e9en et de Formation avanc\u00e9e en calcul Scientifique",
+        "acronym": "CERFACS",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CGI",
+        "acronym": "CGI",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Charles University",
+        "country": "Czech Republic",
+        "acronym": null
+    },
+    {
+        "name": "China University of Geosciences ",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Centro Internacional de Agricultura Tropical ",
+        "acronym": "CIAT",
+        "country": "Colombia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Center for International Climate Research",
+        "acronym": "CICERO",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Centro de Investigaci\u00f3n Cient\u00edfica y de Educaci\u00f3n Superior de Ensenada",
+        "acronym": "CICESE",
+        "country": "Mexico",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Centro de Investigaciones de Mar y la Atmosfera",
+        "acronym": "CIMA",
+        "country": "Argentina",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Cineca Consortium",
+        "acronym": "Cineca",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Australian Research Council Centre of Excellence for Climate Extremes",
+        "acronym": "CLEX",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Climate AI",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Climate Analytics",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Climate Change AI",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Climate Impacts Lab",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Climate Research Institute",
+        "country": "Iran",
+        "acronym": null
+    },
+    {
+        "name": "Climate Resource ",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "ClimateMatch Academy",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "ClimateX",
+        "acronym": "ClimateX",
+        "country": "UK",
+        "ror": []
+    },
+    {
+        "name": "China Meteorological Administration",
+        "acronym": "CMA",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Fondazione Centro Euro-Mediterraneo sui Cambiamenti Climatici",
+        "acronym": "CMCC",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CMIP International Project Office",
+        "acronym": "CMIP-IPO",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Consiglio Nazionale delle Ricerche",
+        "acronym": "CNR",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Center for Meteorological Research",
+        "acronym": "CNRM",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Center for Meteorological Research, M\u00e9t\u00e9o-France and CNRS laboratory",
+        "acronym": "CNRM-CERFACS",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Centre National de la Recherche Scientifique",
+        "acronym": "CNRS",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Center for Ocean-Land-Atmosphere Studies",
+        "acronym": "COLA",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "College Of Climate Change And Environmetal Science",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Colorado State University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Columbia University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Centre for Climate Research and Development ",
+        "acronym": "COMSATS",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "CONICET Mendoza",
+        "country": "Argentina",
+        "acronym": null
+    },
+    {
+        "name": "CORDEX International Project Office",
+        "country": "Sweden",
+        "acronym": null
+    },
+    {
+        "name": "Cornell University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Center for Ecological Research and Forestry Applications, Barcelona",
+        "acronym": "CREAF",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Cree Nation Government",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "CSIC | Consejo Superior de Investigaciones Cient\u00edficas",
+        "acronym": "CSIC",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Council of Scientific & Industrial Research | CSIR ",
+        "acronym": "CSIR",
+        "country": "South Africa",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Commonwealth Scientific and Industrial Research Organisation \n\n",
+        "acronym": "CSIR-Wits-CSIRO",
+        "country": "South Africa",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Commonwealth Scientific and Industrial Research Organisation ",
+        "acronym": "CSIRO",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Colorado Boulder",
+        "acronym": "CU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "China University of Geosciences",
+        "acronym": "CUG",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Dalhousie University",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "Dartmouth College",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Dayanandasagar College of Engineering ",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Deltares ",
+        "country": "Netherlands",
+        "acronym": null
+    },
+    {
+        "name": "UK Government Department for Energy Security and Net Zero ",
+        "acronym": "DESNZ",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "dev~consult",
+        "acronym": "dev~consult",
+        "country": "Pakistan",
+        "ror": "'NoneType' object is not subscriptable"
+    },
+    {
+        "name": "Data Integration and Analysis System",
+        "acronym": "DIAS",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Deutsches Klimarechenzentrum",
+        "acronym": "DKRZ",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Deutsche Zentrum f\u00fcr Luft- und Raumfahrt",
+        "acronym": "DLR",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Danmarks Meteorologiske Institut",
+        "acronym": "DMI",
+        "country": "Denmark",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "UK Government Department for Science, Innovation and Technology",
+        "acronym": "DSIT",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Duke University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Deutscher Wetterdienst",
+        "acronym": "DWD",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "e Science Centre",
+        "country": "Netherlands",
+        "acronym": null
+    },
+    {
+        "name": "Energy Exascale Earth System Model",
+        "acronym": "E3SM-Project",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "earthmover",
+        "acronym": "earthmover",
+        "country": "USA",
+        "ror": []
+    },
+    {
+        "name": "EC-Earth-Consortium",
+        "acronym": "EC-Earth-Consortium",
+        "country": "Sweden",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Environment and Climate Change Canada",
+        "acronym": "ECCC",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "European Centre for Medium-Range Weather Forecasts",
+        "acronym": "ECMWF",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ecole Normale Sup\u00e9rieure de Lyon",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "\u00c9lectricit\u00e9 de France",
+        "acronym": "EDF",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Swiss Federal Laboratories for Materials Science and Technology\n",
+        "acronym": "Empa",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ecole normale superieure Ulm",
+        "acronym": "ENS",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Environment Canada",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "European Space Agency",
+        "acronym": "ESA",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Eskisehir Technical University",
+        "country": "Turkey",
+        "acronym": null
+    },
+    {
+        "name": "Earth System Modelling and Observations International Project Office",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Space Science and Geospatial Institute",
+        "acronym": "ESSTI",
+        "country": "Ethiopia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Estellus",
+        "acronym": "Estellus",
+        "country": "France",
+        "ror": []
+    },
+    {
+        "name": "Federal polytechnic school",
+        "acronym": "ETH-Z\u00fcrich",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "European Commission",
+        "country": "Belgium",
+        "acronym": null
+    },
+    {
+        "name": "Ewha Womans University",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "Facultad de Ciencias Exactas y Tecnolog\u00eda",
+        "acronym": "FACET",
+        "country": "Argentina",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Fidelidade",
+        "acronym": "Fidelidade",
+        "country": "Portugal",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "First Institute of Oceanography",
+        "acronym": "FIO",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The First Institute of Oceanography (FIO)",
+        "acronym": "FIO-QLNM",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Florida Atlantic University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Finnish Meteorological Institute",
+        "acronym": "FMI",
+        "country": "Finland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Florida State University",
+        "acronym": "FSU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Freie Universit\u00e4t Berlin",
+        "acronym": "FUB",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Forschungzentrum J\u00fclich\n",
+        "acronym": "FZJ",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Global Climate Change Impact Studies Centre",
+        "acronym": "GCISC",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Helmholtz Centre for Ocean Research Kiel",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Climate Service Center Germany",
+        "acronym": "GERICS",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "German IPCC Coordination Office\n",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "George Mason University",
+        "acronym": "GMU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Goethe University Frankfurt",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Goi\u00e1s Federal University ",
+        "country": "Brazil",
+        "acronym": null
+    },
+    {
+        "name": "Government College of Engineering Aurangabad",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Government of Canada",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "HAMMOZ-Consortium ",
+        "country": "Netherlands",
+        "acronym": null
+    },
+    {
+        "name": "Hampton University ",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Hasiru Dala",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Helmholtz-Zentrum hereon GmbH",
+        "acronym": "HEREON",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Highlands Rewilding Ltd.",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Hillridge Technology",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "The Hong Kong University of Science and Technology",
+        "acronym": "HKUST",
+        "country": "Hong Kong",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "HR Wallingford",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "The Hebrew University of Jerusalem",
+        "acronym": "HUJI",
+        "country": "Israel",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Humboldt University",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Hydroclimat",
+        "acronym": "Hydroclimat",
+        "country": "France",
+        "ror": []
+    },
+    {
+        "name": "Hydrometcenter of Russia",
+        "country": "Russian Federation",
+        "acronym": null
+    },
+    {
+        "name": "Instituto de Astrof\u00edsica de Andaluc\u00eda",
+        "acronym": "IAA",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute of Atmospheric Physics ",
+        "acronym": "IAP",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ibaraki University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "National Bureau Soil Survey and Land Use Planning ",
+        "acronym": "ICAR",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Irish Centre for High-End Computing",
+        "acronym": "ICHEC",
+        "country": "Ireland {Republic}",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The Abdus Salam International Centre for Theoretical Physics",
+        "acronym": "ICTP",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "International Development Research Centre",
+        "acronym": "IDRC",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute of Energy and Climate Research",
+        "acronym": "IEK",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Instituto de F\u00edsica de Cantabria",
+        "acronym": "IFCA",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institut Fran\u00e7ais de Recherche pour l'Exploitation de la Mer",
+        "acronym": "IFREMER",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "International Global Change Institute",
+        "acronym": "IGCI",
+        "country": "New Zealand",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "International Institute for Applied Systems Analysis",
+        "acronym": "IIASA",
+        "country": "Austria",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Indian Institute for Human Settlements",
+        "acronym": "IIHS",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Indian Institute of Science ",
+        "acronym": "IIS",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Indian Institute of Science Education and Research",
+        "acronym": "IISER",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Indian Institute of Technology",
+        "acronym": "IIT",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Indian Institute of Tropical Meteorology",
+        "acronym": "IITM",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Imperial College London",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Indian Institute of Space Science & Technology",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Indiana University Bloomington",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Istituto Nazionale di Geofisica e Vulcanologia",
+        "acronym": "INGV",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Russian Academy of Science",
+        "acronym": "INM",
+        "country": "Russian Federation",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Amazonian Research",
+        "acronym": "INPA",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Instituto Nacional de Pesquisas Espaciais",
+        "acronym": "INPE",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institut national de la recherche agronomique",
+        "acronym": "INRAE",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Leibniz Institute for Baltic Sea Research",
+        "acronym": "IOW",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The Intergovernmental Panel on Climate Change",
+        "acronym": "IPCC",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute Pierre Simon Laplace",
+        "acronym": "IPSL",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institut de recherche pour le D\u00e9veloppement",
+        "acronym": "IRD",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute of Statistical Mathematics",
+        "acronym": "ISM",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Institute of Space Technology",
+        "acronym": "IST",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Iowa State University",
+        "acronym": "ISU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "ITMO University",
+        "country": "Russian Federation",
+        "acronym": null
+    },
+    {
+        "name": "Jambi University",
+        "country": "Indonesia",
+        "acronym": null
+    },
+    {
+        "name": "Jamia Millia Islamia",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Japan Agency for Marine-Earth Science and Technology",
+        "acronym": "JAMSTEC",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Jawaharlal Nehru Technological University Anantapur",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Jeonbuk National University",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "Joint Global Change Research Institute",
+        "acronym": "JGCRI",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Jimma University ",
+        "country": "Ethiopia",
+        "acronym": null
+    },
+    {
+        "name": "Johannes Gutenberg Universit\u00e4t Mainz",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Jupiter Intelligence",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Korea Advanced Institute of Science and Technology",
+        "acronym": "KAIST",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "King Abdullah University of Science and Technology",
+        "acronym": "KAUST",
+        "country": "Saudi Arabia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "King\u2019s College London",
+        "acronym": "KCL",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Kerala Agricultural University",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Korean Institute of Ocean Science and Technology",
+        "acronym": "KIOST",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Karlsruhe Institute of Technology",
+        "acronym": "KIT",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Korea Meteorological Administration",
+        "acronym": "KMA",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The Royal Netherlands Meteorological Institute ",
+        "acronym": "KNMI",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Kobe University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "Korea University",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "Krea University",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Kansas State University",
+        "acronym": "KSU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Katholieke Universiteit Leuven",
+        "country": "Belgium",
+        "acronym": null
+    },
+    {
+        "name": "Kulima Integrated Development Solutions",
+        "country": "South Africa",
+        "acronym": null
+    },
+    {
+        "name": "Kyoto University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "La Plata National University",
+        "country": "Argentina",
+        "acronym": null
+    },
+    {
+        "name": "Lancaster University",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Los Alamos National Laboratory",
+        "acronym": "LANL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Lawrence Berkeley National Lab",
+        "acronym": "LBNL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Learning the Earth with Artificial Intelligence and Physics",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Leipzig University",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Link\u00f6ping University",
+        "acronym": "LiU",
+        "country": "Sweden",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Lawrence Livermore National Laboratory",
+        "acronym": "LLNL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Laboratoire de M\u00e9t\u00e9orologie Dynamique",
+        "acronym": "LMD",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ludwig-Maximilians-Universit\u00e4t M\u00fcnchen",
+        "acronym": "LMU",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Laboratoire des sciences du climat et de l'environnement",
+        "acronym": "LSCE",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "London School of Hygiene and Tropical Medicine",
+        "acronym": "LSHTM",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Louisiana State University",
+        "acronym": "LSU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Lund University",
+        "country": "Sweden",
+        "acronym": null
+    },
+    {
+        "name": "M.S.Swaminathan Research Foundation",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Mahidol University",
+        "country": "Thailand",
+        "acronym": null
+    },
+    {
+        "name": "Guatemalan Ministry of Environment and Natural Resources",
+        "acronym": "MARN",
+        "country": "Guatemala",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "McGill University",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "McKinsey & Company",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Mercator Ocean",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "MESSy Consortium ",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Met \u00c9ireann",
+        "country": "Ireland {Republic}",
+        "acronym": null
+    },
+    {
+        "name": "MET Norway",
+        "country": "Norway",
+        "acronym": null
+    },
+    {
+        "name": "M\u00e9t\u00e9o-France",
+        "acronym": "M\u00e9t\u00e9o-France",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ministry of Education, Culture, Sports, Science and Technology",
+        "acronym": "MEXT",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Massachusetts Institute of Technology",
+        "acronym": "MIT",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The UK Meteorological Office\n",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Monash University",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "Max Planck Institute for Biogeochemistry",
+        "acronym": "MPI-BGC",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Max Planck Institute for Chemistry",
+        "acronym": "MPI-C",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Max Planck Institute for Chemistry ",
+        "acronym": "MPI-C",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Max Planck Institute of Geoanthropology",
+        "acronym": "MPI-G",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Max-Planck-Institut f\u00fcr Meteorologie",
+        "acronym": "MPI-M",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Meteorological Research Institute",
+        "acronym": "MRI",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Mulawarman University",
+        "country": "Indonesia",
+        "acronym": null
+    },
+    {
+        "name": "Nanjing University",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "National Aeronautics and Space Administration ",
+        "acronym": "NASA",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Hydrology Roorkee ",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "National University of Lesotho",
+        "country": "Lesotho",
+        "acronym": null
+    },
+    {
+        "name": "Northern Arizona University",
+        "acronym": "NAU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Naval Postgraduate School",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "National Centre for Atmospheric Research",
+        "acronym": "NCAR",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Centre for Atmospheric Science\n",
+        "acronym": "NCAS",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Centre for Earth Observation",
+        "acronym": "NCEO",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Centers for Environmental Prediction",
+        "acronym": "NCEP",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Computational Infrastructure",
+        "acronym": "NCI",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Center of Meteorology ",
+        "acronym": "NCM",
+        "country": "United Arab Emirates",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "North Carolina State University",
+        "acronym": "NCState",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Natural Environmental Research Council",
+        "acronym": "NERC",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Stiftelsen Nansen senter for milj\u00f8 og fjernma\u030aling",
+        "acronym": "NERSC",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Japan Aerospace Exploration Agency",
+        "acronym": "JAXA",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute for Environmental Studies",
+        "acronym": "NIES",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Norwegian Institute for Air Research",
+        "acronym": "NILU",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Meteorological Research",
+        "acronym": "NIMR",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Korea Meteorological Administration",
+        "acronym": "NIMS",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Meteorological Sciences (NIMS), KMA",
+        "acronym": "NIMS-KMA",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Water and Atmospheric Research",
+        "acronym": "NIWA",
+        "country": "New Zealand",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Netherlands Aerospace Centre",
+        "acronym": "NLR",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Observatory of Athens ",
+        "acronym": "NOA",
+        "country": "Greece",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Oceanic & Atmospheric Administration",
+        "acronym": "NOAA",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "NOAA Geophysical Fluid Dynamics Laboratory",
+        "acronym": "NOAA-GFDL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "NOAA National Centres for Environmental Information",
+        "acronym": "NOAA-NCEI",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Oceanography Centre",
+        "acronym": "NOC",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Norwegian Research Centre",
+        "acronym": "NORCE",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Naval Research Laboratory",
+        "acronym": "NRL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Science Foundation",
+        "acronym": "NSF",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Norwegian University of Science and Technology",
+        "acronym": "NTNU",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Nanyang Technological University",
+        "acronym": "NTU",
+        "country": "Singapore",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Taiwan University",
+        "acronym": "NTU",
+        "country": "Taiwan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National University of Ireland",
+        "acronym": "NUI",
+        "country": "Ireland {Republic}",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Nanjing University of Information Science and Technology ",
+        "acronym": "NUIST",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "New York University",
+        "acronym": "NYU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Istituto Nazionale di Oceanografia e di Geofisica Sperimentale",
+        "acronym": "OGS",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Institute of Oceanography and Applied Geophysics",
+        "acronym": "OGS",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "OJEong Resilience Institute",
+        "acronym": "OJERI",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ordinance Survey UK",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Oak Ridge National Laboratory",
+        "acronym": "ORNL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Oregon State University",
+        "acronym": "OSU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ouranos",
+        "acronym": "Ouranos",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Pakistan Agricultural Research Council",
+        "country": "Pakistan",
+        "acronym": null
+    },
+    {
+        "name": "Pan African University Institute of Water and Energy Sciences (Including Climate Change)",
+        "acronym": "PAUWES",
+        "country": "Algeria",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "PBL Netherlands Environmental Assessment Agency",
+        "acronym": "PBL",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Peking University",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Perdue University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Postdam Institute for Climate Impact Research",
+        "acronym": "PIK",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Pir Mehr Ali Shah Arid Agriculture University Rawalpindi",
+        "acronym": "PMAS-AAUR",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Plymouth Marine Laboratory",
+        "acronym": "PML",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Physikalisch-Meteorologisches Observatorium Davos/World Radiation Center",
+        "acronym": "PMOD/WRC",
+        "country": "Germany",
+        "ror": "'NoneType' object is not subscriptable"
+    },
+    {
+        "name": "Pacific Northwest National Laboratory",
+        "acronym": "PNNL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "PNNL - Water Cycle and Climate Extremes Modeling ",
+        "acronym": "PNNL-WACCEM",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Pukyong National University",
+        "acronym": "PNU",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Politecnico di Torino",
+        "country": "Italy",
+        "acronym": null
+    },
+    {
+        "name": "Princeton University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Purdue University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "PricewaterhouseCoopers LLP",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Queensland Climate Change Centre of Excellence",
+        "acronym": "QCCCE",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Qingdao National Laboratory for Marine Science and Technology",
+        "acronym": "QLNM",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "RIKEN Center for Computational Science",
+        "acronym": "R-CCS",
+        "country": "Japan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Rutherford Appleton Laboratory",
+        "acronym": "RAL",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Research Center for Environmental Changes",
+        "acronym": "RCEC",
+        "country": "Taiwan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "RedCarbon",
+        "acronym": "RedCarbon",
+        "country": "Switzerland",
+        "ror": []
+    },
+    {
+        "name": "Remote Sensing Systems (RSS) ",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Regional Information for Society International Project Office",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "riskthinking.ai",
+        "acronym": "riskthinking.ai",
+        "country": "Canada",
+        "ror": []
+    },
+    {
+        "name": "Ritsumeikan University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "Ramkhamhaeng University Center of Regional Climate Change and Renewable Energy",
+        "acronym": "RU-CORE",
+        "country": "Thailand",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Rutgers University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "RWE",
+        "acronym": "RWE",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Sustaining All Life",
+        "acronym": "SAL",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Schmidt Sciences",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Science Hub Nepal",
+        "country": "Nepal",
+        "acronym": null
+    },
+    {
+        "name": "Seoul National University of Science and Technology",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "Shanghai Ecological Forecasting and Remote Sensing Center",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Shanghai Meteorological Service",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Simon Fraser University",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "San Jos\u00e9 State University",
+        "acronym": "SJSU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Finnish Environment Institute",
+        "acronym": "SKYE",
+        "country": "Finland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Swedish Meteorological and Hydrological Institute",
+        "acronym": "SMHI",
+        "country": "Sweden",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Seoul National University",
+        "acronym": "SNU",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Sorbonne Universit\u00e9",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "South African Weather Service",
+        "country": "South Africa",
+        "acronym": null
+    },
+    {
+        "name": "Stanford University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Science and Technology Facilities Council",
+        "acronym": "STFC",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Stockholm University",
+        "country": "Sweden",
+        "acronym": null
+    },
+    {
+        "name": "Stony Brook University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Sun Yat-sen University",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Swiss Armed Forces",
+        "country": "Switzerland",
+        "acronym": null
+    },
+    {
+        "name": "German Institute for International and Security Affairs",
+        "acronym": "SWP",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Texas A&M University ",
+        "acronym": "TAMU",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Temple University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "TenneT",
+        "acronym": "TenneT",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Innovative Solutions for Sustainable Development",
+        "acronym": "TERI",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The Climate Risk Group",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "The Cyprus Institute",
+        "country": "Cyprus",
+        "acronym": null
+    },
+    {
+        "name": "The Energy and Resources Institute",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "The Financial Times",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Universiti Kebangsaan Malaysia ",
+        "country": "Malaysia",
+        "acronym": null
+    },
+    {
+        "name": "The Nature Conservancy",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "The University of Western Ontario",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "Tsinghua University",
+        "acronym": "THU",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Tanzania Meteorological Authority",
+        "acronym": "TMA",
+        "country": "Tanzania",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Tokyo University of Marine Science and Technology,",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "Tribhuvan University",
+        "country": "Nepal",
+        "acronym": null
+    },
+    {
+        "name": "Leibniz Institute for Tropospheric Research",
+        "acronym": "TROPOS",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Leibniz Institute for Tropospheric Research ",
+        "acronym": "TROPOS",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The Scientific and Technological Research Council of T\u00fcrkiye",
+        "acronym": "TUBITAK",
+        "country": "Turkey",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Delft University of Technology",
+        "acronym": "TUDelft",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Technical University of Munich",
+        "acronym": "TUM",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Turkish State Meteorological Service",
+        "country": "Turkey",
+        "acronym": null
+    },
+    {
+        "name": "The Weather Partner",
+        "acronym": "TWP",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The University of Arizona",
+        "acronym": "UA",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Pir Mehr Ali Shah - Arid Agriculture - University Rawalpindi",
+        "acronym": "UAAR",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Alabama in Huntsville",
+        "acronym": "UAH",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "German Environment Agency",
+        "acronym": "UBA",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of British Columbia",
+        "acronym": "UBC",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universit\u00e9 Cheikh Anta Diop de Dakar",
+        "acronym": "UCAD",
+        "country": "Senegal",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University Corporation for Atmospheric Research",
+        "acronym": "UCAR",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California, Berkeley",
+        "acronym": "UCBerkeley",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California Irvine",
+        "acronym": "UCI",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University College London",
+        "acronym": "UCL",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "The University of California Los Angeles",
+        "acronym": "UCLA",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universit\u00e9 catholique de Louvain",
+        "acronym": "UCLouvain",
+        "country": "Belgium",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universidad Complutense de Madrid",
+        "acronym": "UCM",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California, Riverside",
+        "acronym": "UCRiverside",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California, Santa Barbara",
+        "acronym": "UCSB",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California, Santa Cruz",
+        "acronym": "UCSC",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of California San Diego",
+        "acronym": "UCSD",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Cape Town",
+        "acronym": "UCT",
+        "country": "South Africa",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of East Anglia",
+        "acronym": "UEA",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universidade do Estado do Rio de Janeiro",
+        "acronym": "UERJ",
+        "country": "Argentina",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Federal University of Rio Grande do Norte ",
+        "acronym": "UFRN",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Helmholtz Centre for Environmental Research",
+        "acronym": "UFZ",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universit\u00e9 Grenoble Alpes",
+        "acronym": "UGA",
+        "country": "France",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Uganda Martyrs University",
+        "country": "Uganda",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e4t Hamburg\n",
+        "acronym": "UHH",
+        "country": "Germany",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Bergen",
+        "acronym": "UiB",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Oslo",
+        "acronym": "UiO",
+        "country": "Norway",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Illinois Urbana-Champaign",
+        "acronym": "UIUC",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "UK Centre for Ecology & Hydrology",
+        "acronym": "UKCEH",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universit\u00e9 Libre de Bruxelles",
+        "acronym": "ULB",
+        "country": "Belgium",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Minnesota",
+        "acronym": "UMN",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Federal University of Pampa",
+        "acronym": "UNIPAMPA",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ulsan National Institute of Science and Technology",
+        "acronym": "UNIST",
+        "country": "Republic of Korea",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Universidad de Carabobo",
+        "country": "Venezuela",
+        "acronym": null
+    },
+    {
+        "name": "Universidad de Nari\u00f1o",
+        "country": "Colombia",
+        "acronym": null
+    },
+    {
+        "name": "Universidad del Rosario",
+        "country": "Colombia",
+        "acronym": null
+    },
+    {
+        "name": "Universidad Nacional Aut\u00f3noma de M\u00e9xico",
+        "country": "Mexico",
+        "acronym": null
+    },
+    {
+        "name": "Universidad Nacional de Ingenier\u00eda",
+        "country": "Peru",
+        "acronym": null
+    },
+    {
+        "name": "Universidad Nacional de Tucuman",
+        "country": "Argentina",
+        "acronym": null
+    },
+    {
+        "name": "Universidad T\u00e9cnica de Oruro",
+        "country": "Bolivia",
+        "acronym": null
+    },
+    {
+        "name": "Universitat de Barcelona",
+        "country": "Spain",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e4t Freiburg",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e4t Heidelberg",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e9 de Bretagne Occidentale",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "University at Buffalo",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University Ca' Foscari of Venice",
+        "country": "Italy",
+        "acronym": null
+    },
+    {
+        "name": "University of Alabama",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Alberta",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Bahri",
+        "country": "Sudan",
+        "acronym": null
+    },
+    {
+        "name": "University of Bath",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Belgrade",
+        "country": "Serbia",
+        "acronym": null
+    },
+    {
+        "name": "University of Benin",
+        "country": "Benin",
+        "acronym": null
+    },
+    {
+        "name": "University of Bern",
+        "country": "Switzerland",
+        "acronym": null
+    },
+    {
+        "name": "University of Birmingham",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Bologna",
+        "country": "Italy",
+        "acronym": null
+    },
+    {
+        "name": "University of Bonn",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "University of Bremen",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "University of Brest",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "University of Bristol",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Buenos Aires",
+        "country": "Argentina",
+        "acronym": null
+    },
+    {
+        "name": "University of Calabar",
+        "country": "Nigeria",
+        "acronym": null
+    },
+    {
+        "name": "University of Cambridge",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Canterbury ",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Chicago",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Colorado Colorado Springs",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Conneticut",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Debrecen",
+        "country": "Hungary",
+        "acronym": null
+    },
+    {
+        "name": "University of Delhi ",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "University of Edinburgh",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Exeter",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Florence",
+        "country": "Italy",
+        "acronym": null
+    },
+    {
+        "name": "University of Florida",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Ghana",
+        "country": "Ghana",
+        "acronym": null
+    },
+    {
+        "name": "University of Goettingen",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "University of Gothenburg",
+        "country": "Sweden",
+        "acronym": null
+    },
+    {
+        "name": "University of Hawaii",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University Of Karachi",
+        "country": "Pakistan",
+        "acronym": null
+    },
+    {
+        "name": "University of Lausanne",
+        "country": "Switzerland",
+        "acronym": null
+    },
+    {
+        "name": "University of Leeds",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Leicester",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Lincoln",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Liverpool",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Ljubljana",
+        "country": "Slovenia",
+        "acronym": null
+    },
+    {
+        "name": "University of Malta",
+        "country": "Malta",
+        "acronym": null
+    },
+    {
+        "name": "University of Manitoba",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Maryland",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Melbourne",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "University of Miami",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Michigan",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Missouri",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Nebraska",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Nebraska-Lincoln",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Northumbria",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Oregon",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Oxford",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Potsdam",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "University of Pretoria\n",
+        "country": "South Africa",
+        "acronym": null
+    },
+    {
+        "name": "University of Quebec",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Reading",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Samsun",
+        "country": "Turkey",
+        "acronym": null
+    },
+    {
+        "name": "University of Saskatchewan",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Sheffield",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Southampton",
+        "country": "United Kingdom",
+        "acronym": null
+    },
+    {
+        "name": "University of St Andrews",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "University of Tehran ",
+        "country": "Iran",
+        "acronym": null
+    },
+    {
+        "name": "University of Tokyo",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "University of Toronto",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Toulouse",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": "University of Trento",
+        "country": "Italy",
+        "acronym": null
+    },
+    {
+        "name": "University of T\u00fcbingen",
+        "country": "Germany",
+        "acronym": null
+    },
+    {
+        "name": "University of Victoria",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Vienna",
+        "country": "Austria",
+        "acronym": null
+    },
+    {
+        "name": "University of Washington",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Waterloo",
+        "country": "Canada",
+        "acronym": null
+    },
+    {
+        "name": "University of Yaounde 1",
+        "country": "Cameroon",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e9 Nationale des Sciences Technologies, Ing\u00e9nierie et Math\u00e9matiques",
+        "acronym": "UNSTIM",
+        "country": "Benin",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of New South Wales",
+        "acronym": "UNSW",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Toronto",
+        "acronym": "UofT",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Hyderabad",
+        "acronym": "UoH",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "US CLIVAR Project Office",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "US Department of Energy",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of San Diego",
+        "acronym": "USD",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "United States Geological Survey",
+        "acronym": "USGS",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Utah State University ",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Tasmania\n",
+        "acronym": "UTAS",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": " The University of Texas at Austin",
+        "acronym": "UTAustin",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Utrecht University",
+        "acronym": "UU",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Vrije Universiteit Amsterdam",
+        "country": "Netherlands",
+        "acronym": null
+    },
+    {
+        "name": "Vrije Universiteit Brussel",
+        "country": "Belgium",
+        "acronym": null
+    },
+    {
+        "name": "Waseda University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "Watershed Organization Trust",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Woodwell Climate Research Center",
+        "acronym": "WCRC",
+        "country": "USA",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "World Climate Research Programme",
+        "acronym": "WCRP",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Wellcome Trust",
+        "country": "United Kingdom",
+        "acronym": null
+    },
+    {
+        "name": "Western Sydney University",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "University of the Witwaterstand",
+        "acronym": "Wits",
+        "country": "South Africa",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "World Meteorological Organisation",
+        "acronym": "WMO",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Woods Hole Oceanographic Institution",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": " Swiss Federal Institute for Forest, Snow and Landscape Research ",
+        "acronym": "WSL",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Wageningen Universit",
+        "acronym": "WUR",
+        "country": "Netherlands",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "World Weather Research Programme",
+        "acronym": "WWRP",
+        "country": "Switzerland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Xiamen University",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Yale University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Yonsei University",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "York University",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Zhejiang University",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "University of Ottawa",
+        "acronym": "uOttawa",
+        "country": "Canada",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Global Climate Change Impact Studies Centre",
+        "acronym": "CGISC",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Global Tech Innovations Pvt. Ltd.",
+        "acronym": "GTI",
+        "country": "Pakistan",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Gwangju Institute of Science and Technology",
+        "country": "Republic of Korea",
+        "acronym": null
+    },
+    {
+        "name": "Institut des G\u00e9osciences de l'Environnement",
+        "country": "France",
+        "acronym": null
+    },
+    {
+        "name": " University of New England",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "Epsilon Delta Labs",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Microsoft Corporation",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Companhia Ambiental do Estado de S\u00e3o Paulo",
+        "acronym": "CETESB",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Southern California Gas Company",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "Universidade de S\u00e3o Paulo",
+        "country": "Brazil",
+        "acronym": null
+    },
+    {
+        "name": "Shah And Anchor Kutchhi Engineering College",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Institute for Sustainable Development and Research",
+        "acronym": "ISDR",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Gaston Berger University of Saint Louis",
+        "country": "Senegal",
+        "acronym": null
+    },
+    {
+        "name": "Symbiosis Institute of Geoinformatics, Symbiosis International University",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Indian National Centre for Ocean Information Services",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Universit\u00e9 de Lom\u00e9",
+        "country": "Togo",
+        "acronym": null
+    },
+    {
+        "name": "Jomo Kenyatta University of Agriculture and Technology",
+        "country": "Kenya",
+        "acronym": null
+    },
+    {
+        "name": "National Higher Polytechnic Institute, University of Bamenda",
+        "country": "Cameroon",
+        "acronym": null
+    },
+    {
+        "name": "Yogi Vemana University",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Newcastle University",
+        "country": "United Kingdom",
+        "acronym": null
+    },
+    {
+        "name": "African Centre of Meteorological Application for Development",
+        "acronym": "ACMAD",
+        "country": "Niger",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Nairobi",
+        "country": "Kenya",
+        "acronym": null
+    },
+    {
+        "name": "GB Pant University of Agriculture & Technology",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Priestley Centre for Climate Futures",
+        "country": "United Kingdom",
+        "acronym": null
+    },
+    {
+        "name": "Chuo University",
+        "country": "Japan",
+        "acronym": null
+    },
+    {
+        "name": "Federal University of Technology Akure",
+        "country": "Nigeria",
+        "acronym": null
+    },
+    {
+        "name": "National Institute of Meteorology",
+        "acronym": "INMET",
+        "country": "Brazil",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "National Astronomical Research Institute of Thailand",
+        "country": "Thailand",
+        "acronym": null
+    },
+    {
+        "name": "CESDAC - Climate, Energy and Sustainable Development Analysis Centre",
+        "acronym": "CESDAC",
+        "country": "India",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Chengdu University of Information Technology",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": " IT Center for Science",
+        "acronym": "CSC",
+        "country": "Finland",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Eastern Institute of Technology",
+        "country": "China",
+        "acronym": null
+    },
+    {
+        "name": "Ferdowsi University of Mashhad",
+        "country": "Iran",
+        "acronym": null
+    },
+    {
+        "name": "H2A Environmental Consultancy",
+        "country": "Uganda",
+        "acronym": null
+    },
+    {
+        "name": "ICAR-National Institute of Agricultural Economics and Policy Research",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Islamic University of Technology",
+        "country": "Bangladesh",
+        "acronym": null
+    },
+    {
+        "name": "Istanbul Technical University",
+        "country": "Turkey",
+        "acronym": null
+    },
+    {
+        "name": "Instituto Tecnol\u00f3gico Metropolitano",
+        "acronym": "ITM",
+        "country": "Colombia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "London School of Economics and Political Science",
+        "acronym": "LSE",
+        "country": "UK",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Portland State University",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "The University of Queensland",
+        "country": "Australia",
+        "acronym": null
+    },
+    {
+        "name": "University of Amsterdam",
+        "country": "Netherlands",
+        "acronym": null
+    },
+    {
+        "name": "United Nations Economic and Social Commission for Western Asia",
+        "acronym": "ESCWA",
+        "country": "Lebanon",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Ferdowsi University of Mashhad",
+        "country": "Iran",
+        "acronym": null
+    },
+    {
+        "name": "Heriot-Watt University",
+        "country": "UK",
+        "acronym": null
+    },
+    {
+        "name": "Indian National Centre for Information Services",
+        "country": "India",
+        "acronym": null
+    },
+    {
+        "name": "Scripps Institution of Oceanography University of California",
+        "country": "USA",
+        "acronym": null
+    },
+    {
+        "name": "University of Hong Kong",
+        "country": "Hong Kong",
+        "acronym": null
+    },
+    {
+        "name": "Zimbabwe Open University",
+        "country": "Zimbabwe",
+        "acronym": null
+    },
+    {
+        "name": "Colorado School of Mines ",
+        "country": "United States",
+        "acronym": null
+    },
+    {
+        "name": "University of Szczecin",
+        "country": "Poland",
+        "acronym": null
+    },
+    {
+        "name": "Chinese Meteorological Administration",
+        "acronym": "CMA",
+        "country": "China",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Singapore Management University",
+        "acronym": "SMU",
+        "country": "Singapore",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Manila Observatory",
+        "country": "Philippines",
+        "acronym": null
+    },
+    {
+        "name": "Technical University of Denmark ",
+        "acronym": "DTU",
+        "country": "Denmark",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Technical University Wien",
+        "acronym": "TUW",
+        "country": "Austria",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "University of Alcala",
+        "acronym": "UAH",
+        "country": "Spain",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Clark University ",
+        "country": "United States",
+        "acronym": null
+    },
+    {
+        "name": "University of Albany ",
+        "acronym": "UAL",
+        "country": "United States",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "John Carroll University ",
+        "country": "United States",
+        "acronym": null
+    },
+    {
+        "name": "James Cook University ",
+        "acronym": "JCU",
+        "country": "Australia",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Food and Agriculture Organization",
+        "acronym": "FAO",
+        "country": "Italy",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "Environmental Earth Observation IT GmbH",
+        "acronym": "ENVEO",
+        "country": "Austria",
+        "ror": "string indices must be integers, not 'str'"
+    },
+    {
+        "name": "New Institution ",
+        "country": NaN,
+        "acronym": null
+    },
+    {
+        "name": "Gamma Remote Sensing AG",
+        "country": "Switzerland",
+        "acronym": null
+    }
+]

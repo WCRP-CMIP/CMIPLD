@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .locations import *
+from . import utils
 from jsonld_recursive import LdrClient
 import os
 import time
@@ -14,7 +15,7 @@ print("Initializing LDR client...", flush=True)
 client = LdrClient(
                 auto_start_server=True,
                 timeout=10, max_retries=5,
-                mappings=_redirect_mapping
+                mappings_file=_redirect_mapping
                 )
 
 print("LDR client initialized.", flush=True)
