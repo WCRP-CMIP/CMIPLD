@@ -19,6 +19,7 @@ def ld(linked):
 
 def main():
     from cmipld.utils.validate_json.validator import JSONValidator
+    
 
     global v
     v = JSONValidator('.')
@@ -27,10 +28,13 @@ def main():
     
     
 def data():
-    
+    from cmipld import reverse_mapping
     # Get repo base URL§
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
+    prefix = reverse_mapping.get(base,'no-prefix')
+    base2 = f'{prefix}.mipcvs.dev/'
+
 
     # Process each context file
     for cx in glob.glob('*/_context'):
@@ -49,8 +53,11 @@ def data():
             ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
-            ctx['@base'] = f"{base}{folder}/"
-            ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}."
+            ctx['@base'] = f"{base2}{folder}/"
+            ctx['@vocab'] = f"{base2}docs/contents/{esg_name}/"
+            ctx["@alt_base"] = f"{base}{folder}/"
+            
+            # f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}."
             
             # Write back
             
@@ -66,12 +73,13 @@ def data():
             
             
 def project():
+    from cmipld import reverse_mapping
     global v
     # Get repo base URL
     repo = (os.popen("git remote get-url origin").read()).replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
-
-
+    prefix = reverse_mapping.get(base,'no-prefix')
+    base2 = f'{prefix}.mipcvs.dev/'
 
 
 
@@ -94,8 +102,13 @@ def project():
             ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
-            ctx['@base'] = f"{base}project/"
-            ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
+            # ctx['@base'] = f"{base}project/"
+            # ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
+            
+            # Set base/vocab
+            ctx['@base'] = f"{base2}{folder}/"
+            ctx['@vocab'] = f"{base2}docs/contents/{esg_name}/"
+            ctx["@alt_base"] = f"{base}{folder}/"
             
             data['@context'] = dict(sorted(ctx.items()))
             # Write back
