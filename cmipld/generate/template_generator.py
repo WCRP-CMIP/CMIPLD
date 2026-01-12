@@ -13,6 +13,22 @@ from pathlib import Path
 import random
 import subprocess
 
+# GitHub reserved words that cannot be used in issue template options
+GITHUB_RESERVED_WORDS = {'None', 'none', 'True', 'true', 'False', 'false'}
+
+def sanitize_option(option):
+    """Replace GitHub reserved words with safe alternatives."""
+    if option in GITHUB_RESERVED_WORDS:
+        if option.lower() == 'none':
+            return 'no-value'
+        elif option.lower() == 'true':
+            return 'yes'
+        elif option.lower() == 'false':
+            return 'no'
+        else:
+            return f'{option}-value'
+    return option
+
 def random_color():
     return f"{random.randint(0, 0xFFFFFF):06X}"
 
@@ -106,40 +122,35 @@ def generate_field_yaml(field_def, data):
             
             if options_type == 'dict_keys':
                 for key in source_data.keys():
-                    yaml_lines.append(f"        - \"{key}\"")
+                    safe_key = sanitize_option(key)
+                    yaml_lines.append(f"        - \"{safe_key}\"")
             
             elif options_type == 'list':
                 for item in source_data:
-                    yaml_lines.append(f"        - \"{item}\"")
+                    safe_item = sanitize_option(item)
+                    yaml_lines.append(f"        - \"{safe_item}\"")
             
             elif options_type in ['dict_multiple']:
                 # For multi-select, use simple string options (no label needed)
                 for key in source_data.keys():
-                    yaml_lines.append(f"        - \"{key}\"")
+                    safe_key = sanitize_option(key)
+                    yaml_lines.append(f"        - \"{safe_key}\"")
             
             elif options_type == 'dict_with_extra':
                 for key in source_data.keys():
-                    yaml_lines.append(f"        - \"{key}\"")
+                    safe_key = sanitize_option(key)
+                    yaml_lines.append(f"        - \"{safe_key}\"")
                 yaml_lines.append("        - \"Open Source\"")
                 yaml_lines.append("        - \"Registration Required\"")
                 yaml_lines.append("        - \"Proprietary\"")
             
             elif options_type == 'list_with_na':
-                yaml_lines.append("        - \"Not applicable\"")
+                # Don't add "Not specified" for issue_kind - it should only have New/Modify
+                if field_id != 'issue_kind':
+                    yaml_lines.append("        - \"Not specified\"")
                 for item in source_data:
-                    yaml_lines.append(f"        - \"{item}\"")
-        
-        # elif options_type == 'hardcoded':
-        #     # Try _options suffix first, then fall back to field_id directly
-        #     hardcoded_key = f"{field_id}"
-        #     # _options"
-        #     if hardcoded_key not in data and field_id in data:
-        #         hardcoded_key = field_id
-            
-        #     if hardcoded_key in data:
-        #         for option in data[hardcoded_key]:
-        #             yaml_lines.append(f"        - \"{option}\"")
-        
+                    safe_item = sanitize_option(item)
+                    yaml_lines.append(f"        - \"{safe_item}\"")
 
     
     if default_value:
@@ -380,7 +391,7 @@ The following forms are available for this repository, and can be used to add or
         print('💾 CONTRIBUTING.md written')
         
 
-        # ##### make links file 
+        # ##### make links file 
         # with open( output_dir / "../config.yml", 'w', encoding='utf-8') as f:
         #     f.write("blank_issues_enabled: false\n")
         #     f.write("contact_links:\n")
