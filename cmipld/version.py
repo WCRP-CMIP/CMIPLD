@@ -28,14 +28,7 @@ version_tuple: VERSION_TUPLE
 commit_id: COMMIT_ID
 __commit_id__: COMMIT_ID
 
-<<<<<<< HEAD
-__version__ = version = '0.0.7.dev288+g8d6d47179.d20251129'
-__version_tuple__ = version_tuple = (0, 0, 7, 'dev288', 'g8d6d47179.d20251129')
+__version__ = version = '0.0.7.dev292+g6ea58e30f.d20260112'
+__version_tuple__ = version_tuple = (0, 0, 7, 'dev292', 'g6ea58e30f.d20260112')
 
-__commit_id__ = commit_id = 'g8d6d47179'
-=======
-__version__ = version = '0.0.7.dev287+g108364574.d20251219'
-__version_tuple__ = version_tuple = (0, 0, 7, 'dev287', 'g108364574.d20251219')
-
-__commit_id__ = commit_id = 'g108364574'
->>>>>>> 97e37b4 (development)
+__commit_id__ = commit_id = 'g6ea58e30f'
