@@ -7,16 +7,31 @@ import time
 
 
 _redirect_mapping = {}
+
+# Add prefix mappings (e.g., universal:* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
 for k,v in mapping.items():
     _redirect_mapping[f'{k}:*'] = v+'${rest}'
 
+# Add mipcvs.dev domain mappings (e.g., https://universal.mipcvs.dev/* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
+for k,v in mapping.items():
+    _redirect_mapping[f'https://{k}.mipcvs.dev/*'] = v+'${rest}'
+
 print("Initializing LDR client...", flush=True)
+
+print(f"Mappings to set: {_redirect_mapping}", flush=True)
 
 client = LdrClient(
                 auto_start_server=True,
                 timeout=10, max_retries=5,
                 mappings=_redirect_mapping
                 )
+
+# Verify mappings were set
+try:
+    current_mappings = client.get_mappings()
+    print(f"Current server mappings: {current_mappings}", flush=True)
+except Exception as e:
+    print(f"Warning: Could not verify mappings: {e}", flush=True)
 
 print("LDR client initialized.", flush=True)
 
@@ -28,6 +43,18 @@ def get(url, depth=3):
 
 def expand(url, depth=1):   
     return client.expand(url, depth=depth)
+
+def resolve(url):
+    """Test how a URL gets resolved/mapped."""
+    return client.resolve(url)
+
+def test_load(url):
+    """Test loading a document without processing."""
+    return client.test_load(url)
+
+def debug(url):
+    """Print detailed debug info about a URL."""
+    return client.debug_url(url)
 
 def local_mapping_using_prefix(prefix,path):
     # get all mappings

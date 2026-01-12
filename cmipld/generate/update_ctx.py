@@ -33,7 +33,7 @@ def data():
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
     prefix = reverse_mapping.get(base,'no-prefix')
-    base2 = f'{prefix}.mipcvs.dev/'
+    base2 = f'https://{prefix}.mipcvs.dev/'
 
 
     # Process each context file
@@ -79,7 +79,7 @@ def project():
     repo = (os.popen("git remote get-url origin").read()).replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
     prefix = reverse_mapping.get(base,'no-prefix')
-    base2 = f'{prefix}.mipcvs.dev/'
+    base2 = f'https://{prefix}.mipcvs.dev/'
 
 
 
