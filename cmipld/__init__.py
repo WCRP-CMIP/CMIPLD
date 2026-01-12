@@ -15,9 +15,8 @@ print("Initializing LDR client...", flush=True)
 client = LdrClient(
                 auto_start_server=True,
                 timeout=10, max_retries=5,
-                mappings_file=json.dumps(_redirect_mapping)
+                mappings=_redirect_mapping
                 )
-print('ldrclient shoudl take dicts, fix')
 
 print("LDR client initialized.", flush=True)
 
