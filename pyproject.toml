@@ -44,13 +44,14 @@ generate_summary = "cmipld.generate.generate_summary:main" # Generate repository
 update_readme = "cmipld.generate.create_readme:main"     # Update README files
 validate_json = "cmipld.utils.validate_json.cli:main"        # Validate JSON-LD files
 create_readme = "cmipld.generate.create_readme:main"     # Create README files
-template_update = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
+
 commit_author = "cmipld.generate.commit_author:main" # commit a file with another author.
 upgrade_ror = "cmipld.utils.organisation.upgrade:main"
 
 ci = "cmipld.generate.ci:main" # check files
 linkcheck = "cmipld.generate.linkchecker:main"
-template_prefill = "cmipld.generate.template_prefill:main"
+template_generate = "cmipld.generate.template_generator:main" # Generate GitHub issue templates from CSV/Python pairs
+template_update = "cmipld.generate.template_prefill:main"
 
 [tool.setuptools]
 packages = ["cmipld"]

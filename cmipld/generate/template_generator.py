@@ -386,9 +386,9 @@ The following forms are available for this repository, and can be used to add or
                 contributing += f"- [{t}]({templateurl})\n"
 
     
-    with open( output_dir / "../CONTRIBUTING.md", 'w', encoding='utf-8') as f:
+    with open( output_dir / "../issues.md", 'w', encoding='utf-8') as f:
         f.write(contributing)
-        print('💾 CONTRIBUTING.md written')
+        print('💾 issues.md written')
         
 
         # ##### make links file 
