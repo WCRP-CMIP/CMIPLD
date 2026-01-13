@@ -324,24 +324,24 @@ def main():
     print("Repo URL:", repo_url)
     print("GitHub Pages URL:", io_url)
 
-    if args.no_docs:
-        contributing = '''
-# Contribution Guidelines
-Possible links to contribute are provided here. 
+#     if not args.no_docs:
+#         contributing = '''
 
-'''
-    else:
+# ## Contribution Guidelines
+# Links to the issues used in submitting new files can be found below
+
+# '''
+#     else:
 
 
             
         
-        contributing = f'''
-# Contribution Guidelines
+    contributing = f'''
 
-## Submitting or Modifying Controlled Vocabularies
-Please ensure that any additions or modifications to controlled vocabularies adhere to the established standards and formats. Refer to the [Controlled Vocabularies Documentation]({repo.io}/doc) for guidance.
 
-The following forms are available for this repository, and can be used to add or modify entries. The complete submission pipeline is outlines in [add link here]().
+## 1. Submitting New Controlled Vocabularies
+
+The following forms are available for this repository, and can be used to add or modify entries. The complete submission pipeline (if applicable) will be outlined in the section above.
 
 
 '''
