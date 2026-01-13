@@ -6,8 +6,6 @@ from urllib.parse import urlencode
 from typing import OrderedDict
 import cmipld
 from tqdm import tqdm
-import tempfile
-import shutil
 
 def extract(val):
     ''' Extract the relevant value from a field '''
@@ -26,7 +24,6 @@ def print_red(*args, sep=' ', end='\n', flush=False):
     RESET = '\033[0m'
     print(RED + sep.join(map(str, args)) + RESET, end=end, flush=flush)
 
-OUTFILE = '.github/modifications.md'
 CONTRIBUTING_FILE = '.github/CONTRIBUTING.md'
 DESCRIPTION_FILE = '.github/description.md'
 ISSUES_FILE = '.github/issues.md'
@@ -61,7 +58,7 @@ def get_repo_info():
         return repo_url, owner, repo
     except Exception as e:
         print_red(f"Error getting repo info: {e}")
-        return "https://github.com/WCRP-CMIP/CMIP7-CVs", "WCRP-CMIP", "CMIP7-CVs"
+        # return "https://github.com/WCRP-CMIP/CMIP7-CVs", "WCRP-CMIP", "CMIP7-CVs"
 
 
 def get_template_categories():
@@ -257,33 +254,15 @@ def process_category(category, repo_url, repo_name):
     json_files = get_json_files_from_branch(folder, DATA_BRANCH)
     
     if not json_files:
-        # No data yet - show placeholder with link to create new
-        new_issue_url = f"{repo_url}/issues/new?template={category}.yml"
-        return f'''
-<details name="{category}">
-<summary>{display_name}</summary>
-
-*No entries registered yet.*
-
-[➕ Register new {display_name}]({new_issue_url})
-
-</details>
-'''
+        # No data yet - skip this category
+        return None
 
     # Get template fields and dropdown options
     ids, dropdown, multi, dropdown_options = get_template_fields_and_options(category)
     
     if not ids:
         print_red(f"No template found for {category}")
-        new_issue_url = f"{repo_url}/issues/new?template={category}.yml"
-        return f'''
-<details name="{category}">
-<summary>{display_name}</summary>
-
-*No issue template found for this category.*
-
-</details>
-'''
+        return None
 
     urls = []
 
@@ -349,16 +328,16 @@ def process_category(category, repo_url, repo_name):
         
         urls.append(mdlink)
     
+    if not urls:
+        return None
+    
     urlgroup = "\n".join(sorted(urls))
-    new_issue_url = f"{repo_url}/issues/new?template={category}.yml"
         
     entry = f'''
 <details name="{category}">
 <summary>{display_name} ({len(urls)} entries)</summary>
 
 {urlgroup}
-[➕ Register new {display_name}]({new_issue_url})
-
 </details>
 '''
 
@@ -393,59 +372,45 @@ def main():
     all_categories = sorted(set(categories + data_folders))
     print(f"All categories to process: {all_categories}")
     
-    # Build modifications content
-    modifications_content = f'''
-## Modify existing entries
-
-The following links will open pre-filled GitHub issues to modify existing entries in [{repo_name}]({repo_url}). 
-
-Expand the relevant category and select the file you are interested in modifying by clicking the hyperlink.
-
-'''
+    # Build modification links content
+    modifications_entries = []
+    for category in all_categories:
+        print(f"\nProcessing category: {category}")
+        entry = process_category(category, repo_url, repo_name)
+        if entry:
+            modifications_entries.append(entry)
     
-    if not all_categories:
-        modifications_content += '\n*No issue templates found. Create templates in `.github/GEN_ISSUE_TEMPLATE/` to enable this feature.*\n'
-    else:
-        for category in all_categories:
-            print(f"\nProcessing category: {category}")
-            entry = process_category(category, repo_url, repo_name)
-            if entry:
-                modifications_content += entry
-    
-    # Write standalone modifications.md
-    with open(OUTFILE, 'w', encoding='utf-8') as f:
-        f.write(f'# Modify existing entries in {repo_name}\n')
-        f.write(modifications_content)
-    print(f"\n✅ Output written to {OUTFILE}")
-    
-    # Build CONTRIBUTING.md by combining:
-    # 1. description.md (if exists)
-    # 2. issues.md (if exists) 
-    # 3. modifications content
-    
+    # Start building CONTRIBUTING.md
     contributing_content = ""
     
-    # 1. Add description.md content if it exists
+    # 1. Add description.md content (unchanged)
     description_content = read_file_if_exists(DESCRIPTION_FILE)
     if description_content:
         contributing_content += description_content
-        if not contributing_content.endswith('\n\n'):
-            contributing_content += '\n\n'
+        if not contributing_content.endswith('\n'):
+            contributing_content += '\n'
     
-    # 2. Add issues.md content if it exists
+    # 2. Add issues.md content (unchanged)
     issues_content = read_file_if_exists(ISSUES_FILE)
     if issues_content:
         contributing_content += issues_content
-        if not contributing_content.endswith('\n\n'):
-            contributing_content += '\n\n'
+        if not contributing_content.endswith('\n'):
+            contributing_content += '\n'
     
-    # 3. Add modifications content
-    contributing_content += modifications_content
+    # 3. Add modification links at the end
+    if modifications_entries:
+        contributing_content += f'''
+## 2 Modifying or reusing existing entries
+
+The following links will open pre-filled GitHub issues with content from the selected files. These can be used to update entries or make new ones. 
+'''
+        for entry in modifications_entries:
+            contributing_content += entry
     
     # Write CONTRIBUTING.md
     with open(CONTRIBUTING_FILE, 'w', encoding='utf-8') as f:
         f.write(contributing_content)
-    print(f"✅ Output written to {CONTRIBUTING_FILE}")
+    print(f"\n✅ Output written to {CONTRIBUTING_FILE}")
 
 
 if __name__ == "__main__":

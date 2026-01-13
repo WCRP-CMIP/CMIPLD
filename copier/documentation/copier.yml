@@ -1,0 +1,128 @@
+# Simple MkDocs Documentation Template
+# A lightweight copier template for CMIP-LD documentation sites
+_templates_suffix: .jinja
+
+# Skip overwriting existing files
+_skip_if_exists:
+  - "docs/*.md"
+  - "docs/scripts/*.py"
+  - "docs/links.yml"
+  - ".git*"
+  - "README*"
+
+# Exclude files from copying
+_exclude:
+  - "*.tmp"
+  - "*.bak"
+  - ".DS_Store"
+  - "copier.yml"
+  - "*.pyc"
+  - "__pycache__/**"
+  - "demo-answers.yml"
+  - "auto-setup.py"
+  - "README.md"
+  - "del/**"
+
+# Template metadata
+_metadata:
+  name: "CMIP-LD MkDocs Simple"
+  description: "Simple MkDocs documentation template with custom links and script support"
+  version: "1.0.0"
+
+# Jinja2 template settings
+_envops:
+  block_start_string: "{%"
+  block_end_string: "%}"
+  variable_start_string: "{{"
+  variable_end_string: "}}"
+  keep_trailing_newline: true
+
+# ============================================
+# USER QUESTIONS
+# ============================================
+
+project_name:
+  type: str
+  help: "Project name (displayed in header and title)"
+  default: "CMIP-LD Documentation"
+
+repo_name:
+  type: str
+  help: "GitHub repository name (e.g., 'my-repo')"
+  default: "{{ project_name | lower | replace(' ', '-') }}"
+
+repo_owner:
+  type: str
+  help: "GitHub username or organization (e.g., 'WCRP-CMIP')"
+  default: "WCRP-CMIP"
+
+url_prefix:
+  type: str
+  help: "URL prefix for GitHub Pages (usually same as repo_name)"
+  default: "{{ repo_name }}"
+
+description:
+  type: str
+  help: "Short project description"
+  default: "Documentation for {{ project_name }}"
+
+author_name:
+  type: str
+  help: "Author or organization name"
+  default: "CMIP-IPO"
+
+header_color:
+  type: str
+  help: "Material theme header color"
+  default: "blue"
+  choices:
+    - red
+    - pink
+    - purple
+    - deep-purple
+    - indigo
+    - blue
+    - light-blue
+    - cyan
+    - teal
+    - green
+    - light-green
+    - lime
+    - yellow
+    - amber
+    - orange
+    - deep-orange
+    - brown
+    - grey
+    - blue-grey
+    - black
+
+enable_custom_links:
+  type: bool
+  help: "Enable custom external links in navigation sidebar"
+  default: true
+
+links_section_title:
+  type: str
+  help: "Title for the custom links section in navigation"
+  default: "External Links"
+  when: "{{ enable_custom_links }}"
+
+enable_scripts:
+  type: bool
+  help: "Enable Python scripts in docs/scripts/ to run during build"
+  default: true
+
+# ============================================
+# DERIVED VALUES (not asked)
+# ============================================
+
+site_url:
+  type: str
+  default: "https://{{ repo_owner }}.github.io/{{ url_prefix }}/"
+  when: false
+
+repo_url:
+  type: str
+  default: "https://github.com/{{ repo_owner }}/{{ repo_name }}"
+  when: false

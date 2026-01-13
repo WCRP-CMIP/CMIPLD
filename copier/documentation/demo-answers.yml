@@ -1,0 +1,76 @@
+# Demo Answers File for CMIP-LD MkDocs Simple Template
+# =====================================================
+# 
+# This file demonstrates the available configuration options.
+# Copy this to .copier-answers.yml in your target project directory
+# and modify the values as needed.
+#
+# Usage:
+#   1. Copy this file to your project: cp demo-answers.yml /path/to/project/.copier-answers.yml
+#   2. Edit the values in .copier-answers.yml
+#   3. Run: copier copy /path/to/documentation /path/to/project --answers-file .copier-answers.yml
+#
+
+# Metadata (set automatically by copier)
+_src_path: "."
+_commit: HEAD
+
+# ============================================
+# PROJECT CONFIGURATION
+# ============================================
+
+# Project name - displayed in header, title, and throughout docs
+project_name: "My Climate Variables"
+
+# GitHub repository name
+# Example: For https://github.com/WCRP-CMIP/my-variables, use "my-variables"
+repo_name: "my-variables"
+
+# GitHub username or organization
+# Example: "WCRP-CMIP", "my-username"
+repo_owner: "WCRP-CMIP"
+
+# URL prefix for GitHub Pages
+# Usually same as repo_name, but can be different for custom domains
+# The site will be at: https://{repo_owner}.github.io/{url_prefix}/
+url_prefix: "my-variables"
+
+# Short project description
+description: "Documentation for My Climate Variables registry"
+
+# Author or organization name (shown in footer)
+author_name: "CMIP-IPO"
+
+# ============================================
+# THEME CONFIGURATION
+# ============================================
+
+# Header color theme
+# Available options:
+#   red, pink, purple, deep-purple, indigo, blue, light-blue,
+#   cyan, teal, green, light-green, lime, yellow, amber,
+#   orange, deep-orange, brown, grey, blue-grey, black
+header_color: "teal"
+
+# ============================================
+# FEATURES
+# ============================================
+
+# Enable custom links section in sidebar navigation
+# When enabled, links from docs/links.yml will be added to the nav
+enable_custom_links: true
+
+# Title for the links section (only used if enable_custom_links is true)
+links_section_title: "Related Resources"
+
+# Enable Python scripts execution during build
+# When enabled, Python scripts in docs/scripts/ will be executed
+enable_scripts: true
+
+# ============================================
+# DERIVED VALUES (calculated automatically)
+# ============================================
+
+# These are calculated from the above values - no need to change them
+# site_url: "https://WCRP-CMIP.github.io/my-variables/"
+# repo_url: "https://github.com/WCRP-CMIP/my-variables"

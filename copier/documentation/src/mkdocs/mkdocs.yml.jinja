@@ -1,0 +1,84 @@
+site_name: {{ project_name }}
+site_url: {{ site_url }}
+repo_url: {{ repo_url }}
+repo_name: {{ repo_owner }}/{{ repo_name }}
+site_description: {{ description }}
+site_author: {{ author_name }}
+
+docs_dir: ../../docs
+site_dir: site
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  custom_dir: overrides
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.path
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: default
+      primary: {{ header_color | replace('-', ' ') }}
+      accent: {{ header_color | replace('-', ' ') }}
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - scheme: slate
+      primary: {{ header_color | replace('-', ' ') }}
+      accent: {{ header_color | replace('-', ' ') }}
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+plugins:
+  - search
+{% if enable_scripts %}
+  - gen-files:
+      scripts:
+        - hooks/run_scripts.py
+{% endif %}
+  - literate-nav:
+      nav_file: SUMMARY.md
+      implicit_index: true
+      tab_length: 2
+
+hooks:
+  - hooks/generate_nav.py
+
+extra:
+  generator: false
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: ""
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
