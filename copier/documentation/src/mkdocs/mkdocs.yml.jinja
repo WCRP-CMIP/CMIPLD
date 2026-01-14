@@ -21,6 +21,7 @@ theme:
     - navigation.tracking
     - navigation.path
     - navigation.indexes
+    - navigation.footer
     - toc.follow
     - search.suggest
     - search.highlight
@@ -32,13 +33,13 @@ theme:
       primary: {{ header_color | replace('-', ' ') }}
       accent: {{ header_color | replace('-', ' ') }}
       toggle:
-        icon: material/weather-night
+        icon: material/toggle-switch-off-outline
         name: Dark mode
     - scheme: slate
       primary: {{ header_color | replace('-', ' ') }}
       accent: {{ header_color | replace('-', ' ') }}
       toggle:
-        icon: material/weather-sunny
+        icon: material/toggle-switch
         name: Light mode
 
 plugins:
@@ -61,8 +62,6 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-
-copyright: ""
 
 markdown_extensions:
   - admonition
