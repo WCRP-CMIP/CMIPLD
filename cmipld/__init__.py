@@ -18,7 +18,7 @@ for k,v in mapping.items():
 
 print("Initializing LDR client...", flush=True)
 
-print(f"Mappings to set: {_redirect_mapping}", flush=True)
+# print(f"Mappings to set: {_redirect_mapping}", flush=True)
 
 client = LdrClient(
                 auto_start_server=True,

@@ -61,7 +61,6 @@
   height: 1.5rem;
 }
 
-/* Search styling */
 .md-search__form {
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 0.2rem;
@@ -69,19 +68,6 @@
 
 [data-md-color-scheme="slate"] .md-search__form {
   background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* ============================================
-   NAVIGATION PATH (BREADCRUMBS)
-   ============================================ */
-
-.md-path {
-  margin-bottom: 0;
-}
-
-.md-path__inner {
-  padding: 0.4rem 0;
-  font-size: 0.7rem;
 }
 
 /* ============================================
@@ -97,26 +83,15 @@
   font-family: "Akshar", sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.6rem 0.6rem 0.4rem;
-  color: var(--md-default-fg-color);
-}
-
-.md-nav__item {
-  padding: 0;
 }
 
 .md-nav__link {
   padding: 0.4rem 0.6rem;
-  margin: 0;
-  border-radius: 0;
   font-size: 0.75rem;
   color: var(--md-default-fg-color--light);
 }
 
-.md-nav__link:hover,
-.md-nav__link:focus {
+.md-nav__link:hover {
   color: var(--md-primary-fg-color);
 }
 
@@ -126,34 +101,10 @@
   font-weight: 500;
 }
 
-/* Nested navigation */
-.md-nav--secondary .md-nav__link,
-.md-nav__item--nested .md-nav .md-nav__link {
-  padding-left: 1.2rem;
-}
-
-.md-nav__item--nested .md-nav .md-nav .md-nav__link {
-  padding-left: 1.8rem;
-}
-
-/* External link indicator */
 .md-nav__link[href^="http"]::after {
   content: " ↗";
   font-size: 0.6em;
   opacity: 0.5;
-}
-
-/* ============================================
-   TABLE OF CONTENTS (RIGHT SIDEBAR)
-   ============================================ */
-
-.md-sidebar--secondary .md-nav__title {
-  font-size: 0.7rem;
-}
-
-.md-sidebar--secondary .md-nav__link {
-  font-size: 0.7rem;
-  padding: 0.3rem 0.6rem;
 }
 
 /* ============================================
@@ -167,31 +118,16 @@
 
 .md-typeset h1 {
   font-size: 1.6rem;
-  margin-bottom: 0.8rem;
 }
 
 .md-typeset h2 {
   font-size: 1.2rem;
-  margin-top: 1.5rem;
-}
-
-.md-typeset h3 {
-  font-size: 1rem;
 }
 
 .md-typeset code {
   font-size: 0.75rem;
   padding: 0.1em 0.3em;
   border-radius: 0.2rem;
-}
-
-.md-typeset pre {
-  font-size: 0.75rem;
-  border-radius: 0.2rem;
-}
-
-.md-typeset table:not([class]) {
-  font-size: 0.75rem;
 }
 
 .md-typeset table:not([class]) th {
@@ -201,26 +137,10 @@
   font-weight: 500;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.6rem 0.8rem;
 }
 
-.md-typeset table:not([class]) td {
-  padding: 0.5rem 0.8rem;
-}
-
-/* Admonitions */
-.md-typeset .admonition,
-.md-typeset details {
-  font-size: 0.75rem;
-  border-radius: 0.2rem;
-}
-
-.md-typeset .admonition-title,
-.md-typeset details > summary {
+.md-typeset .admonition-title {
   font-family: "Akshar", sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 /* ============================================
@@ -229,36 +149,44 @@
 
 .md-footer {
   background: transparent;
-  border-top: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .md-footer__inner {
-  padding: 0.6rem 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0.6rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .md-footer__link {
-  font-size: 0.7rem;
-  color: var(--md-default-fg-color--light);
-}
-
-.md-footer__link:hover {
+  font-size: 0.75rem;
   color: var(--md-primary-fg-color);
 }
 
+.md-footer__link:hover {
+  text-decoration: underline;
+}
+
+.md-footer__link--prev {
+  margin-right: auto;
+}
+
+.md-footer__link--next {
+  margin-left: auto;
+  text-align: right;
+}
+
+.md-footer__title {
+  display: flex;
+  flex-direction: column;
+}
+
+.md-footer__direction {
+  font-size: 0.65rem;
+  color: var(--md-default-fg-color--light);
+}
+
 .md-footer-meta {
-  display: none;
-}
-
-.md-copyright {
-  display: block;
-  text-align: center;
-  font-size: 0.6rem;
-  color: var(--md-default-fg-color--lighter);
-  padding: 0.4rem;
-}
-
-/* Hide social */
-.md-social {
   display: none;
 }
 
@@ -270,7 +198,7 @@
   --md-code-bg-color: #1e1e2e;
 }
 
-[data-md-color-scheme="slate"] .md-footer {
+[data-md-color-scheme="slate"] .md-footer__inner {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -287,16 +215,8 @@
   }
 }
 
-@media screen and (max-width: 76.25em) {
-  .md-content {
-    max-width: none;
-  }
-}
-
 @media print {
-  .md-header,
-  .md-footer,
-  .md-sidebar {
+  .md-header, .md-footer, .md-sidebar {
     display: none !important;
   }
 }

@@ -1,27 +1,18 @@
 # Custom Navigation Links
 # =======================
-# Add external links to the sidebar navigation.
-# Links appear under "{{ links_section_title }}" section.
+# Links are inserted directly into the navigation.
+# Use 'category' to group links under a heading.
 
 links:
+  # Direct links (no category - appear at root level)
+  - title: "Docs Github"
+    url: "{{ repo_url }}"
+
+  # Categorized links
   - title: "CMIP Website"
     url: "https://wcrp-cmip.org/"
+    category: "Resources"
 
   - title: "WCRP"
     url: "https://www.wcrp-climate.org/"
-
-  - title: "Repository"
-    url: "{{ repo_url }}"
-    category: "Development"
-
-  - title: "Issues"
-    url: "{{ repo_url }}/issues"
-    category: "Development"
-
-  - title: "MkDocs Material"
-    url: "https://squidfunk.github.io/mkdocs-material/"
-    category: "Resources"
-
-  - title: "JSON-LD"
-    url: "https://json-ld.org/"
     category: "Resources"
