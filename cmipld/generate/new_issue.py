@@ -14,7 +14,7 @@ HANDLER_PATH = '.github/ISSUE_SCRIPT/'
 DATA_PATH = './'
 
 # Labels to ignore when determining issue type
-IGNORE_LABELS = {'review', 'alpha', 'keep-open', 'delta', 'Review', 'universal', 'universe'}
+IGNORE_LABELS = {'review', 'alpha', 'keep-open', 'delta', 'Review', 'universal', 'universe', 'pull_req', 'Pull_req'}
 
 # Map issue types to output folders (if different from type name)
 FOLDER_MAPPING = {
@@ -357,6 +357,22 @@ def main():
     with open(output_path, 'r') as f:
         data = json.load(f)
     
+    # If there's a handler with an update() function, call it to enrich the data
+    script_path = f"{HANDLER_PATH}{issue_type}.py"
+    if os.path.exists(script_path):
+        spec = importlib.util.spec_from_file_location(issue_type, script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        if hasattr(module, 'update'):
+            print(f"{prefix}Running handler update: {script_path}")
+            data = module.update(data, parsed_issue, issue, dry_run=dry_run)
+            
+            # Write updated data back to file
+            with open(output_path, 'w') as f:
+                json.dump(data, f, indent=4)
+                f.write('\n')
+    
     # Clean up file if dry run (we created it just to validate)
     if dry_run:
         os.remove(output_path)
@@ -373,7 +389,7 @@ def main():
         issue_kind = 'new'
     issue_kind_cap = issue_kind.capitalize()
     types_joined = ' | '.join([t.capitalize() for t in relevant_labels]) if relevant_labels else issue_type.capitalize()
-    validation_key = data.get('@id', 'unknown')
+    validation_key = data.get('validation_key', data.get('@id', 'unknown'))
     title = f"{issue_kind_cap} {types_joined} : {validation_key}"
     
     branch_name = f"{issue_kind}_{issue_type}_{data_id}".replace(' ', '_').lower()
