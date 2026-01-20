@@ -13,8 +13,12 @@ def _get_validator():
 def validate_and_fix_json(*args, **kwargs):
     return _get_validator().validate_and_fix_json(*args, **kwargs)
 
-def sort_json_keys(*args, **kwargs):
-    return _get_validator().sort_json_keys(*args, **kwargs)
+def sort_json_keys(data):
+    """Sort JSON keys according to JSON-LD conventions using JSONValidator."""
+    return _get_validator().sort_json_keys(data)
+
+# Alias for backwards compatibility
+sorted_json = sort_json_keys
 
 # class DotAccessibleDictOld:
 #     def __init__(self, entries):
@@ -77,32 +81,6 @@ class DotAccessibleDict:
 
     def __str__(self):
         return str(self._data.keys())
-
-def sorted_json(dct):
-    """
-    Sort a dictionary by keys and return an OrderedDict.
-
-    Args:
-    dct (dict): The input dictionary to be sorted.
-
-    Returns:
-    OrderedDict: A new OrderedDict with items sorted by keys.
-    """
-    if not isinstance(dct, dict):
-        return dct
-
-    od = OrderedDict()
-    keys = ['@context', 'id', 'type']
-    for i in keys:
-        if i in dct:
-            od[i] = dct[i]
-    for key in sorted(dct.keys()):
-        if key not in keys:
-            od[key] = dct[key]
-
-    return od
-
-    # return sorted((k, v) for k, v in dct.items()))
 
 
 def sorted_ctx(dct):

@@ -18,6 +18,8 @@ runs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: src-data
 
       - name: Configure Git for simple push
         run: git config --global push.default simple
@@ -26,21 +28,13 @@ runs:
       - name: Run Python script
         id: run_python
         env:
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: |
-              ${{ github.event.issue.body }}
-          # pipe should preseve newline properties for multilines
-          ISSUE_SUBMITTER: ${{ github.event.issue.user.login }}
-          # ${{ github.actor }} 
+          # Only pass the issue number - script will fetch latest data via gh CLI
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
-          GITHUB_TOKEN: ${{ github.token }} # We need this to update the issue
+          GITHUB_TOKEN: ${{ github.token }}
 
         run: |
-          new_issue
+          new_issue --issue ${{ github.event.issue.number }}
 
         shell: bash
         continue-on-error: false
-
-          

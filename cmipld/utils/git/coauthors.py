@@ -154,3 +154,101 @@ def is_git_repo(path: Union[str, Path] = '.') -> bool:
         return result.returncode == 0
     except:
         return False
+
+
+def parse_issue_authors(author: str, coauthors_string: str = '') -> dict:
+    """
+    Parse issue author and coauthors into commit-ready format.
+    
+    Args:
+        author: Primary author (GitHub username or login)
+        coauthors_string: Raw string from issue form containing GitHub usernames
+                         (comma/semicolon/space separated, may include @ prefix)
+    
+    Returns:
+        dict with:
+            - 'primary': {'login': str, 'email': str} - primary author
+            - 'coauthors': list of {'login': str, 'email': str} - additional authors
+            - 'coauthor_lines': list of formatted "Co-authored-by: ..." strings
+            - 'all_logins': list of all GitHub usernames involved
+    """
+    def github_email(username: str) -> str:
+        """Generate GitHub noreply email for username"""
+        return f"{username}@users.noreply.github.com"
+    
+    def clean_username(name: str) -> str:
+        """Clean a username string"""
+        return name.strip().lstrip('@').strip()
+    
+    def parse_coauthors_string(collab_string: str) -> List[str]:
+        """Parse coauthors string into list of GitHub usernames"""
+        if not collab_string or collab_string.strip() in ('', '_No response_', 'None', 'none'):
+            return []
+        
+        # Normalize separators
+        normalized = collab_string.replace(';', ',').replace('\n', ',')
+        
+        # Split and clean
+        collaborators = []
+        for part in normalized.split(','):
+            # Handle space-separated within comma-separated
+            for name in part.split():
+                cleaned = clean_username(name)
+                if cleaned and cleaned.lower() not in {'e.g.', 'e.g', 'eg', 'example', '_no', 'response_', 'none'}:
+                    collaborators.append(cleaned)
+        
+        return collaborators
+    
+    # Process primary author
+    primary_login = clean_username(author) if author else 'unknown'
+    primary = {
+        'login': primary_login,
+        'email': github_email(primary_login)
+    }
+    
+    # Process coauthors
+    coauthor_logins = parse_coauthors_string(coauthors_string)
+    
+    # Remove primary author from coauthors if present
+    coauthor_logins = [c for c in coauthor_logins if c.lower() != primary_login.lower()]
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_coauthors = []
+    for login in coauthor_logins:
+        if login.lower() not in seen:
+            seen.add(login.lower())
+            unique_coauthors.append(login)
+    
+    # Build coauthors list
+    coauthors = [{'login': login, 'email': github_email(login)} for login in unique_coauthors]
+    
+    # Build formatted co-author lines for commit message
+    coauthor_lines = [f"Co-authored-by: {c['login']} <{c['email']}>" for c in coauthors]
+    
+    # All logins involved
+    all_logins = [primary_login] + unique_coauthors
+    
+    return {
+        'primary': primary,
+        'coauthors': coauthors,
+        'coauthor_lines': coauthor_lines,
+        'all_logins': all_logins
+    }
+
+
+def build_commit_message(message: str, coauthor_lines: List[str] = None) -> str:
+    """
+    Build a commit message with optional co-author lines.
+    
+    Args:
+        message: Main commit message
+        coauthor_lines: List of "Co-authored-by: ..." strings
+    
+    Returns:
+        Formatted commit message with co-authors appended
+    """
+    if not coauthor_lines:
+        return message
+    
+    return message + "\n\n" + "\n".join(coauthor_lines)
