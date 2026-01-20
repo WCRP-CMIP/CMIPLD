@@ -413,39 +413,54 @@ class JSONValidator:
             log.warn(f"Context validation failed for {file_path}: {e}")
             return False
 
-    def _sort_json_keys(self, data: Dict[str, Any]) -> OrderedDict:
-        """Sort JSON keys according to CMIP-LD standards (original order)."""
+    def sort_json_keys(self, data: Dict[str, Any]) -> OrderedDict:
+        """Sort JSON keys according to CMIP-LD standards.
+        
+        Order: validation_key, ui_label, description first,
+        then alphabetical, then @context, @type, @id at end.
+        Recursively sorts nested dicts.
+        """
         if self.context_manager:
             return self.context_manager.sort_keys_by_context(data)
         
-        # Original CMIP-LD key ordering logic
-        sorted_data = OrderedDict()
-        priority_keys = ['validation_key', 'ui_label', 'description']
+        if not isinstance(data, dict):
+            return data
         
-        # Add priority keys first
+        sorted_data = OrderedDict()
+        
+        # CMIP-LD priority keys first
+        priority_keys = ['validation_key', 'ui_label', 'description']
         for key in priority_keys:
             if key in data:
-                sorted_data[key] = data[key]
-
-        # Add remaining keys alphabetically (excluding @context and type)
+                sorted_data[key] = self.sort_json_keys(data[key])
+        
+        # JSON-LD keys go at the end
+        jsonld_keys = ['@context', '@type', '@id']
+        
+        # Add remaining keys alphabetically (excluding priority and jsonld keys)
         remaining_keys = sorted([
             k for k in data.keys()
-            if k not in priority_keys and k not in ['@id','@context', '@type']
+            if k not in priority_keys and k not in jsonld_keys
         ])
         for key in remaining_keys:
-            sorted_data[key] = data[key]
-
-        # Add @context and type at the end (original order)
-
-        if '@context' in data:
-            sorted_data['@context'] = data['@context']
-        if '@type' in data:
-            sorted_data['@type'] = data['@type']
-        if '@id' in data:
-            sorted_data['@id'] = data['@id']       
-
+            value = data[key]
+            if isinstance(value, dict):
+                sorted_data[key] = self.sort_json_keys(value)
+            elif isinstance(value, list):
+                sorted_data[key] = [self.sort_json_keys(item) if isinstance(item, dict) else item for item in value]
+            else:
+                sorted_data[key] = value
+        
+        # Add JSON-LD keys at the end
+        for key in jsonld_keys:
+            if key in data:
+                sorted_data[key] = self.sort_json_keys(data[key])
         
         return sorted_data
+    
+    def _sort_json_keys(self, data: Dict[str, Any]) -> OrderedDict:
+        """Alias for sort_json_keys for backwards compatibility."""
+        return self.sort_json_keys(data)
 
     def process_file(self, file_path: Path) -> Dict[str, Any]:
         """Process a single file and return results."""

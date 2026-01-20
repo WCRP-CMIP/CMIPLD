@@ -53,7 +53,31 @@ def load_csv_fields(csv_file):
             fields.append(row)
     
     fields.sort(key=lambda x: int(x['field_order']))
-    return fields
+    
+    # Move issue_kind and collaborators to the end (in that order)
+    # This ensures consistent placement across all templates
+    end_fields = []
+    remaining_fields = []
+    
+    issue_kind_field = None
+    collaborators_field = None
+    
+    for field in fields:
+        if field['field_id'] == 'issue_kind':
+            issue_kind_field = field
+        elif field['field_id'] == 'collaborators':
+            collaborators_field = field
+        else:
+            remaining_fields.append(field)
+    
+    # Build final list: regular fields, then issue_kind, then collaborators
+    final_fields = remaining_fields
+    if issue_kind_field:
+        final_fields.append(issue_kind_field)
+    if collaborators_field:
+        final_fields.append(collaborators_field)
+    
+    return final_fields
 
 def generate_field_yaml(field_def, data):
     """Generate YAML for a single field."""
@@ -153,7 +177,8 @@ def generate_field_yaml(field_def, data):
                     yaml_lines.append(f"        - \"{safe_item}\"")
 
     
-    if default_value:
+    # Only add default for dropdown types (not input/textarea)
+    if default_value and field_type in ['dropdown', 'multi-select']:
         yaml_lines.append(f"      default: {default_value}")
     
     if required:
