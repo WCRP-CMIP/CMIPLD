@@ -16,10 +16,19 @@ runs:
         uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
       
 
-      - name: Checkout repository
+      - name: Checkout src-data branch (for data files)
         uses: actions/checkout@v4
         with:
           ref: src-data
+          fetch-depth: 0
+
+      - name: Get handler scripts from main branch
+        run: |
+          git fetch origin main
+          git checkout origin/main -- .github/ISSUE_SCRIPT
+          echo "✓ Fetched handler scripts from main branch"
+          ls -la .github/ISSUE_SCRIPT/
+        shell: bash
 
       - name: Configure Git for simple push
         run: git config --global push.default simple
@@ -32,6 +41,9 @@ runs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
+          PYTHONIOENCODING: utf-8
+          LC_ALL: C.UTF-8
+          LANG: C.UTF-8
 
         run: |
           new_issue --issue ${{ github.event.issue.number }}
