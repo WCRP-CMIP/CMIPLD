@@ -230,7 +230,7 @@ def write_summary(title, output_path, data, branch_name, author_info, issue_numb
     summary += f"""### Data to be written
 
 ```json
-{json.dumps(data, indent=2)}
+{json.dumps(data, indent=2, ensure_ascii=False)}
 ```
 """
     
@@ -290,7 +290,7 @@ def main():
     print(f"Author: {issue.get('author')}")
     print(f"Labels: {labels}")
     print(f"Determined issue type: {issue_type}")
-    print(f"\nParsed issue content:\n{json.dumps(parsed_issue, indent=4)}")
+    print(f"\nParsed issue content:\n{json.dumps(parsed_issue, indent=4, ensure_ascii=False)}")
 
     if not issue_type:
         print("\nWarning: No issue type could be determined")
@@ -346,15 +346,15 @@ def main():
     
     # Write initial data to temp file for validation
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w') as f:
-        json.dump(data, f, indent=4)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
     
     # Run JSONValidator to fix and sort the file (always run, not dry_run)
     validator = JSONValidator(output_folder, dry_run=False)
     validator.validate_and_fix_json(output_path)
     
     # Read back the validated/sorted data
-    with open(output_path, 'r') as f:
+    with open(output_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
     # If there's a handler with an update() function, call it to enrich the data
@@ -369,8 +369,8 @@ def main():
             data = module.update(data, parsed_issue, issue, dry_run=dry_run)
             
             # Write updated data back to file
-            with open(output_path, 'w') as f:
-                json.dump(data, f, indent=4)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
                 f.write('\n')
     
     # Clean up file if dry run (we created it just to validate)
@@ -416,7 +416,7 @@ def main():
     if author_info['coauthors']:
         print(f"{prefix}Co-authors: {', '.join(c['login'] for c in author_info['coauthors'])}")
     print(f"\n{prefix}Data to write:")
-    print(json.dumps(data, indent=4))
+    print(json.dumps(data, indent=4, ensure_ascii=False))
     print(f"\n{prefix}Commit message:")
     print(commit_msg)
     print(f"{'='*60}")
@@ -451,7 +451,7 @@ def main():
     git.commit_one(output_path, author_info['primary'], comment=commit_msg, branch=branch_name)
     
     print(f"Creating pull request targeting src-data...")
-    git.newpull(branch_name, author_info['primary'], json.dumps(data, indent=4), title, 
+    git.newpull(branch_name, author_info['primary'], json.dumps(data, indent=4, ensure_ascii=False), title, 
                 os.environ.get('ISSUE_NUMBER', ''), base_branch='src-data')
     
     print(f"\n✅ Successfully processed: {title}")
