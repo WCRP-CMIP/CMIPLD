@@ -24,10 +24,10 @@ def cmip_info():
     repopath = toplevel()
     reponame = getreponame()
 
-    whoami = reverse_mapping[io_url]
+    prefix = reverse_mapping[io_url]
     
     console.print(Panel.fit(
-        f"[bold cyan]Parsing repo:[/bold cyan] {whoami}\n"
+        f"[bold cyan]Parsing repo:[/bold cyan] {prefix}\n"
         f"[bold magenta]Location:[/bold magenta] {repo_url}\n"
         f"[bold red]Github IO link:[/bold red] {io_url}",
         title="[bold yellow]Repository Info[/bold yellow]",
@@ -36,11 +36,11 @@ def cmip_info():
     )
     
 # return a dot accesable dict with the following
-# whoami, path, name, url, io
+# prefix, path, name, url, io
 
     
     return _get_DotAccessibleDict()(
-        whoami=whoami,
+        prefix=prefix,
         path=repopath,
         name=reponame,
         url=repo_url,

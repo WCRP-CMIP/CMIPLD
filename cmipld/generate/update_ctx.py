@@ -56,6 +56,9 @@ def data():
             ctx['@base'] = f"{base2}{folder}/"
             ctx['@vocab'] = f"{base2}docs/contents/{esg_name}/"
             ctx["@alt_base"] = f"{base}{folder}/"
+            # ctx['@esg_vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
+            ctx['@esgvoc'] = esg_name
+            
             
             # f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}."
             

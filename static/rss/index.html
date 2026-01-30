@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMIP-LD Updates</title>
+<style>
+  * { box-sizing: border-box; }
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+    padding: 20px; 
+    background: #f5f5f5; 
+    margin: 0;
+  }
+  h2 { text-align: center; color: #333; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 20px; }
+  #feeds { max-width: 800px; margin: auto; }
+  
+  .feed-item { 
+    background: #fff; 
+    padding: 12px 16px; 
+    margin-bottom: 10px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08); 
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    border-left: 4px solid #ccc;
+  }
+  .feed-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+  
+  .feed-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  /* Stacked contributor avatars */
+  .contributors {
+    display: flex;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+  .contributor {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    flex-shrink: 0;
+    display: block;
+    margin-left: -10px;
+    transition: transform 0.15s;
+    position: relative;
+    background: #eee;
+  }
+  .contributor:first-child { margin-left: 0; }
+  .contributor:hover { transform: scale(1.1); z-index: 10; }
+  .contributor-link {
+    flex-shrink: 0;
+    line-height: 0;
+    margin-left: -10px;
+  }
+  .contributor-link:first-child { margin-left: 0; }
+  
+  .feed-title { 
+    font-weight: 600; 
+    font-size: 1.05em; 
+    color: #222;
+    flex: 1;
+  }
+  
+  .github-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .github-link:hover { opacity: 1; }
+  .github-link svg { width: 18px; height: 18px; }
+  
+  .expand-icon {
+    font-size: 0.75em;
+    color: #999;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .feed-item.open .expand-icon { transform: rotate(180deg); }
+  
+  .feed-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 0.85em;
+    color: #666;
+  }
+  .feed-source {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: #fff;
+  }
+  
+  .description {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: #444;
+    line-height: 1.6;
+  }
+  .feed-item.open .description { display: block; }
+  .description img { max-width: 100%; height: auto; }
+  .description code { background: #e8e8e8; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+  .description ul { margin: 8px 0; padding-left: 20px; }
+  .description li { margin: 4px 0; }
+  .description a { color: #3498db; }
+  
+  .loading { text-align: center; padding: 40px; color: #666; }
+  .error { color: #c0392b; background: #fdeaea; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+  
+  .legend { display: flex; gap: 12px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    font-size: 0.85em;
+    padding: 4px 10px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .legend-item:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  .legend-item.inactive { opacity: 0.4; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  
+  .status-bar {
+    max-width: 800px;
+    margin: 0 auto 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: #666;
+  }
+  .refresh-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+  }
+  .refresh-btn:hover { background: #2980b9; }
+  .refresh-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<h2>📡 CMIP-LD Updates</h2>
+<p class="subtitle">Recent changes across CMIP Linked Data repositories</p>
+<div id="legend" class="legend"></div>
+<div class="status-bar">
+  <span id="last-updated">Loading...</span>
+  <span id="next-update"></span>
+  <button class="refresh-btn" onclick="refreshFeeds()">↻ Refresh</button>
+</div>
+<div id="feeds"><div class="loading">Loading feeds...</div></div>
+
+<script>
+// Feed configuration from prefix_mappings.json
+const feeds = [
+  { prefix: 'universal', color: '#e74c3c' },
+  { prefix: 'cmip7', color: '#3498db' },
+  { prefix: 'cf', color: '#2ecc71' },
+  { prefix: 'vr', color: '#9b59b6' },
+  { prefix: 'cmip6plus', color: '#f39c12' },
+  { prefix: 'emd', color: '#1abc9c' },
+].map(f => ({
+  ...f,
+  url: `https://${f.prefix}.mipcvs.dev/rss.xml`,
+  active: true
+}));
+
+const REFRESH_INTERVAL = 5 * 60 * 1000;
+const GITHUB_ICON = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>`;
+
+let nextRefreshTime = null;
+let countdownInterval = null;
+let allItems = [];
+
+async function fetchFeed(feed) {
+  if (!feed.active) return [];
+  try {
+    const response = await fetch(feed.url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'text/xml');
+    
+    if (xml.querySelector('parsererror')) throw new Error('Parse error');
+    
+    // Get channel color (fallback to feed config)
+    const channelColor = xml.getElementsByTagNameNS('https://wcrp-cmip.github.io/CMIP-LD/rss/', 'color')[0]?.textContent || feed.color;
+    
+    const items = xml.querySelectorAll('item');
+    return Array.from(items).map(item => {
+      // Get cmip:avatar elements for contributors
+      const avatarEls = item.getElementsByTagNameNS('https://wcrp-cmip.github.io/CMIP-LD/rss/', 'avatar');
+      const contributors = Array.from(avatarEls).map(el => ({
+        url: el.textContent,
+        username: el.getAttribute('username') || '',
+        name: el.getAttribute('name') || ''
+      }));
+      
+      return {
+        feedPrefix: feed.prefix,
+        feedColor: channelColor,
+        title: item.querySelector('title')?.textContent || 'Untitled',
+        url: item.querySelector('link')?.textContent || '#',
+        date: new Date(item.querySelector('pubDate')?.textContent || Date.now()),
+        description: item.querySelector('description')?.textContent || '',
+        creator: item.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'creator')[0]?.textContent || '',
+        contributors
+      };
+    });
+  } catch (error) {
+    console.warn(`Error fetching ${feed.prefix}:`, error.message);
+    return [];
+  }
+}
+
+async function fetchAllFeeds() {
+  const results = await Promise.all(feeds.map(fetchFeed));
+  allItems = results.flat().sort((a, b) => b.date - a.date);
+  return allItems;
+}
+
+function toggleFeed(prefix) {
+  const feed = feeds.find(f => f.prefix === prefix);
+  if (feed) feed.active = !feed.active;
+  renderLegend();
+  renderItems();
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = feeds.map(feed => `
+    <div class="legend-item ${feed.active ? '' : 'inactive'}" onclick="toggleFeed('${feed.prefix}')">
+      <span class="legend-dot" style="background: ${feed.color}"></span>
+      <span>${feed.prefix}</span>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatDate(date) {
+  const diff = Date.now() - date;
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(hours / 24);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
+function renderContributors(contributors) {
+  if (!contributors?.length) return '';
+  return `<div class="contributors">${contributors.map(c => 
+    c.username ? `<a class="contributor-link" href="https://github.com/${escapeHtml(c.username)}" target="_blank" title="${escapeHtml(c.name || c.username)}" onclick="event.stopPropagation()"><img class="contributor" src="${escapeHtml(c.url)}" alt="${escapeHtml(c.username)}" onerror="this.style.display='none'"></a>` : ''
+  ).join('')}</div>`;
+}
+
+function toggleItem(id) {
+  document.getElementById(`item-${id}`).classList.toggle('open');
+}
+
+function renderItems() {
+  const activeFeeds = feeds.filter(f => f.active).map(f => f.prefix);
+  const filtered = allItems.filter(i => activeFeeds.includes(i.feedPrefix));
+  const container = document.getElementById('feeds');
+  
+  if (!filtered.length) {
+    container.innerHTML = `<div class="loading">${allItems.length ? 'No items match selected feeds.' : 'No items found.'}</div>`;
+    return;
+  }
+  
+  container.innerHTML = filtered.map((item, i) => `
+    <div class="feed-item" id="item-${i}" onclick="toggleItem(${i})" style="border-left-color: ${item.feedColor}">
+      <div class="feed-header">
+        ${renderContributors(item.contributors)}
+        <span class="feed-title">${escapeHtml(item.title)}</span>
+        <a class="github-link" href="${escapeHtml(item.url)}" target="_blank" title="View on GitHub" onclick="event.stopPropagation()">${GITHUB_ICON}</a>
+        <span class="expand-icon">▼</span>
+      </div>
+      <div class="feed-meta">
+        <span class="feed-source" style="background: ${item.feedColor}">${escapeHtml(item.feedPrefix)}</span>
+        <span>•</span>
+        <span>${formatDate(item.date)}</span>
+      </div>
+      ${item.description ? `<div class="description">${item.description}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function updateStatus() {
+  document.getElementById('last-updated').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+}
+
+function updateCountdown() {
+  if (!nextRefreshTime) return;
+  const remaining = Math.max(0, nextRefreshTime - Date.now());
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  document.getElementById('next-update').textContent = `Next: ${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+async function refreshFeeds() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  
+  await fetchAllFeeds();
+  renderItems();
+  updateStatus();
+  nextRefreshTime = Date.now() + REFRESH_INTERVAL;
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+  
+  btn.disabled = false;
+  btn.textContent = '↻ Refresh';
+}
+
+setInterval(refreshFeeds, REFRESH_INTERVAL);
+renderLegend();
+refreshFeeds();
+</script>
+</body>
+</html>

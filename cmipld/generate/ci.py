@@ -50,7 +50,7 @@ def main():
     print("🖥️  Setting up local LD server...")
     repo = cmip_info()
     location = repo.path
-    prefix = repo.whoami
+    prefix = repo.prefix
     local = [(location, cmipld.mapping[prefix], prefix)]
 
     server = LD_server(copy=local, use_ssl=False)

@@ -17,7 +17,7 @@ from cmipld.utils.checksum import version
 from cmipld.utils import io  # explicit import for jr/jw
 from p_tqdm import p_map
 
-OUTDIR = ".summaries"
+OUTDIR = "summaries"
 os.makedirs(OUTDIR, exist_ok=True)
 
 
@@ -125,47 +125,26 @@ def run_script(script_path, repo_info):
         cmipld.get = original_get
 
 
-def main():
+def main(script_dir=None):
     
-    import sys
+    
+    if not script_dir:
+        import sys
 
-    if len(sys.argv) != 2:
-        print("Usage: generate_summary <script_directory>")
-        sys.exit(1)
+        if len(sys.argv) != 2:
+            print("Usage: generate_summary <script_directory>")
+            sys.exit(1)
 
-    script_dir = sys.argv[1]
+        script_dir = sys.argv[1]
 
 
 
 
     print("🔍 Getting repository information...")
     repo = cmip_info()
-    # # repo['path'] = f"{repo['path']}/{OUTDIR}"
-    # print('aaaaa',repo['path'])
-
     print("🖥️  Setting up local LD server...")
-    location = repo.path
-    prefix = repo.whoami
-    # localmap = {location, cmipld.mapping[prefix], prefix)]
-
-    # server = LD_server(copy=local, use_ssl=False)
-
-
-    # # True if NOT running in GitHub Actions
-    # if os.getenv("GITHUB_ACTIONS") != "true":
-    #     print("Running locally (not on GitHub Actions). Running ld2graph to generate latest data...")
-    #     print(f"updating all folders in {server.temp_dir.name}/{prefix}")
-    #     for folder in tqdm.tqdm(glob.glob(f"{server.temp_dir.name}/{prefix}/*/")):
-    #         os.popen(f"ld2graph {folder}  > /dev/null 2>&1").read()
-        
-    # else:
-    #     print("Running on GitHub Actions")
-    
-    # import sys
-    # print(prefixlocal)
-    # sys.error(local)
-    # print(local)
-    
+    prefix = repo['prefix']
+   
     cmipld.map_current(prefix)
     cmipld.client.cache_clear()
 
