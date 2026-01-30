@@ -22,7 +22,7 @@ print("Initializing LDR client...", flush=True)
 
 client = LdrClient(
                 auto_start_server=True,
-                timeout=10, max_retries=5,
+                timeout=10, max_retries=3,
                 mappings=_redirect_mapping
                 )
 
@@ -66,6 +66,10 @@ def local_mapping_using_prefix(prefix,path):
     client.set_mappings(mappings)
     print(f"Added mapping: {url} -> {path}")
     
+    
+def prefix():
+    myurl = utils.git.get_repo_url()
+    return reverse_direct.get(myurl,myurl)    
     
 def map_current(prefix):
     cwd = os.getcwd()

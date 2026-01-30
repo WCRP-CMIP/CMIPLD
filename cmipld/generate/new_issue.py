@@ -14,7 +14,7 @@ HANDLER_PATH = '.github/ISSUE_SCRIPT/'
 DATA_PATH = './'
 
 # Labels to ignore when determining issue type
-IGNORE_LABELS = {'review', 'alpha', 'keep-open', 'delta', 'Review', 'universal', 'universe', 'pull_req', 'Pull_req'}
+IGNORE_LABELS = {'review', 'alpha', 'keep-open', 'delta', 'Review', 'universal', 'universe', 'pull_req', 'Pull_req', 'critical'}
 
 # Map issue types to output folders (if different from type name)
 FOLDER_MAPPING = {
@@ -344,6 +344,42 @@ def main():
                       parsed_issue.get('acronym', 'unknown'))))
     output_path = os.path.join(output_folder, f"{data_id}.json")
     
+    # Check if file already exists for "new" issues
+    issue_kind = parsed_issue.get('issue_kind', 'new').lower()
+    if issue_kind not in ['new', 'modify']:
+        issue_kind = 'new'
+    
+    if issue_kind == 'new' and os.path.exists(output_path):
+        warning_msg = f"""## ⚠️ File Already Exists
+
+The file `{output_path}` already exists in the repository.
+
+For a **new** submission, this file should not exist. Please either:
+
+1. **Change the issue type to "Modify"** if you want to update the existing entry
+2. **Close this issue** if the entry already exists and no changes are needed
+3. **Use a different identifier** if this is truly a new entry
+
+No changes have been made.
+"""
+        print(f"\n{prefix}⚠️ File already exists: {output_path}")
+        print(f"{prefix}Cannot create new entry - file exists")
+        
+        if not dry_run:
+            # Post warning to issue
+            if 'ISSUE_NUMBER' in os.environ:
+                issue_number = os.environ['ISSUE_NUMBER']
+                escaped = warning_msg.replace("'", "'\"'\"'")
+                os.popen(f"gh issue comment {issue_number} --body '{escaped}'").read()
+                # Add needs-review label
+                os.popen(f'gh issue edit {issue_number} --add-label "needs-review"').read()
+                print(f"{prefix}Posted warning to issue #{issue_number}")
+        else:
+            print(f"\n[DRY RUN] Would post warning to issue")
+            print(warning_msg)
+        
+        return
+    
     # Write initial data to temp file for validation
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -384,9 +420,6 @@ def main():
     
     # Build title
     relevant_labels = parse_labels(labels)
-    issue_kind = parsed_issue.get('issue_kind', 'new').lower()
-    if issue_kind not in ['new', 'modify']:
-        issue_kind = 'new'
     issue_kind_cap = issue_kind.capitalize()
     types_joined = ' | '.join([t.capitalize() for t in relevant_labels]) if relevant_labels else issue_type.capitalize()
     validation_key = data.get('validation_key', data.get('@id', 'unknown'))

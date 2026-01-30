@@ -68,7 +68,7 @@ def main():
     
     summary = open(summary_file, 'a')
     
-    prefix = cmip_info()['whoami']
+    prefix = cmip_info()['prefix']
     
     if sys.argv[1] == 'project':
         
