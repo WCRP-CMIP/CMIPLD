@@ -42,7 +42,7 @@ CONFIG = Config()
 
 try:
     import cmipld
-    from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path, url2io
+    from cmipld.utils.git import get_path_url, get_repo_url, get_relative_path
     from cmipld import prefix_url
     CMIPLD_AVAILABLE = True
 except ImportError:

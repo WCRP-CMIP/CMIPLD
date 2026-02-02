@@ -6,34 +6,10 @@ import hashlib
 import json
 import datetime
 from collections import OrderedDict
-from .git import getbranch, getreponame, getrepoowner, getlastcommit, getlasttag, url, url2io
+from .git import getbranch, getreponame, getrepoowner, getlastcommit, getlasttag, url
 from ..locations import reverse_mapping
+from ..__init__ import prefix
 
-# def calculate_checksum(dictionary, overwrite=True, checksum_location='version_metadata'):
-#     """
-#     Calculate the checksum for dictionary and add it to the Header
-
-#     Parameters
-#     ----------
-#     dictionary: dict
-#         The dictionary to set the checksum for.
-#     overwrite: bool
-#         Overwrite the existing checksum (default True).
-#     checksum_location: str
-#         sub-dictionary to look for in /add the checksum to.
-
-#     Raises
-#     ------
-#     RuntimeError
-#         If the ``checksum`` key already exists and ``overwrite`` is
-#         False.
-#     """
-#     if 'checksum' in dictionary['Header'][checksum_location]:
-#         if not overwrite:
-#             raise RuntimeError('Checksum already exists.')
-#         del dictionary['Header'][checksum_location]['checksum']
-#     checksum = _checksum(dictionary)
-#         dictionary['Header'][checksum_location]['checksum'] = checksum
 
 
 def validate_checksum(dictionary, checksum_location='version_metadata'):
@@ -91,7 +67,7 @@ def version(data, name, location='./', repo=None):
         header['repo_prefix'] = repo[1]
     else:
         header['repo_url'] = url()
-        header['repo_prefix'] = rmap[url2io(header['repo_url'])]
+        header['repo_prefix'] = prefix()
 
     header['last_commit'] = getlastcommit()
     header['comment'] = 'This is an automatically generated file. Do not edit.'
