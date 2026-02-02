@@ -1,7 +1,7 @@
 {
-  "universal": {
+  "constants": {
     "owner": "wcrp-cmip",
-    "repo": "WCRP-universe"
+    "repo": "WCRP-constants"
   },
 
   "cmip7": {

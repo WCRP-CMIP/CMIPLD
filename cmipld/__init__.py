@@ -55,13 +55,15 @@ def test_load(url):
 def debug(url):
     """Print detailed debug info about a URL."""
     return client.debug_url(url)
-
-def local_mapping_using_prefix(prefix,path):
+    
+def map_current(prefix,path=None):
+    '''Local mapping for current repo using given prefix'''
+    if path is None:path = os.getcwd()+'/'
     # get all mappings
     mappings = client.get_mappings()
     # use the existing mapping for the prefix to create a new mapping
     url = mappings[f'{prefix}:*'].replace('${rest}', '')
-    mappings[f'{url}*'] = path + '${rest}'
+    mappings[f'{url}*'] = os.path + '${rest}'
     # update mappings
     client.set_mappings(mappings)
     print(f"Added mapping: {url} -> {path}")
@@ -71,9 +73,7 @@ def prefix():
     myurl = utils.git.get_repo_url()
     return reverse_direct.get(myurl,myurl)    
     
-def map_current(prefix):
-    cwd = os.getcwd()
-    local_mapping_using_prefix(prefix, cwd+'/')
+
 
 # # from pyld import jsonld
 
