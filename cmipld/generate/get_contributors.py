@@ -867,10 +867,10 @@ The people who make {project_name} possible — {len(sorted_contributors)} contr
                 links_html += f'<a href="https://orcid.org/{orcid}" title="ORCID: {orcid}" style="display: inline-flex; align-items: center;"><img src="https://orcid.org/assets/icons/favicon.ico" alt="ORCID" width="16" height="16"></a>'
             links_html += '</div>'
         
-        md += f'''<div style="background: #fff; border-radius: 12px; padding: 16px; width: 140px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-  <a href="{profile_url}" style="text-decoration: none; color: inherit;">
-    <img src="{avatar_url}" width="80" height="80" style="border-radius: 50%; border: 3px solid #eee;" alt="{name}">
-    <div style="font-weight: 600; font-size: 0.95em; color: #333; margin: 8px 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{name}">{name}</div>
+        md += f'''<div style="background: #fff; border-radius: 12px; padding: 16px; width: 140px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center;">
+  <a href="{profile_url}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
+    <img src="{avatar_url}" width="80" height="80" style="border-radius: 50%; border: 3px solid #eee; display: block;" alt="{name}">
+    <div style="font-weight: 600; font-size: 0.95em; color: #333; margin: 8px 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;" title="{name}">{name}</div>
     <div style="font-size: 0.8em; color: #666;">@{username}</div>
   </a>
   <div style="font-size: 0.75em; color: #999; margin-top: 6px;">{commits} commit{'s' if commits != 1 else ''}</div>

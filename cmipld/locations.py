@@ -22,11 +22,11 @@ def _generate_mapping(url_template):
     for prefix, data in _prefix_data.items():
         owner = data['owner']
         repo = data['repo']
-        mapping[prefix] = url_template.format(owner=owner, repo=repo)
+        mapping[prefix] = url_template.format(owner=owner, repo=repo, prefix=prefix)
     return mapping
 
 # Registered locations (GitHub Pages URLs)
-mapping = _generate_mapping('https://{owner}.github.io/{repo}/')
+mapping = _generate_mapping('https://{prefix}.mipcvs.dev/')
 
 # Direct mappings (GitHub repository URLs)
 direct = _generate_mapping('https://github.com/{owner}/{repo}/')
@@ -49,24 +49,24 @@ reverse_direct = {v: k for k, v in direct.items()}
 reverse_io = {v: k for k, v in io.items()}
 
 
-def fetch_all(subset=None):
-    from pyld import jsonld
-    from tqdm import tqdm
+# def fetch_all(subset=None):
+#     from pyld import jsonld
+#     from tqdm import tqdm
 
-    if subset:
-        subset = {k: mapping[k] for k in subset}
-    else:
-        subset = latest
+#     if subset:
+#         subset = {k: mapping[k] for k in subset}
+#     else:
+#         subset = latest
 
-    expanded = []
+#     expanded = []
 
-    for url in tqdm(subset.values()):
-        try:
-            expanded.extend(jsonld.expand(url+'graph.jsonld'))
-        except Exception as e:
-            print('error expanding', url, e)
+#     for url in tqdm(subset.values()):
+#         try:
+#             expanded.extend(jsonld.expand(url+'graph.jsonld'))
+#         except Exception as e:
+#             print('error expanding', url, e)
 
-    return expanded
+#     return expanded
 
 
 # regex matching if these exist
