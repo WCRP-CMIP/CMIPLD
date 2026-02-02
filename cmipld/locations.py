@@ -1,175 +1,196 @@
-# from .utils import DotAccessibleDict
-import re
+# -*- coding: utf-8 -*-
+"""
+CMIP-LD Location Mappings
+
+This module provides URL mappings between CMIP-LD prefixes and various URL formats:
+- GitHub Pages URLs (e.g., https://wcrp.mipcvs.dev/)
+- GitHub Repository URLs (e.g., https://github.com/WCRP-CMIP/WCRP-universe/)
+- GitHub Raw Content URLs (e.g., https://raw.githubusercontent.com/...)
+
+Each mapping type has forward (prefix -> URL) and reverse (URL -> prefix) lookups,
+plus utility functions for resolving, compacting, and prefixifying URLs.
+"""
+
 import json
 import os
+import re
 
-# Load prefix mappings from JSON file
+# =============================================================================
+# CONFIGURATION LOADING
+# =============================================================================
+
 def _load_prefix_mappings():
-    """Load prefix mappings from JSON file"""
+    """Load prefix mappings from JSON file."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     json_path = os.path.join(current_dir, 'prefix_mappings.json')
-    
     with open(json_path, 'r') as f:
         return json.load(f)
 
-# Load the prefix data
-_prefix_data = _load_prefix_mappings()
 
-# Generate mappings from prefix data
 def _generate_mapping(url_template):
-    """Generate mapping dictionary using a URL template"""
-    mapping = {}
+    """Generate mapping dictionary using a URL template."""
+    result = {}
     for prefix, data in _prefix_data.items():
         owner = data['owner']
         repo = data['repo']
-        mapping[prefix] = url_template.format(owner=owner, repo=repo, prefix=prefix)
-    return mapping
+        result[prefix] = url_template.format(owner=owner, repo=repo, prefix=prefix)
+    # Sort by key length for consistent prefix matching
+    return dict(sorted(result.items(), key=lambda item: len(item[0])))
 
-# Registered locations (GitHub Pages URLs)
+
+# Load prefix data at module import
+_prefix_data = _load_prefix_mappings()
+
+# Regex for matching any known prefix (e.g., "wcrp:", "cmip6plus:")
+# Defined after mappings are created below
+matches = None  # Initialized after mapping is created
+
+# =============================================================================
+# GITHUB PAGES MAPPINGS (mipcvs.dev)
+# =============================================================================
+# Maps prefixes to GitHub Pages URLs
+# Example: 'wcrp' -> 'https://wcrp.mipcvs.dev/'
+
 mapping = _generate_mapping('https://{prefix}.mipcvs.dev/')
-
-# Direct mappings (GitHub repository URLs)
-direct = _generate_mapping('https://github.com/{owner}/{repo}/')
-
-# IO mappings (GitHub raw content URLs)
-io = _generate_mapping('https://raw.githubusercontent.com/{owner}/{repo}/main/')
-
-# sort all mappings
-mapping = dict(sorted(mapping.items(), key=lambda item: len(item[0])))
-direct = dict(sorted(direct.items(), key=lambda item: len(item[0])))
-io = dict(sorted(io.items(), key=lambda item: len(item[0])))
-# # a dot accessible dict of the mapping
-# latest = DotAccessibleDict(dict([i, j + 'graph'] for i, j in mapping.items()))
-
-
 reverse_mapping = {v: k for k, v in mapping.items()}
 
-reverse_direct = {v: k for k, v in direct.items()}
-
-reverse_io = {v: k for k, v in io.items()}
-
-
-# def fetch_all(subset=None):
-#     from pyld import jsonld
-#     from tqdm import tqdm
-
-#     if subset:
-#         subset = {k: mapping[k] for k in subset}
-#     else:
-#         subset = latest
-
-#     expanded = []
-
-#     for url in tqdm(subset.values()):
-#         try:
-#             expanded.extend(jsonld.expand(url+'graph.jsonld'))
-#         except Exception as e:
-#             print('error expanding', url, e)
-
-#     return expanded
-
-
-# regex matching if these exist
+# Initialize prefix matching regex now that mapping exists
 matches = re.compile(f"({'|'.join([i+':' for i in mapping.keys()])})")
 
 
+def get_github_pages_url(prefix):
+    """Get GitHub Pages URL for a prefix."""
+    return mapping.get(prefix)
+
+
 def resolve_url(url):
+    """Resolve URL using GitHub Pages mappings."""
     if url.startswith('http') and url.count(':') > 2:
         return mapping.get(url, url)
-    else:
-        return url
-
-
-def resolve_direct_url(url):
-    """Resolve URL using direct mappings"""
-    if url.startswith('http') and url.count(':') > 2:
-        return direct.get(url, url)
-    else:
-        return url
-
-
-def resolve_io_url(url):
-    """Resolve URL using io mappings"""
-    if url.startswith('http') and url.count(':') > 2:
-        return io.get(url, url)
-    else:
-        return url
+    return url
 
 
 def compact_url(url):
+    """Compact URL using GitHub Pages mappings."""
     if url.startswith('http') and url.count(':') > 2:
         for k, v in mapping.items():
             if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
-
-
-def compact_direct_url(url):
-    """Compact URL using direct mappings"""
-    if url.startswith('http') and url.count(':') > 2:
-        for k, v in direct.items():
-            if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
-
-
-def compact_io_url(url):
-    """Compact URL using io mappings"""
-    if url.startswith('http') and url.count(':') > 2:
-        for k, v in io.items():
-            if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
+                return url.replace(v, k + ':')
+    return url
 
 
 def prefix_url(url):
-    url = url.replace('http:','https:')
-    if url.startswith('http') :
+    """Prefix URL using GitHub Pages mappings (normalizes to https)."""
+    url = url.replace('http:', 'https:')
+    if url.startswith('http'):
         for k, v in mapping.items():
             if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
+                return url.replace(v, k + ':')
+    return url
+
+
+# =============================================================================
+# GITHUB REPOSITORY MAPPINGS (github.com)
+# =============================================================================
+# Maps prefixes to GitHub repository URLs
+# Example: 'wcrp' -> 'https://github.com/WCRP-CMIP/WCRP-universe/'
+
+direct = _generate_mapping('https://github.com/{owner}/{repo}/')
+reverse_direct = {v: k for k, v in direct.items()}
+
+
+def get_github_repo_url(prefix):
+    """Get GitHub repository URL for a prefix."""
+    return direct.get(prefix)
+
+
+def resolve_direct_url(url):
+    """Resolve URL using GitHub repository mappings."""
+    if url.startswith('http') and url.count(':') > 2:
+        return direct.get(url, url)
+    return url
+
+
+def compact_direct_url(url):
+    """Compact URL using GitHub repository mappings."""
+    if url.startswith('http') and url.count(':') > 2:
+        for k, v in direct.items():
+            if url.startswith(v):
+                return url.replace(v, k + ':')
+    return url
 
 
 def prefix_direct_url(url):
-    """Prefix URL using direct mappings"""
+    """Prefix URL using GitHub repository mappings (normalizes to https)."""
     url = url.replace('http:', 'https:')
     if url.startswith('http'):
         for k, v in direct.items():
             if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
+                return url.replace(v, k + ':')
+    return url
+
+'''
+# =============================================================================
+# GITHUB RAW CONTENT MAPPINGS (raw.githubusercontent.com)
+# =============================================================================
+# Maps prefixes to GitHub raw content URLs
+# Example: 'wcrp' -> 'https://raw.githubusercontent.com/WCRP-CMIP/WCRP-universe/main/'
+
+io = _generate_mapping('https://raw.githubusercontent.com/{owner}/{repo}/main/')
+reverse_io = {v: k for k, v in io.items()}
+
+
+def get_github_raw_url(prefix):
+    """Get GitHub raw content URL for a prefix."""
+    return io.get(prefix)
+
+
+def resolve_io_url(url):
+    """Resolve URL using GitHub raw content mappings."""
+    if url.startswith('http') and url.count(':') > 2:
+        return io.get(url, url)
+    return url
+
+
+def compact_io_url(url):
+    """Compact URL using GitHub raw content mappings."""
+    if url.startswith('http') and url.count(':') > 2:
+        for k, v in io.items():
+            if url.startswith(v):
+                return url.replace(v, k + ':')
+    return url
 
 
 def prefix_io_url(url):
-    """Prefix URL using io mappings"""
+    """Prefix URL using GitHub raw content mappings (normalizes to https)."""
     url = url.replace('http:', 'https:')
     if url.startswith('http'):
         for k, v in io.items():
             if url.startswith(v):
-                return url.replace(v, k+':')
-        return url
-    else:
-        return url
-    
-    
+                return url.replace(v, k + ':')
+    return url
+
+'''
+
+# =============================================================================
+# GENERAL UTILITIES
+# =============================================================================
+
+def get_repo_info(prefix):
+    """Get repository owner and repo name for a prefix."""
+    return _prefix_data.get(prefix, {})
+
+
 def resolve_prefix(query, mapping_type='default'):
     """
-    Resolve prefix in query string using specified mapping type
+    Resolve prefix in query string to full URL.
     
     Args:
-        query: The query string to resolve
+        query: The query string to resolve (e.g., "wcrp:activity")
         mapping_type: Type of mapping to use ('default', 'direct', 'io')
+    
+    Returns:
+        Resolved URL string
     """
     # Select the appropriate mapping
     if mapping_type == 'direct':
@@ -180,56 +201,41 @@ def resolve_prefix(query, mapping_type='default'):
         current_mapping = mapping
     
     if isinstance(query, str) and not query.startswith('http'):
-        m = matches.search(query+':')
+        m = matches.search(query + ':')
         if m:
             match = m.group()
-            if len(match)-1 == len(query):
-                if mapping_type == 'io':
-                    query = f"{current_mapping[match]}graph.jsonld"
-                else:
-                    query = f"{current_mapping[match]}graph.jsonld"
+            if len(match) - 1 == len(query):
+                # Bare prefix (e.g., "wcrp") -> add graph.jsonld
+                query = f"{current_mapping[match[:-1]]}graph.jsonld"
             else:
+                # Prefixed path (e.g., "wcrp:activity") -> expand prefix
                 query = query.replace(match, current_mapping[match[:-1]])
             print('Substituting prefix:')
             print(match, query)
     return query
 
 
-# Helper functions for easy access to different mapping types
-def get_github_pages_url(prefix):
-    """Get GitHub Pages URL for prefix"""
-    return mapping.get(prefix)
-
-
-def get_github_repo_url(prefix):
-    """Get GitHub repository URL for prefix"""
-    return direct.get(prefix)
-
-
-def get_github_raw_url(prefix):
-    """Get GitHub raw content URL for prefix"""
-    return io.get(prefix)
-
-
-def get_repo_info(prefix):
-    """Get repository owner and name for prefix"""
-    return _prefix_data.get(prefix, {})
-
-
 def prefixify(data):
-    # if we are using a dictionary, convert to a compact string
+    """
+    Convert all URLs in data to prefixed form.
+    
+    Args:
+        data: dict or string containing URLs to prefixify
+        
+    Returns:
+        Data with URLs replaced by prefixed versions
+    """
+    # Convert dict to JSON string for batch replacement
     if isinstance(data, dict):
         quick_compact = json.dumps(data)
     else:
         quick_compact = str(data)
-        
-    # batch find and replace
-    for i,j in cmipld.mapping.items():
-        quick_compact = re.sub(j, i+':', quick_compact)
-        print(i,j)
-        
-    # if we started with a dict, convert back
-    if not isinstance(data, dict):
-        quick_compact = json.loads(quick_compact)
-        
+    
+    # Batch find and replace all known mappings
+    for prefix, url in mapping.items():
+        quick_compact = re.sub(re.escape(url), prefix + ':', quick_compact)
+    
+    # Convert back to dict if we started with one
+    if isinstance(data, dict):
+        return json.loads(quick_compact)
     return quick_compact

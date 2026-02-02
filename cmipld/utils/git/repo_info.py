@@ -1,6 +1,7 @@
 from .git_core import url,url2io,toplevel
-from .git_repo_metadata import getreponame
+from .git_repo_metadata import getreponame,get
 from ...locations import reverse_mapping
+from ...__init__ import prefix
 # Delay import to avoid circular dependency
 DotAccessibleDict = None
 
@@ -17,8 +18,9 @@ from rich.console import Console #, ConsoleOptions, Group, RenderableType, Rende
 console = Console()
 
 def cmip_info():
-    repo_url = url()
-    io_url = url2io(repo_url)
+    repo_url = get_repo_url()
+    
+    prefix= reverse_direct.get(myurl,myurl)  
 
     # branch = getbranch()
     repopath = toplevel()
@@ -29,7 +31,7 @@ def cmip_info():
     console.print(Panel.fit(
         f"[bold cyan]Parsing repo:[/bold cyan] {prefix}\n"
         f"[bold magenta]Location:[/bold magenta] {repo_url}\n"
-        f"[bold red]Github IO link:[/bold red] {io_url}",
+        f"[bold red]Pages link:[/bold red] {io_url}",
         title="[bold yellow]Repository Info[/bold yellow]",
         border_style="blue"
         ), justify="center"
