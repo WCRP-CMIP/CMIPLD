@@ -28,11 +28,11 @@ def main():
     
     
 def data():
-    from cmipld import reverse_mapping
+    from cmipld import prefix
     # Get repo base URL§
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
-    prefix = reverse_mapping.get(base,'no-prefix')
+    prefix = prefix() or 'no-prefix'
     base2 = f'https://{prefix}.mipcvs.dev/'
 
 
