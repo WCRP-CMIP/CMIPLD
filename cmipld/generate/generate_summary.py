@@ -11,7 +11,7 @@ import glob
 import importlib.util
 import tqdm
 import cmipld
-from cmipld.utils.git.repo_info import cmip_info
+from cmipld.utils.git.git_core import cmip_info
 # from cmipld.utils.server_tools.offline import LD_server
 from cmipld.utils.checksum import version
 from cmipld.utils import io  # explicit import for jr/jw

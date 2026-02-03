@@ -29,7 +29,7 @@ client = LdrClient(
 # Verify mappings were set
 try:
     current_mappings = client.get_mappings()
-    print(f"Current server mappings: {current_mappings}", flush=True)
+    # print(f"Current server mappings: {current_mappings}", flush=True)
 except Exception as e:
     print(f"Warning: Could not verify mappings: {e}", flush=True)
 
@@ -63,7 +63,7 @@ def map_current(prefix,path=None):
     mappings = client.get_mappings()
     # use the existing mapping for the prefix to create a new mapping
     url = mappings[f'{prefix}:*'].replace('${rest}', '')
-    mappings[f'{url}*'] = os.path + '${rest}'
+    mappings[f'{url}*'] = path + '${rest}'
     # update mappings
     client.set_mappings(mappings)
     print(f"Added mapping: {url} -> {path}")

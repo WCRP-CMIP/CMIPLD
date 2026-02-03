@@ -2,7 +2,7 @@ import cmipld,glob,sys,json,os
 # from pyld import jsonld
 
 
-from cmipld.utils.git.repo_info import cmip_info
+from cmipld.utils.git.git_core import cmip_info
 
 
 
