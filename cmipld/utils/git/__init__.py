@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Git Utilities for CMIP-LD
+
+Provides git operations, repository metadata, and GitHub API utilities.
+"""
+
 from . import actions
 from . import release
 from . import tree
-# Delay repo_info import to avoid circular dependency with jsontools
-# from . import repo_info
 from . import coauthors
 from . import git_validation_utils
 
@@ -17,15 +22,3 @@ from .git_api import *
 from .gh_utils import *
 from .coauthors import *
 from .git_validation_utils import *
-
-# Lazy import repo_info to avoid circular dependency
-_repo_info = None
-
-def __getattr__(name):
-    global _repo_info
-    if name == 'repo_info':
-        if _repo_info is None:
-            from . import repo_info as _ri
-            _repo_info = _ri
-        return _repo_info
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
