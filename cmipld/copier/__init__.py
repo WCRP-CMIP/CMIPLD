@@ -171,8 +171,8 @@ def update_template(template: str, destination: str = "."):
     
     # Use copier copy with:
     # --force: overwrite existing files
-    # --answers-file: read previous answers
-    # --defaults: use answers file values without prompting
+    # --answers-file: read previous answers (used as defaults)
+    # --defaults: use defaults for any new questions not in answers file
     cmd = [
         "copier", "copy",
         "--force",
