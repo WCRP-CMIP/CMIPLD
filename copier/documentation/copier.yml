@@ -2,15 +2,29 @@
 # A lightweight copier template for CMIP-LD documentation sites
 _templates_suffix: .jinja
 
-# Skip overwriting existing files
+# ============================================
+# FILE HANDLING DURING UPDATES
+# ============================================
+# 
+# _skip_if_exists: Files NEVER overwritten (user content)
+# _preserve_files: Files created once, never updated
+#
+# Files NOT in these lists will be UPDATED when running `copier update`
+# This includes: mkdocs.yml, stylesheets, hooks, technical docs
+# ============================================
+
+# User content - never overwrite (protects your work)
 _skip_if_exists:
-  - "docs/*.md"
-  - "docs/scripts/*.py"
-  - "docs/links.yml"
+  - "docs/index.md"          # Your home page
+  - "docs/links.yml"         # Your custom links
   - ".git*"
   - "README*"
 
-# Exclude files from copying
+# Files created once but never touched during updates
+_preserve_files:
+  - ".copier-answers.yml"    # Your saved answers
+
+# Exclude from copying entirely
 _exclude:
   - "*.tmp"
   - "*.bak"
@@ -112,6 +126,11 @@ enable_scripts:
   type: bool
   help: "Enable Python scripts in docs/scripts/ to run during build"
   default: true
+
+css_prefix:
+  type: str
+  help: "CSS variable prefix (e.g., 'emd' creates --emd-primary, .emd-container)"
+  default: "cmipdocs"
 
 # ============================================
 # DERIVED VALUES (not asked)

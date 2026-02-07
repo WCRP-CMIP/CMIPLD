@@ -8,42 +8,19 @@ site_author: {{ author_name }}
 docs_dir: ../../docs
 site_dir: site
 
+# Theme configuration
 theme:
-  name: material
-  logo: assets/logo.svg
-  favicon: assets/logo.svg
-  custom_dir: overrides
-  font:
-    text: Roboto
-    code: Roboto Mono
-  features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.path
-    - navigation.indexes
-    - navigation.footer
-    - toc.follow
-    - search.suggest
-    - search.highlight
-    - content.code.copy
-  icon:
-    repo: fontawesome/brands/github
+  name: shadcn
   palette:
-    - scheme: default
-      primary: {{ header_color | replace('-', ' ') }}
-      accent: {{ header_color | replace('-', ' ') }}
-      toggle:
-        icon: material/toggle-switch-off-outline
-        name: Dark mode
-    - scheme: slate
-      primary: {{ header_color | replace('-', ' ') }}
-      accent: {{ header_color | replace('-', ' ') }}
-      toggle:
-        icon: material/toggle-switch
-        name: Light mode
+    primary: blue
+    accent: cyan
+  show_stargazers: false
 
+# Plugins
 plugins:
-  - search
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
 {% if enable_scripts %}
   - gen-files:
       scripts:
@@ -54,14 +31,21 @@ plugins:
       implicit_index: true
       tab_length: 2
 
+# Hooks
 hooks:
   - hooks/generate_nav.py
 
 extra:
   generator: false
+  version:
+    provider: mike
 
 extra_css:
-  - stylesheets/extra.css
+  - stylesheets/custom.css
+
+extra_javascript:
+  - stylesheets/custom.js
+  - stylesheets/embed.js
 
 markdown_extensions:
   - admonition
@@ -72,6 +56,7 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      toc_depth: 3
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
