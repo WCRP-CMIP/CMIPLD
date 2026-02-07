@@ -393,20 +393,39 @@ def save_contributors_file(filepath: str, data: dict):
         json.dump(data, f, indent=2, default=str)
 
 
+def normalize_name(name: str) -> str:
+    """Normalize a name for comparison (lowercase, stripped, sorted parts)."""
+    if not name:
+        return ''
+    # Lowercase, strip, split into parts and sort alphabetically
+    parts = sorted(name.lower().strip().split())
+    return ' '.join(parts)
+
+
+def find_existing_contributor(data: dict, username: str, name: str) -> str:
+    """Find existing contributor by username or by matching name."""
+    username_lower = username.lower() if username else ''
+    name_normalized = normalize_name(name)
+    
+    for key, contrib in data['contributors'].items():
+        # Match by username (case-insensitive)
+        if username_lower and key.lower() == username_lower:
+            return key
+        
+        # Match by normalized name (same first/last name in any order)
+        if name_normalized and normalize_name(contrib.get('name', '')) == name_normalized:
+            return key
+    
+    return None
+
+
 def add_contributor(data: dict, username: str, name: str, email: str):
     """Add or update a contributor in the global list. Merges authors and co-authors."""
     if not username or is_bot(name, email):
         return
     
-    # Normalize username to lowercase for consistent matching
-    username_lower = username.lower()
-    
-    # Check if we already have this contributor (case-insensitive)
-    existing_key = None
-    for key in data['contributors']:
-        if key.lower() == username_lower:
-            existing_key = key
-            break
+    # Check if we already have this contributor (by username or name)
+    existing_key = find_existing_contributor(data, username, name)
     
     if existing_key:
         contrib = data['contributors'][existing_key]
@@ -426,6 +445,13 @@ def add_contributor(data: dict, username: str, name: str, email: str):
                 contrib['emails'] = [contrib.get('email', '')] if contrib.get('email') else []
             if email not in contrib['emails']:
                 contrib['emails'].append(email)
+        
+        # Track all usernames seen (in case merged by name)
+        if username and username.lower() != existing_key.lower():
+            if 'alt_usernames' not in contrib:
+                contrib['alt_usernames'] = []
+            if username not in contrib['alt_usernames']:
+                contrib['alt_usernames'].append(username)
     else:
         data['contributors'][username] = {
             'name': name if name else username,
@@ -710,13 +736,17 @@ def generate_html(data: dict, output_path: str, project_name: str = 'this projec
   .contributor > a {{
     text-decoration: none;
     color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }}
   .contributor img {{
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    margin-bottom: 12px;
+    margin: 0 auto 12px auto;
     border: 3px solid #eee;
+    display: block;
   }}
   .contributor-name {{
     font-weight: 600;
@@ -868,12 +898,12 @@ The people who make {project_name} possible — {len(sorted_contributors)} contr
             links_html += '</div>'
         
         md += f'''<div style="background: #fff; border-radius: 12px; padding: 16px; width: 140px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center;">
-  <a href="{profile_url}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center;">
-    <img src="{avatar_url}" width="80" height="80" style="border-radius: 50%; border: 3px solid #eee; display: block;" alt="{name}">
-    <div style="font-weight: 600; font-size: 0.95em; color: #333; margin: 8px 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;" title="{name}">{name}</div>
-    <div style="font-size: 0.8em; color: #666;">@{username}</div>
+  <a href="{profile_url}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; width: 100%;">
+    <img src="{avatar_url}" width="80" height="80" style="border-radius: 50%; border: 3px solid #eee; display: block; margin: 0 auto;" alt="{name}">
+    <div style="font-weight: 600; font-size: 0.95em; color: #333; margin: 8px 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; text-align: center;" title="{name}">{name}</div>
+    <div style="font-size: 0.8em; color: #666; text-align: center;">@{username}</div>
   </a>
-  <div style="font-size: 0.75em; color: #999; margin-top: 6px;">{commits} commit{'s' if commits != 1 else ''}</div>
+  <div style="font-size: 0.75em; color: #999; margin-top: 6px; text-align: center;">{commits} commit{'s' if commits != 1 else ''}</div>
   {links_html}
 </div>
 '''

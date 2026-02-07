@@ -12,16 +12,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Paths relative to this script's location (docs/scripts/)
+SCRIPT_DIR = Path(__file__).parent.resolve()
+DOCS_DIR = SCRIPT_DIR.parent
+
 
 def main():
     """Generate contributors.md using cmipld."""
-    docs_dir = Path(__file__).parent.parent
-    output_path = docs_dir / "contributors.md"
+    output_path = DOCS_DIR / "contributors.md"
     
     print(f"Generating contributors page: {output_path}")
     
     try:
-        # Try using cmipld module
         result = subprocess.run(
             [
                 sys.executable, "-m", "cmipld.generate.get_contributors",
@@ -30,7 +32,7 @@ def main():
             ],
             capture_output=True,
             text=True,
-            cwd=docs_dir.parent.parent  # repo root
+            cwd=str(DOCS_DIR.parent)
         )
         
         if result.returncode == 0:
@@ -49,5 +51,4 @@ def main():
         print(f"Warning: Could not generate contributors: {e}")
 
 
-if __name__ == "__main__":
-    main()
+main()

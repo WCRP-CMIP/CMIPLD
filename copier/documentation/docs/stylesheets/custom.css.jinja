@@ -5,12 +5,35 @@
 /* ============================================
    CSS VARIABLES - {{ header_color | upper }} THEME
    ============================================ */
+{% set color_map = {
+  'red': {'primary': '#f44336', 'light': '#ffcdd2', 'dark': '#d32f2f'},
+  'pink': {'primary': '#e91e63', 'light': '#f8bbd9', 'dark': '#c2185b'},
+  'purple': {'primary': '#9c27b0', 'light': '#e1bee7', 'dark': '#7b1fa2'},
+  'deep-purple': {'primary': '#673ab7', 'light': '#d1c4e9', 'dark': '#512da8'},
+  'indigo': {'primary': '#3f51b5', 'light': '#c5cae9', 'dark': '#303f9f'},
+  'blue': {'primary': '#2196f3', 'light': '#bbdefb', 'dark': '#1976d2'},
+  'light-blue': {'primary': '#03a9f4', 'light': '#b3e5fc', 'dark': '#0288d1'},
+  'cyan': {'primary': '#00bcd4', 'light': '#b2ebf2', 'dark': '#0097a7'},
+  'teal': {'primary': '#009688', 'light': '#b2dfdb', 'dark': '#00796b'},
+  'green': {'primary': '#4caf50', 'light': '#c8e6c9', 'dark': '#388e3c'},
+  'light-green': {'primary': '#8bc34a', 'light': '#dcedc8', 'dark': '#689f38'},
+  'lime': {'primary': '#cddc39', 'light': '#f0f4c3', 'dark': '#afb42b'},
+  'yellow': {'primary': '#ffeb3b', 'light': '#fff9c4', 'dark': '#fbc02d'},
+  'amber': {'primary': '#ffc107', 'light': '#ffecb3', 'dark': '#ffa000'},
+  'orange': {'primary': '#ff9800', 'light': '#ffe0b2', 'dark': '#f57c00'},
+  'deep-orange': {'primary': '#ff5722', 'light': '#ffccbc', 'dark': '#e64a19'},
+  'brown': {'primary': '#795548', 'light': '#d7ccc8', 'dark': '#5d4037'},
+  'grey': {'primary': '#9e9e9e', 'light': '#f5f5f5', 'dark': '#616161'},
+  'blue-grey': {'primary': '#607d8b', 'light': '#cfd8dc', 'dark': '#455a64'},
+  'black': {'primary': '#000000', 'light': '#424242', 'dark': '#000000'}
+} %}
+{% set colors = color_map[header_color] | default(color_map['blue']) %}
 
 :root {
-  --{{ css_prefix }}-primary: {{ _color_hex }};
-  --{{ css_prefix }}-primary-light: {{ _color_hex_light }};
-  --{{ css_prefix }}-primary-dark: {{ _color_hex_dark }};
-  --{{ css_prefix }}-accent: {{ _color_hex }};
+  --{{ css_prefix }}-primary: {{ colors.primary }};
+  --{{ css_prefix }}-primary-light: {{ colors.light }};
+  --{{ css_prefix }}-primary-dark: {{ colors.dark }};
+  --{{ css_prefix }}-accent: {{ colors.primary }};
   --{{ css_prefix }}-text: #1e293b;
   --{{ css_prefix }}-text-secondary: #475569;
   --{{ css_prefix }}-text-tertiary: #94a3b8;
@@ -25,9 +48,9 @@
 }
 
 .dark {
-  --{{ css_prefix }}-primary: {{ _color_hex_light }};
+  --{{ css_prefix }}-primary: {{ colors.light }};
   --{{ css_prefix }}-primary-light: rgba(255, 255, 255, 0.1);
-  --{{ css_prefix }}-primary-dark: {{ _color_hex }};
+  --{{ css_prefix }}-primary-dark: {{ colors.primary }};
   --{{ css_prefix }}-text: #f1f5f9;
   --{{ css_prefix }}-text-secondary: #cbd5e1;
   --{{ css_prefix }}-text-tertiary: #64748b;
@@ -62,6 +85,7 @@ header {
 }
 
 /* Logo styling - sets currentColor to primary for inline SVGs */
+/* Only target logo/home links, not all header links */
 header a[href="/"],
 header a[href="./"],
 header [data-slot="logo"],
@@ -71,10 +95,19 @@ header [data-slot="logo"],
   color: var(--{{ css_prefix }}-primary) !important;
 }
 
-header svg,
-[data-slot="sidebar"] svg {
+/* Logo SVGs inherit color */
+header a[href="/"] svg,
+header a[href="./"] svg,
+header [data-slot="logo"] svg {
   color: inherit;
   fill: currentColor;
+}
+
+/* Theme toggle and other header buttons should NOT be colored */
+header button,
+header button svg {
+  color: var(--{{ css_prefix }}-text) !important;
+  fill: none !important;
 }
 
 .dark header a[href="/"],
@@ -86,11 +119,17 @@ header svg,
   color: var(--{{ css_prefix }}-primary) !important;
 }
 
+.dark header button,
+.dark header button svg {
+  color: var(--{{ css_prefix }}-text) !important;
+  fill: none !important;
+}
+
 header h1,
 header [data-slot="title"] {
   font-family: "Noto Sans", var(--font-sans), system-ui;
   font-weight: 700 !important;
-  color: var(--{{ css_prefix }}-text) !important;
+  color: var(--{{ css_prefix }}-primary-dark) !important;
   font-size: 1.1rem !important;
 }
 
