@@ -3,15 +3,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600;700&display=swap');
 
 /* ============================================
-   CSS VARIABLES - BLUE THEME
+   CSS VARIABLES - {{ header_color | upper }} THEME
    ============================================ */
 
 :root {
-  --{{ css_prefix }}-primary: #3b82f6;
-  --{{ css_prefix }}-primary-rgb: 59, 130, 246;
-  --{{ css_prefix }}-primary-light: #dbeafe;
-  --{{ css_prefix }}-primary-dark: #2563eb;
-  --{{ css_prefix }}-accent: #0ea5e9;
+  --{{ css_prefix }}-primary: {{ _color_hex }};
+  --{{ css_prefix }}-primary-light: {{ _color_hex_light }};
+  --{{ css_prefix }}-primary-dark: {{ _color_hex_dark }};
+  --{{ css_prefix }}-accent: {{ _color_hex }};
   --{{ css_prefix }}-text: #1e293b;
   --{{ css_prefix }}-text-secondary: #475569;
   --{{ css_prefix }}-text-tertiary: #94a3b8;
@@ -21,26 +20,14 @@
   --{{ css_prefix }}-border: #e2e8f0;
   --{{ css_prefix }}-border-light: #f1f5f9;
   
-  /* Map shadcn theme variables to primary blue */
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 40% 98%;
-  --accent: 217 91% 60%;
-  --accent-foreground: 210 40% 98%;
-  --sidebar-primary: 217 91% 60%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 91% 60%;
-  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-  --ring: 217 91% 60%;
-  
   /* Ensure currentColor inherits properly */
   color: var(--{{ css_prefix }}-text);
 }
 
 .dark {
-  --{{ css_prefix }}-primary: #60a5fa;
-  --{{ css_prefix }}-primary-rgb: 96, 165, 250;
-  --{{ css_prefix }}-primary-light: rgba(59, 130, 246, 0.15);
-  --{{ css_prefix }}-primary-dark: #93c5fd;
+  --{{ css_prefix }}-primary: {{ _color_hex_light }};
+  --{{ css_prefix }}-primary-light: rgba(255, 255, 255, 0.1);
+  --{{ css_prefix }}-primary-dark: {{ _color_hex }};
   --{{ css_prefix }}-text: #f1f5f9;
   --{{ css_prefix }}-text-secondary: #cbd5e1;
   --{{ css_prefix }}-text-tertiary: #64748b;
@@ -49,16 +36,6 @@
   --{{ css_prefix }}-bg-tertiary: #334155;
   --{{ css_prefix }}-border: #334155;
   --{{ css_prefix }}-border-light: #1e293b;
-  
-  /* Map shadcn theme variables to primary blue (dark mode) */
-  --primary: 213 94% 68%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --accent: 213 94% 68%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --sidebar-primary: 213 94% 68%;
-  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-  --sidebar-accent: 213 94% 68%;
-  --ring: 213 94% 68%;
   
   color: var(--{{ css_prefix }}-text);
 }
@@ -1006,4 +983,27 @@ th[data-sort="desc"] .sort-indicator {
   background: var(--{{ css_prefix }}-primary-light);
   border-color: var(--{{ css_prefix }}-primary);
   text-decoration: none !important;
+}
+
+/* ============================================
+   ROOT NAVIGATION GROUP FIX
+   ============================================ */
+/* The first sidebar-group has no label - it contains Home and Contributors */
+/* Force it to always be visible and not collapsible */
+[data-slot="sidebar-group"]:not(:has(> [data-slot="sidebar-group-label"])) {
+  display: block !important;
+}
+
+[data-slot="sidebar-group"]:not(:has(> [data-slot="sidebar-group-label"])) > [data-slot="sidebar-group-content"],
+[data-slot="sidebar-group-content"].root-content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-height: none !important;
+  pointer-events: auto !important;
+}
+
+[data-slot="sidebar-group"]:not(:has(> [data-slot="sidebar-group-label"])) [data-slot="sidebar-menu-item"] {
+  display: block !important;
+  visibility: visible !important;
 }

@@ -16,7 +16,8 @@ dependencies = [
     "jmespath",
     "p_tqdm",
     "rich",
-    "pyyaml"
+    "pyyaml",
+    "copier>=9.0.0"
 ]
 
 classifiers = [
@@ -54,6 +55,7 @@ template_generate = "cmipld.generate.template_generator:main" # Generate GitHub 
 template_update = "cmipld.generate.template_prefill:main"
 rss = "cmipld.generate.rss:main"  # Generate RSS feed for commits and releases
 get_contributors = "cmipld.generate.get_contributors:main"  # Generate contributors tracking and HTML page
+cmipcopier = "cmipld.copier:main"  # Install/update copier templates
 
 [tool.setuptools]
 packages = ["cmipld"]
