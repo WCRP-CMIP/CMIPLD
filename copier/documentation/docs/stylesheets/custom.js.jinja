@@ -140,16 +140,21 @@ function setupCollapsibleNav() {
   console.log('Setting up collapsible navigation for', groups.length, 'groups');
   
   groups.forEach((group, index) => {
-    const label = group.querySelector('[data-slot="sidebar-group-label"]');
-    const content = group.querySelector('[data-slot="sidebar-group-content"]');
+    // IMPORTANT: Use :scope > to only match DIRECT children, not nested labels
+    const label = group.querySelector(':scope > [data-slot="sidebar-group-label"]');
+    const content = group.querySelector(':scope > [data-slot="sidebar-group-content"]');
     
+    // If no direct label, this is the root group - keep it always visible
     if (!label) {
-      console.log(`Group ${index}: ROOT GROUP (no label), keeping expanded`);
+      console.log(`Group ${index}: ROOT GROUP (no direct label), keeping expanded`);
       if (content) {
         content.style.display = 'block';
         content.style.visibility = 'visible';
         content.style.opacity = '1';
         content.style.maxHeight = 'none';
+        content.style.pointerEvents = 'auto';
+        // Mark as non-collapsible
+        content.classList.add('root-content');
       }
       return;
     }
@@ -246,7 +251,7 @@ function addCustomLinks() {
   const section = document.createElement('div');
   section.className = 'custom-links-section';
   section.innerHTML = `
-    <div class="custom-links-title">External Links</div>
+    <div class="custom-links-title">{{ links_section_title }}</div>
     <div class="custom-links-list">
       ${CONFIG.customLinks.map(link => `
         <a href="${link.url}" class="custom-link" target="_blank" rel="noopener">

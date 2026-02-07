@@ -1,0 +1,11 @@
+# CMIPLD Template Selector
+# Usage: copier copy gh:WCRP-CMIP/CMIPLD ./dest
+
+_subdirectory: "copier/{{ template_type }}"
+
+template_type:
+  type: str
+  help: "Which template do you want to use?"
+  choices:
+    documentation: "MkDocs documentation site with shadcn theme"
+    # Add more as needed
