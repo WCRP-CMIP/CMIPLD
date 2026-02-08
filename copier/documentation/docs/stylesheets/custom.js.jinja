@@ -10,7 +10,14 @@ const CONFIG = {
 // Load custom links from links.yml
 async function loadCustomLinks() {
   try {
-    const paths = ['./links.yml', '../links.yml', '/links.yml'];
+    // Use MkDocs base_url to get correct path from any page depth
+    const baseUrl = typeof base_url !== 'undefined' ? base_url : '{{ url_prefix }}';
+    const paths = [
+      baseUrl + 'links.yml',
+      baseUrl + '/links.yml',
+      './links.yml',
+      '/links.yml'
+    ];
     let text = null;
     
     for (const path of paths) {
@@ -119,6 +126,14 @@ function setupHeaderControls() {
 
 function setupCollapsibleNav() {
   const groups = document.querySelectorAll('[data-slot="sidebar-group"]');
+  const currentPath = window.location.pathname;
+  
+  // Check if we're on the home/index page
+  const baseUrl = typeof base_url !== 'undefined' ? base_url : '{{ url_prefix }}';
+  const isHomePage = currentPath === baseUrl || 
+                     currentPath === baseUrl.replace(/\/$/, '') ||
+                     currentPath.endsWith('/index.html') ||
+                     currentPath.match(/^\/[^\/]*\/?$/) !== null;
   
   groups.forEach((group, index) => {
     const label = group.querySelector('[data-slot="sidebar-group-label"]');
@@ -142,16 +157,16 @@ function setupCollapsibleNav() {
     content.classList.add('nav-children');
     
     // Check if any link in this group is active (current page)
-    // Also check by comparing current URL to link hrefs
-    const currentPath = window.location.pathname;
     let hasActivePage = content.querySelector('a[data-active="true"]') !== null;
     
-    // Fallback: check if current URL matches any link in this group
-    if (!hasActivePage) {
+    // Fallback: check if current URL matches any link in this group (exact match)
+    if (!hasActivePage && !isHomePage) {
       const links = content.querySelectorAll('a[href]');
       for (const link of links) {
-        if (currentPath.includes(link.getAttribute('href').replace(/\/$/, '')) || 
-            link.getAttribute('href').includes(currentPath.replace(/\/$/, ''))) {
+        const href = link.getAttribute('href');
+        const normalizedHref = href.replace(/\/$/, '').replace(/^\.\//, '');
+        const normalizedPath = currentPath.replace(/\/$/, '');
+        if (normalizedPath.endsWith(normalizedHref) || normalizedPath === normalizedHref) {
           hasActivePage = true;
           break;
         }
@@ -159,9 +174,10 @@ function setupCollapsibleNav() {
     }
     
     // On first run: set initial state
+    // Home page: all closed. Nested pages: open if contains active page
     if (!label.dataset.collapsibleSetup) {
       label.classList.remove('expanded');
-      if (hasActivePage) {
+      if (hasActivePage && !isHomePage) {
         label.classList.add('expanded');
       }
     }
