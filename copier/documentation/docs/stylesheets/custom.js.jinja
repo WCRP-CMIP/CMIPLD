@@ -4,17 +4,27 @@
 const CONFIG = {
   repoUrl: '{{ repo_url }}',
   repoName: '{{ repo_owner }}/{{ repo_name }}',
-  customLinks: [] // Loaded from links.yml
+  customLinks: []
 };
 
 // Load custom links from links.yml
 async function loadCustomLinks() {
   try {
-    const response = await fetch('./links.yml');
-    if (!response.ok) return;
-    const text = await response.text();
+    const paths = ['./links.yml', '../links.yml', '/links.yml'];
+    let text = null;
     
-    // Simple YAML parser for our links format
+    for (const path of paths) {
+      try {
+        const response = await fetch(path);
+        if (response.ok) {
+          text = await response.text();
+          break;
+        }
+      } catch (e) {}
+    }
+    
+    if (!text) return;
+    
     const links = [];
     const lines = text.split('\n');
     let currentLink = null;
@@ -33,15 +43,12 @@ async function loadCustomLinks() {
     if (currentLink && currentLink.url) links.push(currentLink);
     
     CONFIG.customLinks = links;
-    addCustomLinks(); // Re-run after loading
-  } catch (e) {
-    console.log('Could not load links.yml:', e);
-  }
+    addCustomLinks();
+  } catch (e) {}
 }
 
 // Run on load and after delay
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM loaded, running init...');
   init();
   loadCustomLinks();
   setTimeout(init, 300);
@@ -54,7 +61,6 @@ function init() {
   setupCollapsibleNav();
   buildNestedNavigation();
   addCustomLinks();
-  observeSidebarChanges();
   updateFooter();
   addVersionSelector();
   setupHeaderAnchors();
@@ -68,29 +74,38 @@ function init() {
 // ============================================
 
 function fixCopyPageButton() {
+  // Find the copy page button (has "Copy Page" text or copy icon)
   const copyButtons = document.querySelectorAll('button[onclick*="clipboard"]');
   
   copyButtons.forEach(btn => {
     if (btn.dataset.copyFixed) return;
     btn.dataset.copyFixed = 'true';
     
+    // Remove the broken onclick handler
     btn.removeAttribute('onclick');
     
+    // Add working click handler
     btn.addEventListener('click', async function(e) {
       e.preventDefault();
       
       try {
+        // Get the article content as text
         const article = document.querySelector('article');
         if (!article) {
           console.error('No article found to copy');
           return;
         }
         
+        // Get text content, preserving some structure
         const content = article.innerText || article.textContent;
+        
+        // Add footer with attribution
         const contentWithFooter = appendCopyFooter(content);
         
+        // Copy to clipboard
         await navigator.clipboard.writeText(contentWithFooter);
         
+        // Visual feedback
         const span = btn.querySelector('span');
         if (span) {
           span.textContent = 'Copied!';
@@ -110,8 +125,11 @@ function fixCopyPageButton() {
   });
 }
 
+/**
+ * Append attribution footer to copied content
+ */
 function appendCopyFooter(content) {
-  const currentUrl = window.location.href.split('?')[0];
+  const currentUrl = window.location.href.split('?')[0]; // Remove any existing query params
   const embedUrl = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'embed=true';
   const timestamp = new Date().toISOString().replace('T', ' ').split('.')[0] + ' UTC';
   
@@ -130,26 +148,32 @@ Iframe example:
   return content + footer;
 }
 
+/**
+ * Setup global copy handler - ensures it's only added once
+ */
 function setupGlobalCopyHandler() {
   if (window.copyHandlerSetup) return;
   window.copyHandlerSetup = true;
   
+  // Use capturing phase to ensure we catch the event
   document.addEventListener('copy', function(e) {
     console.log('Copy event triggered');
     const selection = window.getSelection().toString();
     console.log('Selection length:', selection.length);
     
+    // Only add footer if copying substantial content (more than 100 chars)
     if (selection && selection.length > 100) {
       e.preventDefault();
       const contentWithFooter = appendCopyFooter(selection);
       e.clipboardData.setData('text/plain', contentWithFooter);
       console.log('Copy intercepted, footer added');
     }
-  }, true);
+  }, true); // Use capture phase
   
   console.log('Global copy handler installed');
 }
 
+// Install copy handler immediately (don't wait for DOMContentLoaded)
 setupGlobalCopyHandler();
 
 // ============================================
@@ -157,6 +181,8 @@ setupGlobalCopyHandler();
 // ============================================
 
 function setupHeaderControls() {
+  // Disabled - was interfering with sidebar Home link
+  // The GitHub link is already in the header by default
   console.log('Header controls disabled to preserve Home link');
   return;
 }
@@ -171,35 +197,34 @@ function setupCollapsibleNav() {
   console.log('Setting up collapsible navigation for', groups.length, 'groups');
   
   groups.forEach((group, index) => {
-    // IMPORTANT: Use :scope > to only match DIRECT children, not nested labels
-    const label = group.querySelector(':scope > [data-slot="sidebar-group-label"]');
-    const content = group.querySelector(':scope > [data-slot="sidebar-group-content"]');
+    const label = group.querySelector('[data-slot="sidebar-group-label"]');
+    const content = group.querySelector('[data-slot="sidebar-group-content"]');
     
-    // If no direct label, this is the root group - keep it always visible
+    // If there's no label, this is the root group (Home, Contributors) - keep it expanded always
     if (!label) {
-      console.log(`Group ${index}: ROOT GROUP (no direct label), keeping expanded`);
+      console.log(`Group ${index}: ROOT GROUP (no label), keeping expanded`);
       if (content) {
         content.style.display = 'block';
         content.style.visibility = 'visible';
         content.style.opacity = '1';
         content.style.maxHeight = 'none';
-        content.style.pointerEvents = 'auto';
-        // Mark as non-collapsible
-        content.classList.add('root-content');
       }
       return;
     }
     
     if (!content) return;
     
+    // Already processed?
     if (label.dataset.collapsibleSetup === 'done') return;
     label.dataset.collapsibleSetup = 'done';
     
     const groupName = label.textContent.trim();
     
+    // Add classes for styling
     label.classList.add('nav-collapsible');
     content.classList.add('nav-children');
     
+    // Check if any link in this group is active
     const checkForActivePage = (element) => {
       const links = element.querySelectorAll('a[data-slot="sidebar-menu-button"]');
       for (const link of links) {
@@ -211,6 +236,8 @@ function setupCollapsibleNav() {
     };
     
     const containsCurrentPage = checkForActivePage(content);
+    
+    // Set initial state based on whether it contains current page
     const initiallyExpanded = containsCurrentPage;
     
     if (initiallyExpanded) {
@@ -229,6 +256,7 @@ function setupCollapsibleNav() {
       console.log(`Group ${index} "${groupName}": COLLAPSED`);
     }
     
+    // Click handler for toggle - works for ALL groups
     label.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -238,6 +266,7 @@ function setupCollapsibleNav() {
       console.log(`Toggling "${groupName}": currently ${isExpanded ? 'expanded' : 'collapsed'}`);
       
       if (isExpanded) {
+        // Collapse
         label.classList.remove('expanded');
         content.classList.add('collapsed');
         content.style.maxHeight = '0';
@@ -245,6 +274,7 @@ function setupCollapsibleNav() {
         content.style.pointerEvents = 'none';
         console.log(`  → Now COLLAPSED`);
       } else {
+        // Expand
         label.classList.add('expanded');
         content.classList.remove('collapsed');
         content.style.maxHeight = '2000px';
@@ -255,6 +285,7 @@ function setupCollapsibleNav() {
     });
   });
   
+  // Ensure root-level menu items stay visible
   const rootMenuItems = document.querySelectorAll('[data-slot="sidebar-menu"] > [data-slot="sidebar-menu-item"]');
   rootMenuItems.forEach(item => {
     item.style.display = 'block';
@@ -271,14 +302,14 @@ function setupCollapsibleNav() {
 
 function addCustomLinks() {
   if (!CONFIG.customLinks || CONFIG.customLinks.length === 0) return;
+  if (document.querySelector('.custom-links-section')) return;
   
+  // Find sidebar content area
   const sidebarContent = document.querySelector('[data-slot="sidebar-content"]');
+  
+  console.log('Sidebar content found:', !!sidebarContent);
+  
   if (!sidebarContent) return;
-  
-  // Check if links already exist in this sidebar
-  if (sidebarContent.querySelector('.custom-links-section')) return;
-  
-  console.log('Adding custom links to sidebar');
   
   const section = document.createElement('div');
   section.className = 'custom-links-section';
@@ -295,25 +326,6 @@ function addCustomLinks() {
   
   sidebarContent.appendChild(section);
   console.log('Custom links added');
-}
-
-// Watch for sidebar changes and re-add links if needed
-function observeSidebarChanges() {
-  const sidebar = document.querySelector('[data-slot="sidebar"]');
-  if (!sidebar) return;
-  
-  const observer = new MutationObserver((mutations) => {
-    // Check if custom links section was removed
-    if (!document.querySelector('.custom-links-section')) {
-      console.log('Custom links removed, re-adding...');
-      addCustomLinks();
-    }
-  });
-  
-  observer.observe(sidebar, { 
-    childList: true, 
-    subtree: true 
-  });
 }
 
 // ============================================
@@ -342,18 +354,23 @@ function setupHeaderAnchors() {
 // ============================================
 
 function updateFooter() {
+  // Hide the shadcn footer entirely
   const shadcnFooter = document.querySelector('footer');
   if (shadcnFooter) {
     shadcnFooter.style.display = 'none';
   }
   
+  // Check if we already added our footer
   if (document.querySelector('.md-footer')) return;
   
+  // Find the bottom navigation (prev/next links)
   const bottomNav = document.querySelector('.mx-auto.flex.flex-wrap.h-16');
   
+  // Create Material-style footer
   const footer = document.createElement('footer');
   footer.className = 'md-footer';
   
+  // Get prev/next info from existing links
   const prevLink = bottomNav?.querySelector('a:first-of-type');
   const nextLink = bottomNav?.querySelector('a:last-of-type');
   
@@ -398,15 +415,18 @@ function updateFooter() {
   footerHTML += '</nav>';
   footer.innerHTML = footerHTML;
   
+  // Hide the original bottom nav
   if (bottomNav) {
     bottomNav.style.display = 'none';
   }
   
+  // Insert footer before the shadcn footer or at end of main
   const main = document.querySelector('main');
   if (main) {
     main.appendChild(footer);
   }
   
+  // Add attribution
   if (!document.querySelector('.footer-attribution')) {
     const attribution = document.createElement('div');
     attribution.className = 'footer-attribution';
@@ -414,7 +434,7 @@ function updateFooter() {
       <p>
         Built by <a href="https://github.com/wolfiex">Daniel Ellis</a>
         for <a href="https://wcrp-cmip.org">WCRP-CMIP</a>
-        with a modified version of the <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn</a> theme.
+        using the <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn</a> theme.
       </p>
     `;
     document.body.appendChild(attribution);
@@ -428,72 +448,48 @@ function updateFooter() {
 function addVersionSelector() {
   if (document.querySelector('.version-selector')) return;
   
-  // Try multiple paths to find versions.json
-  const basePaths = [
-    '',                    // Root
-    '../',                 // One level up (if in version folder)
-    '../../',              // Two levels up
-    window.location.origin + '{{ url_prefix }}/',  // Absolute with prefix
-  ];
+  const baseUrl = typeof base_url !== 'undefined' 
+    ? base_url 
+    : window.location.pathname.split('/').slice(0, -2).join('/') + '/';
   
-  async function tryFetchVersions() {
-    for (const base of basePaths) {
-      try {
-        const response = await fetch(base + 'versions.json');
-        if (response.ok) {
-          const versions = await response.json();
-          if (versions?.length) return versions;
-        }
-      } catch (e) {}
-    }
-    return null;
-  }
-  
-  tryFetchVersions().then(versions => {
-    if (!versions?.length) {
-      console.log('No versions.json found - version selector hidden');
-      return;
-    }
-    
-    console.log('Found versions:', versions.map(v => v.version).join(', '));
+  fetch(baseUrl + '../versions.json')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(versions => {
+      if (!versions?.length) return;
 
-    const pathParts = window.location.pathname.split('/').filter(p => p);
-    const current = versions.find(v => 
-      pathParts.includes(v.version) || v.aliases?.some(a => pathParts.includes(a))
-    );
+      const pathParts = window.location.pathname.split('/').filter(p => p);
+      const current = versions.find(v => 
+        pathParts.includes(v.version) || v.aliases?.some(a => pathParts.includes(a))
+      );
 
-    const dropdown = document.createElement('div');
-    dropdown.className = 'version-selector';
-    dropdown.innerHTML = `
-      <select id="version-select" title="Documentation version">
-        ${versions.map(v => `
-          <option value="${v.version}" ${current?.version === v.version ? 'selected' : ''}>
-            ${v.aliases?.includes('latest') ? `${v.version} (latest)` : v.version}
-          </option>
-        `).join('')}
-      </select>
-    `;
+      const dropdown = document.createElement('div');
+      dropdown.className = 'version-selector';
+      dropdown.innerHTML = `
+        <select id="version-select">
+          ${versions.map(v => `
+            <option value="${v.version}" ${current?.version === v.version ? 'selected' : ''}>
+              ${v.aliases?.includes('latest') ? `${v.version} (latest)` : v.version}
+            </option>
+          `).join('')}
+        </select>
+      `;
 
-    const header = document.querySelector('header');
-    const target = header?.querySelector('.ml-auto') || header;
-    target?.insertBefore(dropdown, target.firstChild);
+      const header = document.querySelector('header');
+      const target = header?.querySelector('.ml-auto') || header;
+      target?.insertBefore(dropdown, target.firstChild);
 
-    dropdown.querySelector('select').addEventListener('change', e => {
-      const newVersion = e.target.value;
-      const path = window.location.pathname;
-      
-      if (current) {
-        // Replace current version in path
-        const pattern = new RegExp(`/(${current.version}|${current.aliases?.join('|') || ''})/`);
-        window.location.href = path.replace(pattern, `/${newVersion}/`);
-      } else {
-        // Navigate to new version root
-        window.location.href = `/${newVersion}/`;
-      }
-    });
-  });
+      dropdown.querySelector('select').addEventListener('change', e => {
+        const path = window.location.pathname;
+        const pattern = current ? `(${current.version}|${current.aliases?.join('|') || ''})` : '';
+        window.location.href = pattern 
+          ? path.replace(new RegExp(`/${pattern}/`), `/${e.target.value}/`)
+          : baseUrl + e.target.value + '/';
+      });
+    })
+    .catch(() => {});
 }
 
+// Export for debugging
 window.EMDCustom = { init, CONFIG };
 
 // ============================================
@@ -504,6 +500,7 @@ function setupTabbedContent() {
   const tabbedSets = document.querySelectorAll('.tabbed-set');
   
   tabbedSets.forEach(set => {
+    // Skip if already set up
     if (set.dataset.tabbedSetup) return;
     set.dataset.tabbedSetup = 'true';
     
@@ -511,9 +508,11 @@ function setupTabbedContent() {
     const inputs = set.querySelectorAll('input[type="radio"]');
     const blocks = set.querySelectorAll('.tabbed-content > .tabbed-block');
     
+    // Function to update visible tab
     const updateTabs = () => {
       const checkedIndex = Array.from(inputs).findIndex(input => input.checked);
       
+      // Update blocks
       blocks.forEach((block, index) => {
         if (index === checkedIndex) {
           block.style.display = 'block';
@@ -526,6 +525,7 @@ function setupTabbedContent() {
         }
       });
       
+      // Update labels
       labels.forEach((label, index) => {
         if (index === checkedIndex) {
           label.setAttribute('data-active', 'true');
@@ -535,12 +535,15 @@ function setupTabbedContent() {
       });
     };
     
+    // Initial display
     updateTabs();
     
+    // Add keyboard navigation and click handlers
     labels.forEach((label, index) => {
       label.setAttribute('tabindex', '0');
       label.setAttribute('role', 'tab');
       
+      // Click handler
       label.addEventListener('click', () => {
         if (inputs[index]) {
           inputs[index].checked = true;
@@ -548,6 +551,7 @@ function setupTabbedContent() {
         }
       });
       
+      // Keyboard handler
       label.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -557,6 +561,7 @@ function setupTabbedContent() {
           }
         }
         
+        // Arrow key navigation
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
           const direction = e.key === 'ArrowLeft' ? -1 : 1;
@@ -569,6 +574,7 @@ function setupTabbedContent() {
         }
       });
       
+      // Listen for radio button changes
       if (inputs[index]) {
         inputs[index].addEventListener('change', updateTabs);
       }
@@ -577,6 +583,7 @@ function setupTabbedContent() {
     console.log('Tabbed content initialized:', labels.length, 'tabs');
   });
 }
+
 
 // ============================================
 // BUILD NESTED NAVIGATION FROM SUMMARY.MD
@@ -592,7 +599,7 @@ async function buildNestedNavigation() {
   window.nestedNavBuilt = true;
   
   try {
-    const baseUrl = typeof base_url !== 'undefined' ? base_url : '/';
+    const baseUrl = typeof base_url !== 'undefined' ? base_url : '{{ url_prefix }}';
     const response = await fetch(baseUrl + 'SUMMARY.md');
     
     if (!response.ok) {
@@ -605,6 +612,7 @@ async function buildNestedNavigation() {
     
     console.log('Navigation tree parsed, processing groups...');
     
+    // Process each top-level group
     navTree.forEach(topItem => {
       if (topItem.type === 'group') {
         processGroupForNested(topItem, baseUrl);
@@ -683,6 +691,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
   li.className = 'nested-folder-item';
   li.style.margin = '2px 0';
   
+  // Folder header with arrow
   const header = document.createElement('div');
   header.className = 'nested-folder-toggle';
   header.innerHTML = `
@@ -701,6 +710,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
     transition: background 0.15s, color 0.15s;
   `;
   
+  // Nested items container
   const container = document.createElement('ul');
   container.className = 'nested-folder-items';
   container.style.cssText = `
@@ -715,6 +725,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
   
   let hasActive = false;
   
+  // Add child links
   folder.children.forEach(child => {
     if (child.type !== 'link') return;
     
@@ -734,6 +745,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
       transition: all 0.15s;
     `;
     
+    // Check if active
     const isActive = currentPath === link.href || currentPath.includes(link.href);
     if (isActive) {
       link.style.color = 'var(--{{ css_prefix }}-primary)';
@@ -755,6 +767,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
     container.appendChild(itemLi);
   });
   
+  // Auto-expand if contains active page
   if (hasActive) {
     header.setAttribute('data-expanded', 'true');
     header.querySelector('.arrow').style.transform = 'rotate(90deg)';
@@ -762,6 +775,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
     container.style.opacity = '1';
   }
   
+  // Toggle click handler
   header.addEventListener('click', () => {
     const expanded = header.getAttribute('data-expanded') === 'true';
     const arrow = header.querySelector('.arrow');
@@ -779,6 +793,7 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
     }
   });
   
+  // Hover effect
   header.addEventListener('mouseenter', () => {
     header.style.background = 'var(--{{ css_prefix }}-bg-secondary)';
     header.style.color = 'var(--{{ css_prefix }}-text)';
