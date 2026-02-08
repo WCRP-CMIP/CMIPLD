@@ -89,18 +89,22 @@ header {
 header a[href="/"],
 header a[href="./"],
 header [data-slot="logo"],
+header .size-8,
+header span.size-8,
 [data-slot="sidebar"] a[href="/"],
 [data-slot="sidebar"] a[href="./"],
 [data-slot="sidebar"] [data-slot="logo"] {
   color: var(--{{ css_prefix }}-primary) !important;
 }
 
-/* Logo SVGs inherit color */
+/* Logo SVGs inherit color and use stroke */
 header a[href="/"] svg,
 header a[href="./"] svg,
-header [data-slot="logo"] svg {
-  color: inherit;
-  fill: currentColor;
+header [data-slot="logo"] svg,
+header .size-8 svg,
+header span.size-8 svg {
+  color: var(--{{ css_prefix }}-primary) !important;
+  stroke: var(--{{ css_prefix }}-primary) !important;
 }
 
 /* Theme toggle and other header buttons should NOT be colored */
@@ -108,29 +112,41 @@ header button,
 header button svg {
   color: var(--{{ css_prefix }}-text) !important;
   fill: none !important;
+  stroke: currentColor !important;
 }
 
 .dark header a[href="/"],
 .dark header a[href="./"],
 .dark header [data-slot="logo"],
+.dark header .size-8,
+.dark header span.size-8,
 .dark [data-slot="sidebar"] a[href="/"],
 .dark [data-slot="sidebar"] a[href="./"],
 .dark [data-slot="sidebar"] [data-slot="logo"] {
   color: var(--{{ css_prefix }}-primary) !important;
 }
 
+.dark header .size-8 svg,
+.dark header span.size-8 svg {
+  color: var(--{{ css_prefix }}-primary) !important;
+  stroke: var(--{{ css_prefix }}-primary) !important;
+}
+
 .dark header button,
 .dark header button svg {
   color: var(--{{ css_prefix }}-text) !important;
   fill: none !important;
+  stroke: currentColor !important;
+}
 }
 
-header h1,
-header [data-slot="title"] {
-  font-family: "Noto Sans", var(--font-sans), system-ui;
+/* Header title styling */
+header h1 {
+  font-family: "Noto Sans", var(--font-sans), system-ui !important;
   font-weight: 700 !important;
   color: var(--{{ css_prefix }}-primary-dark) !important;
-  font-size: 1.1rem !important;
+  font-size: 1.5rem !important;
+  line-height: 1.4 !important;
 }
 
 /* GitHub repo link in title */

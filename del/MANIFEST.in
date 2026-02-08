@@ -1,5 +1,0 @@
-include README.md
-include cmipld/prefix_mappings.json
-recursive-include cmipld/scripts *
-recursive-exclude cmipld/scripts *.pyc
-recursive-exclude cmipld/scripts __pycache__

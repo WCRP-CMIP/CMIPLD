@@ -1,8 +1,0 @@
-requests
-pyld
-jmespath
-pydantic
-p_tqdm
-rich
-tqdm
-pyyaml
