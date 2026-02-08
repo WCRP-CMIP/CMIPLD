@@ -338,6 +338,17 @@ nav a {
   display: block !important;
 }
 
+/* Ensure all sidebar groups are always visible on all pages */
+[data-slot="sidebar-group"] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+[data-slot="sidebar-group-label"] {
+  display: flex !important;
+  visibility: visible !important;
+}
+
 /* ============================================
    CUSTOM LINKS SECTION
    ============================================ */
