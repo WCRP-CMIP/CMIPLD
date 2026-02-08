@@ -120,11 +120,6 @@ function setupHeaderControls() {
 function setupCollapsibleNav() {
   const groups = document.querySelectorAll('[data-slot="sidebar-group"]');
   
-  // First pass: remove all expanded classes to start closed
-  document.querySelectorAll('[data-slot="sidebar-group-label"]').forEach(label => {
-    label.classList.remove('expanded');
-  });
-  
   groups.forEach((group, index) => {
     const label = group.querySelector('[data-slot="sidebar-group-label"]');
     const content = group.querySelector('[data-slot="sidebar-group-content"]');
@@ -142,19 +137,38 @@ function setupCollapsibleNav() {
     
     if (!content) return;
     
-    // Already processed? Skip to avoid duplicate event handlers
-    if (label.dataset.collapsibleSetup === 'done') return;
-    label.dataset.collapsibleSetup = 'done';
-    
-    const groupName = label.textContent.trim();
-    
     // Add classes for styling
     label.classList.add('nav-collapsible');
     content.classList.add('nav-children');
     
-    // Check if any link in this group is active
-    // Default to CLOSED - never auto-expand
-    label.classList.remove('expanded');
+    // Check if any link in this group is active (current page)
+    // Also check by comparing current URL to link hrefs
+    const currentPath = window.location.pathname;
+    let hasActivePage = content.querySelector('a[data-active="true"]') !== null;
+    
+    // Fallback: check if current URL matches any link in this group
+    if (!hasActivePage) {
+      const links = content.querySelectorAll('a[href]');
+      for (const link of links) {
+        if (currentPath.includes(link.getAttribute('href').replace(/\/$/, '')) || 
+            link.getAttribute('href').includes(currentPath.replace(/\/$/, ''))) {
+          hasActivePage = true;
+          break;
+        }
+      }
+    }
+    
+    // On first run: set initial state
+    if (!label.dataset.collapsibleSetup) {
+      label.classList.remove('expanded');
+      if (hasActivePage) {
+        label.classList.add('expanded');
+      }
+    }
+    
+    // Only add click handler once
+    if (label.dataset.collapsibleSetup === 'done') return;
+    label.dataset.collapsibleSetup = 'done';
     
     // Click handler for toggle
     label.addEventListener('click', function(e) {
@@ -471,6 +485,7 @@ async function buildNestedNavigation() {
   window.nestedNavBuilt = true;
   
   try {
+    // MkDocs provides base_url as a relative path that works from any page
     const baseUrl = typeof base_url !== 'undefined' ? base_url : '{{ url_prefix }}';
     const response = await fetch(baseUrl + 'SUMMARY.md');
     
