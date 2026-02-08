@@ -54,6 +54,7 @@ function addFloatingExpandButton() {
     button.title = 'Toggle Fullscreen (F11)';
     button.setAttribute('aria-label', 'Toggle fullscreen');
     
+    // Inline styles to ensure visibility regardless of CSS loading
     Object.assign(button.style, {
         position: 'fixed',
         bottom: '80px',
@@ -84,6 +85,7 @@ function addFloatingExpandButton() {
         }
     });
     
+    // Hover effect
     button.addEventListener('mouseenter', () => {
         button.style.transform = 'scale(1.1)';
     });
@@ -102,20 +104,24 @@ function enterEmbedMode() {
     
     document.body.classList.add('embed-mode');
     
+    // Update URL
     const url = new URL(window.location);
     url.searchParams.set('embed', 'true');
     window.history.replaceState({}, '', url);
     
+    // Get the article element
     const article = document.querySelector('article');
     if (!article) {
         console.error('No article found');
         return;
     }
     
+    // Create fullscreen overlay with article content
     const overlay = document.createElement('div');
     overlay.id = 'embed-overlay';
     overlay.className = 'embed-overlay';
     
+    // Clone article content
     const articleClone = article.cloneNode(true);
     articleClone.style.cssText = `
         max-width: 100%;
@@ -127,18 +133,21 @@ function enterEmbedMode() {
     overlay.appendChild(articleClone);
     document.body.appendChild(overlay);
     
+    // Re-enhance tables in the cloned content
     const tables = overlay.querySelectorAll('table');
     tables.forEach((table, index) => {
         if (table.dataset.enhanced !== 'true') {
-            addTableControls(table, index + 1000);
+            addTableControls(table, index + 1000); // Offset index to avoid conflicts
             addTableSorting(table);
         }
     });
     
+    // Show table controls in overlay
     overlay.querySelectorAll('.table-controls').forEach(controls => {
         controls.style.display = 'flex';
     });
     
+    // Convert button to close button
     const btn = document.querySelector('.floating-expand-btn');
     if (btn) {
         btn.innerHTML = '×';
@@ -169,16 +178,19 @@ function exitEmbedMode() {
     
     document.body.classList.remove('embed-mode');
     
+    // Update URL
     const url = new URL(window.location);
     url.searchParams.delete('embed');
     url.searchParams.delete('fullscreen');
     window.history.replaceState({}, '', url);
     
+    // Remove overlay
     const overlay = document.getElementById('embed-overlay');
     if (overlay) {
         overlay.remove();
     }
     
+    // Restore button
     const btn = document.querySelector('.floating-expand-btn');
     if (btn) {
         btn.innerHTML = '⤢';
@@ -226,6 +238,7 @@ function addKeyboardShortcuts() {
  * Enhance all tables with sorting and filtering
  */
 function enhanceTables() {
+    // Target tables more broadly, including those in .table-wrapper
     const tables = document.querySelectorAll('article table, main table, .prose table, .typography table, .table-wrapper table');
     console.log(`Found ${tables.length} tables to enhance`);
     
@@ -240,6 +253,7 @@ function enhanceTables() {
  * Add search controls above a table
  */
 function addTableControls(table, index) {
+    // Skip if already has controls
     if (table.dataset.enhanced === 'true') return;
     table.dataset.enhanced = 'true';
     
@@ -247,6 +261,7 @@ function addTableControls(table, index) {
     controls.className = 'table-controls';
     controls.dataset.tableIndex = index;
     
+    // Search input
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search table...';
@@ -266,6 +281,7 @@ function addTableControls(table, index) {
     
     searchInput.addEventListener('input', () => filterTable(table, searchInput.value));
     
+    // Expand button for individual table
     const expandBtn = document.createElement('button');
     expandBtn.className = 'table-expand-btn';
     expandBtn.innerHTML = '⤢';
@@ -286,14 +302,16 @@ function addTableControls(table, index) {
     controls.appendChild(searchInput);
     controls.appendChild(expandBtn);
     
+    // Style controls container
     Object.assign(controls.style, {
-        display: 'none',
+        display: 'none', // Hidden by default, shown in embed mode
         alignItems: 'center',
         marginBottom: '10px',
         flexWrap: 'wrap',
         gap: '10px'
     });
     
+    // Insert before the table or its wrapper
     const insertTarget = table.closest('.table-wrapper') || table;
     insertTarget.parentNode.insertBefore(controls, insertTarget);
 }
@@ -302,6 +320,7 @@ function addTableControls(table, index) {
  * Wrap table for responsive scrolling
  */
 function wrapTableForResponsive(table) {
+    // Skip if already wrapped by theme or us
     if (table.parentElement.classList.contains('table-responsive') || 
         table.parentElement.classList.contains('table-wrapper')) {
         return;
@@ -328,6 +347,7 @@ function addTableSorting(table) {
         header.style.cursor = 'pointer';
         header.title = 'Click to sort';
         
+        // Add sort indicator
         const indicator = document.createElement('span');
         indicator.className = 'sort-indicator';
         indicator.style.marginLeft = '5px';
@@ -348,19 +368,23 @@ function sortTable(table, columnIndex, header) {
     
     if (rows.length === 0) return;
     
+    // Determine sort direction
     const currentSort = header.dataset.sort || 'none';
     const newSort = currentSort === 'asc' ? 'desc' : 'asc';
     
+    // Reset all headers
     table.querySelectorAll('th').forEach(th => {
         th.dataset.sort = 'none';
         const ind = th.querySelector('.sort-indicator');
         if (ind) ind.innerHTML = '↕';
     });
     
+    // Set current header
     header.dataset.sort = newSort;
     const indicator = header.querySelector('.sort-indicator');
     if (indicator) indicator.innerHTML = newSort === 'asc' ? '↑' : '↓';
     
+    // Sort rows
     rows.sort((a, b) => {
         const aCell = a.cells[columnIndex];
         const bCell = b.cells[columnIndex];
@@ -369,6 +393,7 @@ function sortTable(table, columnIndex, header) {
         const aText = aCell.textContent.trim();
         const bText = bCell.textContent.trim();
         
+        // Try numeric sort
         const aNum = parseFloat(aText.replace(/[^0-9.-]/g, ''));
         const bNum = parseFloat(bText.replace(/[^0-9.-]/g, ''));
         
@@ -376,11 +401,13 @@ function sortTable(table, columnIndex, header) {
             return newSort === 'asc' ? aNum - bNum : bNum - aNum;
         }
         
+        // Text sort
         return newSort === 'asc' ? 
             aText.localeCompare(bText) : 
             bText.localeCompare(aText);
     });
     
+    // Reorder
     rows.forEach(row => tbody.appendChild(row));
 }
 
@@ -393,7 +420,7 @@ function filterTable(table, term) {
     const searchTerm = term.toLowerCase();
     
     rows.forEach(row => {
-        if (row.querySelector('th')) return;
+        if (row.querySelector('th')) return; // Skip header rows
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     });
@@ -403,6 +430,7 @@ function filterTable(table, term) {
  * Expand individual table to fullscreen
  */
 function expandTable(table) {
+    // Create overlay
     const overlay = document.createElement('div');
     overlay.className = 'table-fullscreen-overlay';
     Object.assign(overlay.style, {
@@ -417,6 +445,7 @@ function expandTable(table) {
         padding: '10px'
     });
     
+    // Close button
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '×';
     closeBtn.title = 'Close (ESC)';
@@ -436,6 +465,7 @@ function expandTable(table) {
         zIndex: '10001'
     });
     
+    // Search for expanded table
     const searchContainer = document.createElement('div');
     Object.assign(searchContainer.style, {
         marginBottom: '10px',
@@ -464,6 +494,7 @@ function expandTable(table) {
     
     searchContainer.appendChild(searchInput);
     
+    // Clone table and set full width
     const tableClone = table.cloneNode(true);
     Object.assign(tableClone.style, {
         width: '100%',
@@ -471,12 +502,17 @@ function expandTable(table) {
         tableLayout: 'auto'
     });
     
+    // Wire up search
     searchInput.addEventListener('input', () => filterTable(tableClone, searchInput.value));
     
+    // Re-wire sorting on the cloned table (don't add new indicators, just event listeners)
     const headers = tableClone.querySelectorAll('th');
     headers.forEach((header, index) => {
+        // Remove existing click handlers by cloning
         const newHeader = header.cloneNode(true);
         header.parentNode.replaceChild(newHeader, header);
+        
+        // Add click handler for sorting
         newHeader.addEventListener('click', () => sortTable(tableClone, index, newHeader));
     });
     
@@ -485,8 +521,10 @@ function expandTable(table) {
     overlay.appendChild(tableClone);
     document.body.appendChild(overlay);
     
+    // Focus search
     searchInput.focus();
     
+    // Close handlers
     const closeOverlay = () => {
         overlay.remove();
         document.removeEventListener('keydown', escHandler);
@@ -513,10 +551,13 @@ function updateTableControlsVisibility(show) {
  * Setup table footer controls (search and expand buttons)
  */
 function setupTableFooterControls() {
+    // Find all table footers and wire up their controls
     document.querySelectorAll('.table-footer').forEach(footer => {
+        // Find the preceding table-wrapper sibling
         let sibling = footer.previousElementSibling;
         let table = null;
         
+        // Walk back to find the table
         while (sibling && !table) {
             if (sibling.classList.contains('table-wrapper')) {
                 table = sibling.querySelector('table');
@@ -554,6 +595,7 @@ function wireUpFooterControls(footer, table) {
     }
 }
 
+// Export for external use
 window.embedUtils = {
     enterEmbedMode,
     exitEmbedMode,
