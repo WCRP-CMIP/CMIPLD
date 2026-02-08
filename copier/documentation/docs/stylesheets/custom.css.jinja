@@ -86,6 +86,12 @@ header a[href*="github.com"][target="_blank"]:not(.header-repo) {
   display: none !important;
 }
 
+/* Hide Copy Page button */
+button[onclick*="clipboard"],
+button:has(.tabler-icon-copy) {
+  display: none !important;
+}
+
 /* ============================================
    HEADER
    ============================================ */
@@ -95,9 +101,6 @@ header {
   border-bottom: 1px solid var(--{{ css_prefix }}-border) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   position: relative;
-  height: 55px !important;
-  min-height: 55px !important;
-  max-height: 55px !important;
 }
 
 /* Logo and home link SVGs */
@@ -112,18 +115,24 @@ header [data-slot="logo"] svg,
   color: var(--{{ css_prefix }}-primary) !important;
 }
 
-/* Header buttons - neutral color */
+/* Header SVGs and icons - primary stroke */
+header svg {
+  stroke: var(--{{ css_prefix }}-primary) !important;
+  color: var(--{{ css_prefix }}-primary) !important;
+}
+
+/* Header buttons */
 header button svg {
   fill: none !important;
-  stroke: currentColor !important;
+  stroke: var(--{{ css_prefix }}-primary) !important;
 }
 
 header h1,
 header [data-slot="title"] {
   font-family: "Noto Sans", var(--font-sans), system-ui;
   font-weight: 700 !important;
-  color: var(--{{ css_prefix }}-text) !important;
-  font-size: 1.1rem !important;
+  color: var(--{{ css_prefix }}-primary-dark) !important;
+  font-size: 0.95rem !important;
 }
 
 /* GitHub repo link in title */
@@ -207,7 +216,7 @@ button[data-slot="dialog-trigger"]:focus-within {
   stroke: white;
 }
 
-/* Sidebar menu items - allow text to wrap and expand height */
+/* Sidebar menu items - allow text to wrap and center vertically */
 [data-slot="sidebar-menu-button"],
 [data-slot="sidebar-menu"] a,
 .sidebar-menu-button,
@@ -219,7 +228,14 @@ nav a {
   min-height: 1.75rem;
   line-height: 1.3 !important;
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
+}
+
+/* Items inside groups - smaller text */
+[data-slot="sidebar-group-content"] a,
+.nav-children a {
+  margin: 0 !important;
+  font-size: 0.8rem !important;
 }
 
 /* Active sidebar item text color */
@@ -284,33 +300,32 @@ nav a {
 }
 
 .nav-collapsible.expanded::before,
-[data-slot="sidebar-group-label"].nav-collapsible.expanded::before {
+[data-slot="sidebar-group-label"].expanded::before {
   transform: rotate(90deg);
 }
 
-/* Collapsible children - default to collapsed until JS adds expanded class */
-.nav-children,
-[data-slot="sidebar-group-content"].nav-children {
+/* Default: content after a label is COLLAPSED */
+[data-slot="sidebar-group-label"] + [data-slot="sidebar-group-content"] {
   overflow: hidden;
-  transition: max-height 0.3s ease-out, opacity 0.2s ease;
-  position: relative;
-  z-index: 1;
-}
-
-/* Collapsed state - explicit */
-.nav-children.collapsed,
-[data-slot="sidebar-group-content"].nav-children.collapsed {
   max-height: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease;
 }
 
-/* Expanded state - only when NOT collapsed */
-.nav-collapsible.expanded + .nav-children:not(.collapsed),
-.nav-collapsible.expanded + [data-slot="sidebar-group-content"].nav-children:not(.collapsed) {
+/* Expanded: when label has .expanded class */
+[data-slot="sidebar-group-label"].expanded + [data-slot="sidebar-group-content"] {
   max-height: 2000px !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* Root groups (no label) - always visible */
+[data-slot="sidebar-group"]:not(:has([data-slot="sidebar-group-label"])) [data-slot="sidebar-group-content"] {
+  max-height: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  display: block !important;
 }
 
 /* ============================================
@@ -806,16 +821,21 @@ body.embed-mode [view-transition-name="toc"] {
 }
 
 body.embed-mode main {
-  max-width: 1600px !important;
+  max-width: 100% !important;
   width: 100% !important;
-  margin: 0 auto !important;
-  padding: 1.5rem 2rem !important;
+  margin: 0 !important;
+  padding: 15px !important;
 }
 
 body.embed-mode article {
-  max-width: 1400px !important;
+  max-width: 100% !important;
   width: 100% !important;
-  margin: 0 auto !important;
+  margin: 5px !important;
+  padding: 0 !important;
+}
+
+body.embed-mode .typography {
+  max-width: 100% !important;
   padding: 0 !important;
 }
 
