@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function init() {
-  console.log('Init running...');
   setupHeaderControls();
   setupCollapsibleNav();
   buildNestedNavigation();
@@ -64,76 +63,19 @@ function init() {
   updateFooter();
   addVersionSelector();
   setupHeaderAnchors();
-  fixCopyPageButton();
-  setupGlobalCopyHandler();
   setupTabbedContent();
 }
 
 // ============================================
-// FIX COPY PAGE BUTTON
+// COPY HANDLER (intercepts copy events)
 // ============================================
 
-function fixCopyPageButton() {
-  // Find the copy page button (has "Copy Page" text or copy icon)
-  const copyButtons = document.querySelectorAll('button[onclick*="clipboard"]');
-  
-  copyButtons.forEach(btn => {
-    if (btn.dataset.copyFixed) return;
-    btn.dataset.copyFixed = 'true';
-    
-    // Remove the broken onclick handler
-    btn.removeAttribute('onclick');
-    
-    // Add working click handler
-    btn.addEventListener('click', async function(e) {
-      e.preventDefault();
-      
-      try {
-        // Get the article content as text
-        const article = document.querySelector('article');
-        if (!article) {
-          console.error('No article found to copy');
-          return;
-        }
-        
-        // Get text content, preserving some structure
-        const content = article.innerText || article.textContent;
-        
-        // Add footer with attribution
-        const contentWithFooter = appendCopyFooter(content);
-        
-        // Copy to clipboard
-        await navigator.clipboard.writeText(contentWithFooter);
-        
-        // Visual feedback
-        const span = btn.querySelector('span');
-        if (span) {
-          span.textContent = 'Copied!';
-        }
-        
-        setTimeout(() => {
-          if (span) {
-            span.textContent = 'Copy Page';
-          }
-        }, 2000);
-        
-        console.log('Page content copied to clipboard');
-      } catch (err) {
-        console.error('Failed to copy:', err);
-      }
-    });
-  });
-}
-
-/**
- * Append attribution footer to copied content
- */
 function appendCopyFooter(content) {
-  const currentUrl = window.location.href.split('?')[0]; // Remove any existing query params
+  const currentUrl = window.location.href.split('?')[0];
   const embedUrl = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'embed=true';
   const timestamp = new Date().toISOString().replace('T', ' ').split('.')[0] + ' UTC';
   
-  const footer = `
+  return content + `
 
 ---
 This content was copied from ${currentUrl} at ${timestamp}.
@@ -144,36 +86,22 @@ If you wish to embed a live version of this page please use: ${embedUrl}
 Iframe example:
 <iframe src="${embedUrl}" width="100%" height="600" frameborder="0"></iframe>
 `;
-  
-  return content + footer;
 }
 
-/**
- * Setup global copy handler - ensures it's only added once
- */
 function setupGlobalCopyHandler() {
   if (window.copyHandlerSetup) return;
   window.copyHandlerSetup = true;
   
-  // Use capturing phase to ensure we catch the event
   document.addEventListener('copy', function(e) {
-    console.log('Copy event triggered');
     const selection = window.getSelection().toString();
-    console.log('Selection length:', selection.length);
-    
-    // Only add footer if copying substantial content (more than 100 chars)
     if (selection && selection.length > 100) {
       e.preventDefault();
-      const contentWithFooter = appendCopyFooter(selection);
-      e.clipboardData.setData('text/plain', contentWithFooter);
-      console.log('Copy intercepted, footer added');
+      e.clipboardData.setData('text/plain', appendCopyFooter(selection));
     }
-  }, true); // Use capture phase
-  
-  console.log('Global copy handler installed');
+  }, true);
 }
 
-// Install copy handler immediately (don't wait for DOMContentLoaded)
+// Install copy handler immediately
 setupGlobalCopyHandler();
 
 // ============================================
@@ -182,8 +110,6 @@ setupGlobalCopyHandler();
 
 function setupHeaderControls() {
   // Disabled - was interfering with sidebar Home link
-  // The GitHub link is already in the header by default
-  console.log('Header controls disabled to preserve Home link');
   return;
 }
 
@@ -194,7 +120,10 @@ function setupHeaderControls() {
 function setupCollapsibleNav() {
   const groups = document.querySelectorAll('[data-slot="sidebar-group"]');
   
-  console.log('Setting up collapsible navigation for', groups.length, 'groups');
+  // First pass: remove all expanded classes to start closed
+  document.querySelectorAll('[data-slot="sidebar-group-label"]').forEach(label => {
+    label.classList.remove('expanded');
+  });
   
   groups.forEach((group, index) => {
     const label = group.querySelector('[data-slot="sidebar-group-label"]');
@@ -202,7 +131,6 @@ function setupCollapsibleNav() {
     
     // If there's no label, this is the root group (Home, Contributors) - keep it expanded always
     if (!label) {
-      console.log(`Group ${index}: ROOT GROUP (no label), keeping expanded`);
       if (content) {
         content.style.display = 'block';
         content.style.visibility = 'visible';
@@ -214,7 +142,7 @@ function setupCollapsibleNav() {
     
     if (!content) return;
     
-    // Already processed?
+    // Already processed? Skip to avoid duplicate event handlers
     if (label.dataset.collapsibleSetup === 'done') return;
     label.dataset.collapsibleSetup = 'done';
     
@@ -225,63 +153,14 @@ function setupCollapsibleNav() {
     content.classList.add('nav-children');
     
     // Check if any link in this group is active
-    const checkForActivePage = (element) => {
-      const links = element.querySelectorAll('a[data-slot="sidebar-menu-button"]');
-      for (const link of links) {
-        if (link.getAttribute('data-active') === 'true') {
-          return true;
-        }
-      }
-      return false;
-    };
+    // Default to CLOSED - never auto-expand
+    label.classList.remove('expanded');
     
-    const containsCurrentPage = checkForActivePage(content);
-    
-    // Set initial state based on whether it contains current page
-    const initiallyExpanded = containsCurrentPage;
-    
-    if (initiallyExpanded) {
-      label.classList.add('expanded');
-      content.classList.remove('collapsed');
-      content.style.maxHeight = '2000px';
-      content.style.opacity = '1';
-      content.style.pointerEvents = 'auto';
-      console.log(`Group ${index} "${groupName}": EXPANDED (contains active page)`);
-    } else {
-      label.classList.remove('expanded');
-      content.classList.add('collapsed');
-      content.style.maxHeight = '0';
-      content.style.opacity = '0';
-      content.style.pointerEvents = 'none';
-      console.log(`Group ${index} "${groupName}": COLLAPSED`);
-    }
-    
-    // Click handler for toggle - works for ALL groups
+    // Click handler for toggle
     label.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      
-      const isExpanded = label.classList.contains('expanded');
-      
-      console.log(`Toggling "${groupName}": currently ${isExpanded ? 'expanded' : 'collapsed'}`);
-      
-      if (isExpanded) {
-        // Collapse
-        label.classList.remove('expanded');
-        content.classList.add('collapsed');
-        content.style.maxHeight = '0';
-        content.style.opacity = '0';
-        content.style.pointerEvents = 'none';
-        console.log(`  → Now COLLAPSED`);
-      } else {
-        // Expand
-        label.classList.add('expanded');
-        content.classList.remove('collapsed');
-        content.style.maxHeight = '2000px';
-        content.style.opacity = '1';
-        content.style.pointerEvents = 'auto';
-        console.log(`  → Now EXPANDED`);
-      }
+      label.classList.toggle('expanded');
     });
   });
   
@@ -292,8 +171,6 @@ function setupCollapsibleNav() {
     item.style.visibility = 'visible';
     item.style.opacity = '1';
   });
-  
-  console.log('Collapsible nav setup complete');
 }
 
 // ============================================
@@ -307,7 +184,6 @@ function addCustomLinks() {
   // Find sidebar content area
   const sidebarContent = document.querySelector('[data-slot="sidebar-content"]');
   
-  console.log('Sidebar content found:', !!sidebarContent);
   
   if (!sidebarContent) return;
   
@@ -325,7 +201,6 @@ function addCustomLinks() {
   `;
   
   sidebarContent.appendChild(section);
-  console.log('Custom links added');
 }
 
 // ============================================
@@ -580,7 +455,6 @@ function setupTabbedContent() {
       }
     });
     
-    console.log('Tabbed content initialized:', labels.length, 'tabs');
   });
 }
 
@@ -590,10 +464,8 @@ function setupTabbedContent() {
 // ============================================
 
 async function buildNestedNavigation() {
-  console.log('=== BUILDING NESTED NAVIGATION ===');
   
   if (window.nestedNavBuilt) {
-    console.log('Already built, skipping');
     return;
   }
   window.nestedNavBuilt = true;
@@ -603,14 +475,12 @@ async function buildNestedNavigation() {
     const response = await fetch(baseUrl + 'SUMMARY.md');
     
     if (!response.ok) {
-      console.log('Could not fetch SUMMARY.md');
       return;
     }
     
     const summaryText = await response.text();
     const navTree = parseSummary(summaryText);
     
-    console.log('Navigation tree parsed, processing groups...');
     
     // Process each top-level group
     navTree.forEach(topItem => {
@@ -619,7 +489,6 @@ async function buildNestedNavigation() {
       }
     });
     
-    console.log('=== NESTED NAVIGATION COMPLETE ===');
   } catch (err) {
     console.error('Error building nested nav:', err);
   }
@@ -677,7 +546,6 @@ function processGroupForNested(group, baseUrl) {
   
   const nestedFolders = group.children.filter(c => c.type === 'group');
   
-  console.log(`Group "${group.title}" has ${nestedFolders.length} nested folders`);
   
   nestedFolders.forEach(folder => {
     createNestedFolder(menu, folder, baseUrl);
@@ -808,5 +676,4 @@ function createNestedFolder(parentMenu, folder, baseUrl) {
   li.appendChild(container);
   parentMenu.appendChild(li);
   
-  console.log(`  Created nested folder "${folder.title}" with ${folder.children.length} items`);
 }
