@@ -34,7 +34,7 @@ jobs:
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: {{ '${{ matrix.branch }}' }}
+          ref: {% raw %}${{ matrix.branch }}{% endraw %}
           fetch-depth: 0
       
       - name: Fetch main branch
