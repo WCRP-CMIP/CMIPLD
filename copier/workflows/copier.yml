@@ -4,6 +4,7 @@
 _templates_suffix: .jinja
 _min_copier_version: "9.0.0"
 _answers_file: ".copier-answers-workflows.yml"
+_conflict: "overwrite"  # Automatically overwrite conflicts
 
 # ============================================
 # FILE HANDLING
