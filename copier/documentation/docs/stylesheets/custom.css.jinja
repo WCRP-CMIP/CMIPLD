@@ -196,6 +196,18 @@ button[data-slot="dialog-trigger"]:focus-within {
    SIDEBAR NAVIGATION
    ============================================ */
 
+/* Sidebar container - full height */
+[data-slot="sidebar"] {
+  min-height: 100vh !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+[data-slot="sidebar"] > * {
+  flex-shrink: 0;
+}
+
 /* Sidebar icons and SVGs */
 [data-slot="sidebar"] svg,
 [data-slot="sidebar-menu"] svg,
