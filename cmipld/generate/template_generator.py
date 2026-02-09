@@ -235,9 +235,9 @@ def build_description_with_guidance(base_description, field_id, field_type, conf
     
     # For other fields, build the description with collapsible section
     if base_description:
-        description = f"{base_description}\n\n<details>\n<summary>{dropdown_title}</summary>\n\n{guidance_content}\n\n</details>"
+        description = f"{base_description}\n\n<details markdown=\"1\">\n<summary>{dropdown_title}</summary>\n\n{guidance_content}\n\n</details>"
     else:
-        description = f"<details>\n<summary>{dropdown_title}</summary>\n\n{guidance_content}\n\n</details>"
+        description = f"<details markdown=\"1\">\n<summary>{dropdown_title}</summary>\n\n{guidance_content}\n\n</details>"
     
     return description
 

@@ -1,0 +1,188 @@
+# CMIP Workflows Copier Template
+# Complete GitHub Actions workflow setup for CMIP repositories
+
+_templates_suffix: .jinja
+_min_copier_version: "9.0.0"
+
+# ============================================
+# FILE HANDLING
+# ============================================
+
+# Never overwrite these user files
+_skip_if_exists:
+  - ".git*"
+  - "README.md"
+  - ".github/prepublish/*.sh"  # Custom prepublish scripts
+  - ".github/scripts/custom_*.py"  # Custom scripts
+  - ".copier-answers.yml"  # Don't overwrite main copier answers
+  - ".copier-answers-documentation.yml"  # Don't overwrite docs template answers
+  - ".copier-answers-workflows.yml"  # Don't create answers file
+
+# No files to preserve (workflows don't need reconfiguration)
+_preserve_files: []
+
+# Exclude from template
+_exclude:
+  - "*.pyc"
+  - "__pycache__/**"
+  - ".DS_Store"
+  - "*.tmp"
+  - "*.bak"
+  - "copier.yml"
+  - "README.md"
+  - "QUICKSTART.md"
+  - ".copier-answers-workflows.yml.jinja"  # Don't generate answers file
+  - "README.md"
+
+# ============================================
+# TEMPLATE METADATA
+# ============================================
+
+_metadata:
+  name: "CMIP Workflows"
+  description: "Complete GitHub Actions workflow setup for CMIP vocabulary repositories"
+  version: "2.0.0"
+  author: "CMIP-IPO"
+
+# ============================================
+# USER QUESTIONS
+# ============================================
+
+# Repository Information
+repo_name:
+  type: str
+  help: "Repository name (e.g., 'Essential-Model-Documentation')"
+  validator: "{% if not repo_name %}Required{% endif %}"
+
+repo_owner:
+  type: str
+  help: "GitHub organization or username"
+  default: "WCRP-CMIP"
+
+repo_type:
+  type: str
+  help: "Type of repository"
+  default: "vocabulary"
+  choices:
+    - "vocabulary"
+    - "documentation"
+    - "mixed"
+
+# Branch Configuration
+has_src_data_branch:
+  type: bool
+  help: "Does this repo use a src-data branch?"
+  default: true
+  when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
+
+has_docs_branch:
+  type: bool
+  help: "Does this repo have a docs branch for documentation?"
+  default: true
+
+# Workflow Features
+enable_graph_generation:
+  type: bool
+  help: "Enable JSON-LD graph generation (ld2graph)"
+  default: true
+  when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
+
+enable_prepublish_scripts:
+  type: bool
+  help: "Enable prepublish scripts (copy JSON, contexts, etc.)"
+  default: true
+  when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
+
+enable_issue_templates:
+  type: bool
+  help: "Enable automatic issue template generation"
+  default: true
+
+enable_summaries:
+  type: bool
+  help: "Enable content summary generation"
+  default: false
+  when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
+
+# Python Script Options
+use_python_graphs:
+  type: bool
+  help: "Use Python script for graph generation instead of ld2graph command"
+  default: false
+  when: "{{ enable_graph_generation }}"
+
+# CI/CD Schedule
+ci_schedule:
+  type: str
+  help: "Cron schedule for CI checks (e.g., '0 0 * * 6' for weekly)"
+  default: "0 0 * * 6"
+
+stale_days:
+  type: int
+  help: "Days before marking issues as stale"
+  default: 60
+
+# GitHub Pages
+enable_github_pages:
+  type: bool
+  help: "Deploy to GitHub Pages"
+  default: true
+
+pages_branch:
+  type: str
+  help: "Branch to deploy to Pages from"
+  default: "production"
+  when: "{{ enable_github_pages }}"
+
+# Documentation  
+has_mkdocs:
+  type: bool
+  help: "Use MkDocs for documentation"
+  default: false
+
+mkdocs_dir:
+  type: str
+  help: "Directory containing mkdocs.yml (relative to repo root)"
+  default: "docs"
+  when: "{{ has_mkdocs }}"
+
+# ============================================
+# DERIVED VALUES (computed, not asked)
+# ============================================
+
+repo_url:
+  type: str
+  default: "https://github.com/{{ repo_owner }}/{{ repo_name }}"
+  when: false
+
+pages_url:
+  type: str
+  default: "https://{{ repo_owner | lower }}.github.io/{{ repo_name }}/"
+  when: false
+
+# Workflow selections (computed)
+needs_src_data_workflow:
+  type: bool
+  default: "{{ repo_type in ['vocabulary', 'mixed'] and has_src_data_branch }}"
+  when: false
+
+needs_docs_workflow:
+  type: bool
+  default: "{{ has_docs_branch }}"
+  when: false
+
+# ============================================
+# WORKFLOW CONFIGURATION
+# ============================================
+
+# Sync folders (workflows, prepublish scripts)
+sync_folders:
+  type: str
+  default: "workflows{% if enable_prepublish_scripts %} prepublish{% endif %}"
+  when: false
+
+# Target branches for sync
+sync_branches:
+  type: str
+  default: "{% if has_src_data_branch %}src-data{% endif %}{% if has_docs_branch %}{% if has_src_data_branch %} {% endif %}docs{% endif %}"
+  when: false

@@ -334,7 +334,7 @@ def process_category(category, repo_url, repo_name):
     urlgroup = "\n".join(sorted(urls))
         
     entry = f'''
-<details name="{category}">
+<details markdown="1" name="{category}">
 <summary>{display_name} ({len(urls)} entries)</summary>
 
 {urlgroup}

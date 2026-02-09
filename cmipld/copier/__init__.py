@@ -22,7 +22,11 @@ REPO_URL = "https://github.com/WCRP-CMIP/CMIPLD.git"
 LOCAL_TEMPLATE_PATH = None  # Set via --local flag
 TEMPLATES = {
     "documentation": "MkDocs documentation site with shadcn theme",
+    "workflows": "Complete GitHub Actions workflow setup for CMIP repositories",
 }
+
+# Templates that don't use answers files (can't be updated, just reinstalled)
+STATELESS_TEMPLATES = {"workflows"}
 
 
 def run_command(cmd: list, check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
@@ -140,10 +144,22 @@ def install_template(template: str, destination: str = "."):
         cmd.extend(["--data", f"description={info['description']}"])
     
     print(f"Installing {template} template...")
+    if template in STATELESS_TEMPLATES:
+        print(f"Note: The {template} template doesn't use an answers file.")
+        print("      Re-run this command to get the latest version.")
     run_command(cmd, check=False)
     
-    print("\nTemplate installed successfully!")
-    print("Run 'mkdocs serve' from src/mkdocs to preview.")
+    print("\n✅ Template installed successfully!")
+    if template == "workflows":
+        print("🚀 You can now:")
+        print("   - Push to src-data branch to trigger src-data-change workflow")
+        print("   - Push to docs branch to trigger docs-change workflow")
+        print("   - Go to Actions tab to manually run any workflow")
+        print("\n💡 To update: Just run 'cmipcopier workflows' again (no answers file needed)")
+    elif template == "documentation":
+        print("📝 Answers saved to: .copier-answers-documentation.yml")
+        print("🚀 Run 'mkdocs serve' from src/mkdocs to preview.")
+        print("\n💡 To update: Run 'cmipcopier documentation update'")
 
 
 def update_template(template: str, destination: str = "."):
@@ -152,15 +168,30 @@ def update_template(template: str, destination: str = "."):
         print(f"Error: Unknown template '{template}'")
         sys.exit(1)
     
+    # Check if this is a stateless template
+    if template in STATELESS_TEMPLATES:
+        print(f"The '{template}' template doesn't use an answers file.")
+        print(f"To get the latest version, just reinstall:")
+        print(f"  cmipcopier {template}")
+        print("\nThis will update the workflow files to the latest version.")
+        sys.exit(0)
+    
     if not shutil.which("copier"):
         print("Error: copier not found. Install with: pip install copier")
         sys.exit(1)
     
-    answers_file = os.path.join(destination, ".copier-answers.yml")
+    # Each template has its own answers file
+    answers_file_map = {
+        "documentation": ".copier-answers-documentation.yml",
+        "workflows": ".copier-answers-workflows.yml"
+    }
+    
+    answers_file = os.path.join(destination, answers_file_map.get(template, ".copier-answers.yml"))
+    
     if not os.path.exists(answers_file):
-        print(f"Error: No .copier-answers.yml found in {destination}")
-        print("This doesn't appear to be a copier-managed project.")
-        print("Use 'cmipcopier documentation' to install first.")
+        print(f"Error: No {os.path.basename(answers_file)} found in {destination}")
+        print(f"This doesn't appear to have the {template} template installed.")
+        print(f"Use 'cmipcopier {template}' to install first.")
         sys.exit(1)
     
     # Clone template repo
@@ -183,7 +214,7 @@ def update_template(template: str, destination: str = "."):
     
     run_command(cmd, check=False)
     
-    print("\nTemplate updated successfully!")
+    print("\n✅ Template updated successfully!")
 
 
 def main():
