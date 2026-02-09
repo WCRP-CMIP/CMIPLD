@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-CMIPLD Copier CLI - Install and update documentation templates.
+CMIPLD Copier CLI - Install and update templates.
 
 Usage:
-    cmipcopier documentation          # Install documentation template
-    cmipcopier documentation update   # Update existing project
     cmipcopier list                   # List available templates
+    cmipcopier documentation          # Install documentation template
+    cmipcopier documentation update   # Update existing documentation
+    cmipcopier workflows              # Install workflows template
+    cmipcopier workflows update       # Update existing workflows
 """
 
 import argparse
@@ -14,7 +16,6 @@ import sys
 import os
 import re
 import shutil
-import tempfile
 from pathlib import Path
 
 
@@ -67,7 +68,6 @@ def get_repo_info() -> dict:
         result = run_command(["git", "remote", "get-url", "origin"], capture=True, check=False)
         if result.returncode == 0:
             url = result.stdout.strip()
-            # Parse GitHub URL
             match = re.search(r'github\.com[:/]([^/]+)/([^/.]+)', url)
             if match:
                 info["repo_owner"] = match.group(1)
@@ -82,14 +82,12 @@ def clone_template() -> str:
     """Clone the CMIPLD repo to a temp directory, return path."""
     global LOCAL_TEMPLATE_PATH
     
-    # Use local path if specified
     if LOCAL_TEMPLATE_PATH:
         print(f"Using local template: {LOCAL_TEMPLATE_PATH}")
         return LOCAL_TEMPLATE_PATH
     
     tmp_dir = "/tmp/cmipld-template"
     
-    # Remove existing
     if os.path.exists(tmp_dir):
         shutil.rmtree(tmp_dir)
     
@@ -126,16 +124,34 @@ def install_template(template: str, destination: str = "."):
         print(f"Error: Template path not found: {template_path}")
         sys.exit(1)
     
+    # Check for existing answers file
+    answers_file_map = {
+        "documentation": ".copier-answers-documentation.yml",
+        "workflows": ".copier-answers-workflows.yml"
+    }
+    answers_file = os.path.join(destination, answers_file_map.get(template, ".copier-answers.yml"))
+    
     # Get repo info
     info = get_repo_info()
     print(f"Detected: {info['repo_owner']}/{info['repo_name']}")
     
     # Build copier command
     cmd = [
-        "copier", "copy", template_path, destination,
+        "copier", "copy",
+        "--conflict", "overwrite",  # Overwrite on conflicts
+        template_path, destination,
         "--data", f"repo_owner={info['repo_owner']}",
         "--data", f"repo_name={info['repo_name']}",
     ]
+    
+    # If answers file exists, use it for defaults (non-interactive)
+    if os.path.exists(answers_file):
+        print(f"Found existing configuration: {os.path.basename(answers_file)}")
+        print("Using saved answers (non-interactive mode)")
+        cmd.extend(["--defaults", "--answers-file", answers_file])
+    else:
+        print(f"No existing configuration found")
+        print("Interactive mode: please answer questions")
     
     if info["description"]:
         cmd.extend(["--data", f"description={info['description']}"])
@@ -145,16 +161,16 @@ def install_template(template: str, destination: str = "."):
     
     print("\n✅ Template installed successfully!")
     if template == "workflows":
-        print("📝 Configuration saved to: .copier-answers-workflows.yml")
+        print(f"📝 Configuration saved to: {os.path.basename(answers_file)}")
         print("🚀 You can now:")
         print("   - Push to src-data branch to trigger src-data-change workflow")
         print("   - Push to docs branch to trigger docs-change workflow")
         print("   - Go to Actions tab to manually run any workflow")
-        print("\n💡 To update: Run 'cmipcopier workflows update'")
+        print(f"\n💡 To update: Just run 'cmipcopier {template}' again (uses saved config)")
     elif template == "documentation":
-        print("📝 Configuration saved to: .copier-answers-documentation.yml")
+        print(f"📝 Configuration saved to: {os.path.basename(answers_file)}")
         print("🚀 Run 'mkdocs serve' from src/mkdocs to preview.")
-        print("\n💡 To update: Run 'cmipcopier documentation update'")
+        print(f"\n💡 To update: Run 'cmipcopier {template} update'")
 
 
 def update_template(template: str, destination: str = "."):
@@ -176,19 +192,23 @@ def update_template(template: str, destination: str = "."):
     answers_file = os.path.join(destination, answers_file_map.get(template, ".copier-answers.yml"))
     
     if not os.path.exists(answers_file):
-        print(f"Error: No {os.path.basename(answers_file)} found in {destination}")
-        print(f"This doesn't appear to have the {template} template installed.")
-        print(f"Use 'cmipcopier {template}' to install first.")
-        sys.exit(1)
+        print(f"Note: No {os.path.basename(answers_file)} found")
+        print(f"Running install instead of update...")
+        install_template(template, destination)
+        return
     
     # Clone template repo
     tmp_dir = clone_template()
     template_path = os.path.join(tmp_dir, "copier", template)
     
     print(f"Updating {template} template...")
+    print(f"Using configuration from: {os.path.basename(answers_file)}")
     
     cmd = [
-        "copier", "update",
+        "copier", "copy",
+        "--force",
+        "--conflict", "overwrite",  # Overwrite on conflicts
+        "--defaults",
         "--answers-file", answers_file,
         template_path, destination
     ]
@@ -202,21 +222,23 @@ def main():
     global LOCAL_TEMPLATE_PATH
     
     parser = argparse.ArgumentParser(
-        description="CMIPLD Copier CLI - Install and update documentation templates",
+        description="CMIPLD Copier CLI - Install and update templates",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  cmipcopier documentation          Install documentation template
-  cmipcopier documentation update   Update existing project
   cmipcopier list                   List available templates
-  cmipcopier documentation --local /path/to/CMIP-LD   Use local template
+  cmipcopier documentation          Install documentation template
+  cmipcopier documentation update   Update existing documentation
+  cmipcopier workflows              Install workflows template
+  cmipcopier workflows update       Update existing workflows
+  cmipcopier workflows --local /path/to/CMIP-LD   Use local template
         """
     )
     
     parser.add_argument(
         "template",
         nargs="?",
-        help="Template name (e.g., 'documentation') or 'list'"
+        help="Template name (e.g., 'documentation', 'workflows') or 'list'"
     )
     parser.add_argument(
         "action",
