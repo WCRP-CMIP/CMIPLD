@@ -3,6 +3,7 @@
 
 _templates_suffix: .jinja
 _min_copier_version: "9.0.0"
+_answers_file: ".copier-answers-workflows.yml"
 
 # ============================================
 # FILE HANDLING
@@ -16,10 +17,10 @@ _skip_if_exists:
   - ".github/scripts/custom_*.py"  # Custom scripts
   - ".copier-answers.yml"  # Don't overwrite main copier answers
   - ".copier-answers-documentation.yml"  # Don't overwrite docs template answers
-  - ".copier-answers-workflows.yml"  # Don't create answers file
 
-# No files to preserve (workflows don't need reconfiguration)
-_preserve_files: []
+# Preserve configuration
+_preserve_files:
+  - ".copier-answers-workflows.yml"
 
 # Exclude from template
 _exclude:
@@ -31,7 +32,6 @@ _exclude:
   - "copier.yml"
   - "README.md"
   - "QUICKSTART.md"
-  - ".copier-answers-workflows.yml.jinja"  # Don't generate answers file
   - "README.md"
 
 # ============================================

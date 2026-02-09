@@ -25,9 +25,6 @@ TEMPLATES = {
     "workflows": "Complete GitHub Actions workflow setup for CMIP repositories",
 }
 
-# Templates that don't use answers files (can't be updated, just reinstalled)
-STATELESS_TEMPLATES = {"workflows"}
-
 
 def run_command(cmd: list, check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
     """Run a shell command."""
@@ -144,20 +141,18 @@ def install_template(template: str, destination: str = "."):
         cmd.extend(["--data", f"description={info['description']}"])
     
     print(f"Installing {template} template...")
-    if template in STATELESS_TEMPLATES:
-        print(f"Note: The {template} template doesn't use an answers file.")
-        print("      Re-run this command to get the latest version.")
     run_command(cmd, check=False)
     
     print("\n✅ Template installed successfully!")
     if template == "workflows":
+        print("📝 Configuration saved to: .copier-answers-workflows.yml")
         print("🚀 You can now:")
         print("   - Push to src-data branch to trigger src-data-change workflow")
         print("   - Push to docs branch to trigger docs-change workflow")
         print("   - Go to Actions tab to manually run any workflow")
-        print("\n💡 To update: Just run 'cmipcopier workflows' again (no answers file needed)")
+        print("\n💡 To update: Run 'cmipcopier workflows update'")
     elif template == "documentation":
-        print("📝 Answers saved to: .copier-answers-documentation.yml")
+        print("📝 Configuration saved to: .copier-answers-documentation.yml")
         print("🚀 Run 'mkdocs serve' from src/mkdocs to preview.")
         print("\n💡 To update: Run 'cmipcopier documentation update'")
 
@@ -167,14 +162,6 @@ def update_template(template: str, destination: str = "."):
     if template not in TEMPLATES:
         print(f"Error: Unknown template '{template}'")
         sys.exit(1)
-    
-    # Check if this is a stateless template
-    if template in STATELESS_TEMPLATES:
-        print(f"The '{template}' template doesn't use an answers file.")
-        print(f"To get the latest version, just reinstall:")
-        print(f"  cmipcopier {template}")
-        print("\nThis will update the workflow files to the latest version.")
-        sys.exit(0)
     
     if not shutil.which("copier"):
         print("Error: copier not found. Install with: pip install copier")
@@ -200,14 +187,8 @@ def update_template(template: str, destination: str = "."):
     
     print(f"Updating {template} template...")
     
-    # Use copier copy with:
-    # --force: overwrite existing files
-    # --answers-file: read previous answers (used as defaults)
-    # --defaults: use defaults for any new questions not in answers file
     cmd = [
-        "copier", "copy",
-        "--force",
-        "--defaults",
+        "copier", "update",
         "--answers-file", answers_file,
         template_path, destination
     ]

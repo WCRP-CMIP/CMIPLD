@@ -22,7 +22,7 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     outputs:
-      has_changes: {{ '${{ steps.check_changes.outputs.has_changes }}' }}
+      has_changes: {% raw %}${{ steps.check_changes.outputs.has_changes }}{% endraw %}
     
     steps:
       - name: Checkout docs branch
@@ -63,7 +63,6 @@ jobs:
           cd {{ mkdocs_dir }}
           mkdocs build --clean
           
-          # Copy built site to production branch docs folder
           git checkout {{ pages_branch }}
           rm -rf docs/site
           mkdir -p docs
@@ -123,5 +122,5 @@ jobs:
       - name: Display URL
         run: |
           echo "## 📚 Documentation Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "URL: {{ '${{ steps.deployment.outputs.page_url }}' }}" >> $GITHUB_STEP_SUMMARY
+          echo "URL: {% raw %}${{ steps.deployment.outputs.page_url }}{% endraw %}" >> $GITHUB_STEP_SUMMARY
 {% endif %}
