@@ -9,12 +9,15 @@ _answers_file: ".copier-answers-workflows.yml"
 # FILE HANDLING
 # ============================================
 
-# Never overwrite these user files
+# Never overwrite these user files (user customizations only)
 _skip_if_exists:
   - ".git*"
   - "README.md"
-  - ".github/prepublish/*.sh"  # Custom prepublish scripts
-  - ".github/scripts/custom_*.py"  # Custom scripts
+  - ".github/prepublish/03-*.sh"  # User-added prepublish scripts (03+)
+  - ".github/prepublish/04-*.sh"
+  - ".github/prepublish/05-*.sh"
+  - ".github/prepublish/custom_*.sh"  # Custom named scripts
+  - ".github/scripts/custom_*.py"  # Only files starting with "custom_"
   - ".copier-answers.yml"  # Don't overwrite main copier answers
   - ".copier-answers-documentation.yml"  # Don't overwrite docs template answers
 
