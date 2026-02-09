@@ -582,7 +582,7 @@ _No schema information available._
             if f.name in validators_by_field:
                 for v in validators_by_field[f.name]:
                     validator_id = f"{f.name}-{v['name']}"
-                    lines.append(f'<details id="{validator_id}" open>')
+                    lines.append(f'<details markdown="1" id="{validator_id}" open>')
                     source_link = f" <a href=\"{pydantic_url}\">[source]</a>" if pydantic_url else ""
                     lines.append(f"<summary><strong>Validation:</strong> {v['name']}{source_link}</summary>")
                     lines.append("")
@@ -600,7 +600,7 @@ _No schema information available._
             lines.append("### Other Validations\n")
             for v in unassigned_validators:
                 validator_id = f"other-{v['name']}"
-                lines.append(f'<details id="{validator_id}" open>')
+                lines.append(f'<details markdown="1" id="{validator_id}" open>')
                 source_link = f" <a href=\"{pydantic_url}\">[source]</a>" if pydantic_url else ""
                 lines.append(f"<summary><strong>{v['name']}</strong>{source_link}</summary>")
                 lines.append("")
@@ -697,7 +697,7 @@ _No schema information available._
         
         return f'''## Usage
 
-<details open>
+<details markdown="1" open>
 <summary><strong>Online</strong></summary>
 
 | Resource | Link |
@@ -708,7 +708,7 @@ _No schema information available._
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><strong>cmipld</strong></summary>
 
 ```python
@@ -721,7 +721,7 @@ print(data)
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><strong>esgvoc</strong></summary>
 
 ```python
@@ -734,7 +734,7 @@ print(results)
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><strong>HTTP</strong></summary>
 
 ```python
@@ -748,7 +748,7 @@ print(data)
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><strong>CLI / Node / Web</strong></summary>
 
 ```bash

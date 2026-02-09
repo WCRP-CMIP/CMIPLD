@@ -1,6 +1,7 @@
 # Simple MkDocs Documentation Template
 # A lightweight copier template for CMIP-LD documentation sites
 _templates_suffix: .jinja
+_answers_file: ".copier-answers-documentation.yml"
 
 # ============================================
 # FILE HANDLING DURING UPDATES
@@ -19,10 +20,12 @@ _skip_if_exists:
   - "docs/links.yml"         # Your custom links
   - ".git*"
   - "README*"
+  - ".copier-answers.yml"  # Don't overwrite main copier answers
+  - ".copier-answers-workflows.yml"  # Don't overwrite workflows template answers
 
 # Files created once but never touched during updates
 _preserve_files:
-  - ".copier-answers.yml"    # Your saved answers
+  - ".copier-answers-documentation.yml"    # Your saved answers
 
 # Exclude from copying entirely
 _exclude:
