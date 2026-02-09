@@ -138,17 +138,17 @@ def install_template(template: str, destination: str = "."):
     # Build copier command
     cmd = [
         "copier", "copy",
-        "--overwrite",  # Overwrite on conflicts
+        "--force",  # Force overwrite (combines --overwrite + --defaults)
         template_path, destination,
         "--data", f"repo_owner={info['repo_owner']}",
         "--data", f"repo_name={info['repo_name']}",
     ]
     
-    # If answers file exists, use it for defaults (non-interactive)
+    # If answers file exists, use it for configuration
     if os.path.exists(answers_file):
         print(f"Found existing configuration: {os.path.basename(answers_file)}")
-        print("Using saved answers (non-interactive mode)")
-        cmd.extend(["--defaults", "--answers-file", answers_file])
+        print("Using saved answers (will overwrite existing files)")
+        cmd.extend(["--answers-file", answers_file])
     else:
         print(f"No existing configuration found")
         print("Interactive mode: please answer questions")
@@ -206,9 +206,7 @@ def update_template(template: str, destination: str = "."):
     
     cmd = [
         "copier", "copy",
-        "--force",
-        "--overwrite",  # Overwrite on conflicts
-        "--defaults",
+        "--force",  # Force overwrite
         "--answers-file", answers_file,
         template_path, destination
     ]
