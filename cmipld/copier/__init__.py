@@ -138,7 +138,7 @@ def install_template(template: str, destination: str = "."):
     # Build copier command
     cmd = [
         "copier", "copy",
-        "--conflict", "overwrite",  # Overwrite on conflicts
+        "--overwrite",  # Overwrite on conflicts
         template_path, destination,
         "--data", f"repo_owner={info['repo_owner']}",
         "--data", f"repo_name={info['repo_name']}",
@@ -207,7 +207,7 @@ def update_template(template: str, destination: str = "."):
     cmd = [
         "copier", "copy",
         "--force",
-        "--conflict", "overwrite",  # Overwrite on conflicts
+        "--overwrite",  # Overwrite on conflicts
         "--defaults",
         "--answers-file", answers_file,
         template_path, destination
