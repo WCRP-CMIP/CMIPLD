@@ -71,39 +71,14 @@ jobs:
 
       - name: Copy docs from docs branch
         run: |
-          echo "Checking if docs branch exists..."
-          if git ls-remote --heads origin docs | grep -q docs; then
-            echo "✓ docs branch exists"
-            echo "Fetching docs branch..."
-            git fetch origin docs --depth=1
-            
-            echo "Restoring docs folder..."
-            rm -rf docs
-            git restore --source origin/docs --staged --worktree -- docs/
-            
-            echo "✓ Copied docs from docs branch"
-          else
-            echo "⚠️  docs branch does not exist yet"
-            echo "Creating empty docs branch with placeholder..."
-            git checkout --orphan docs
-            git rm -rf . || true
-            mkdir -p docs
-            echo "# Documentation" > docs/index.md
-            echo "" >> docs/index.md
-            echo "Add your documentation here." >> docs/index.md
-            git add docs/
-            git commit -m "Initialize docs branch"
-            git push origin docs
-            git checkout {{ pages_branch }}
-            
-            echo "Copying initial docs to production..."
-            mkdir -p docs
-            echo "# Documentation" > docs/index.md
-            echo "" >> docs/index.md
-            echo "Add your documentation here." >> docs/index.md
-            
-            echo "✓ Created docs branch and copied to production"
-          fi
+          echo "Fetching docs branch..."
+          git fetch origin docs --depth=1
+          
+          echo "Restoring docs folder..."
+          rm -rf docs
+          git restore --source origin/docs --staged --worktree -- docs/ || true
+          
+          echo "✓ Copied docs from docs branch"
 {% endif %}
 
       - name: Check for changes
