@@ -72,17 +72,13 @@ jobs:
       - name: Copy docs from docs branch
         run: |
           echo "Fetching docs branch..."
-          if git fetch origin docs --depth=1; then
-            echo "✓ Fetched docs"
-            echo "Restoring docs folder..."
-            rm -rf docs
-            git restore --source origin/docs --staged --worktree -- docs/ || true
-            echo "✓ Copied docs from docs branch"
-          else
-            echo "❌ Failed to fetch docs branch"
-            echo "Please ensure the docs branch exists on origin"
-            exit 1
-          fi
+          git fetch origin +refs/heads/docs:refs/remotes/origin/docs --depth=1
+          
+          echo "Restoring docs folder..."
+          rm -rf docs
+          git restore --source origin/docs --staged --worktree -- docs/ || true
+          
+          echo "✓ Copied docs from docs branch"
 {% endif %}
 
       - name: Check for changes
