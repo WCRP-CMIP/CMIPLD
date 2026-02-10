@@ -19,9 +19,6 @@ jobs:
       has_changes: {% raw %}${{ steps.check_changes.outputs.has_changes }}{% endraw %}
     
     steps:
-      - name: Install CMIPLD
-        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
-
       - name: Checkout production branch
         uses: actions/checkout@v4
         with:
@@ -31,6 +28,11 @@ jobs:
       - name: Fetch src-data branch
         run: |
           git fetch origin src-data:src-data
+
+      - name: Install CMIPLD
+        run: |
+          pip install git+https://github.com/WCRP-CMIP/CMIPLD.git
+          npm i -g jsonld-recursive
 
       - name: Configure Git
         run: |
