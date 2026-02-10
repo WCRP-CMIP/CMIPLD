@@ -31,8 +31,9 @@ jobs:
 
       - name: Install CMIPLD
         run: |
-          pip install git+https://github.com/WCRP-CMIP/CMIPLD.git
           npm i -g jsonld-recursive
+          pip install git+https://github.com/wolfiex/jsonld-recursive
+          pip install git+https://github.com/WCRP-CMIP/CMIPLD.git
 
       - name: Configure Git
         run: |
@@ -82,12 +83,10 @@ jobs:
           fi{% endraw %}
 {% if use_python_graphs %}
 
-      - name: Generate graphs (Python)
+      - name: Generate graphs (graphify)
         if: steps.find_dirs.outputs.dirs_json != '[]'
         run: |
-          python .github/scripts/generate_graphs.py \
-            --dirs {% raw %}${{ steps.find_dirs.outputs.dirs_json }}{% endraw %} \
-            --output-summary
+          graphify --all --output-summary
 {% else %}
 
       - name: Generate graphs
