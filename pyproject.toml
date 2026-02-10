@@ -56,6 +56,7 @@ template_update = "cmipld.generate.template_prefill:main"
 rss = "cmipld.generate.rss:main"  # Generate RSS feed for commits and releases
 get_contributors = "cmipld.generate.get_contributors:main"  # Generate contributors tracking and HTML page
 cmipcopier = "cmipld.copier:main"  # Install/update copier templates
+graphify = "cmipld.generate.graphify:main"  # Generate JSON-LD graphs for vocabulary directories
 
 [tool.setuptools]
 packages = ["cmipld"]
