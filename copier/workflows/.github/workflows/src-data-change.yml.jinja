@@ -19,14 +19,18 @@ jobs:
       has_changes: {% raw %}${{ steps.check_changes.outputs.has_changes }}{% endraw %}
     
     steps:
+      - name: Install CMIPLD
+        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
+
       - name: Checkout production branch
         uses: actions/checkout@v4
         with:
           ref: {{ pages_branch }}
           fetch-depth: 0
-
-      - name: Install CMIPLD
-        uses: WCRP-CMIP/CMIPLD/actions/cmipld@main
+          
+      - name: Fetch src-data branch
+        run: |
+          git fetch origin src-data:src-data
 
       - name: Configure Git
         run: |
@@ -41,9 +45,6 @@ jobs:
 
       - name: Copy from src-data branch
         run: |
-          echo "Fetching src-data branch..."
-          git fetch origin +refs/heads/src-data:refs/remotes/origin/src-data --depth=1
-          
           echo "Restoring files from src-data..."
           git restore --source origin/src-data --staged --worktree -- . || true
           
@@ -147,6 +148,19 @@ jobs:
             fi
           done
 {% endif %}
+{% if has_docs_branch %}
+
+      - name: Build documentation from docs branch
+        run: |
+          echo "Fetching docs branch..."
+          git fetch origin docs:docs
+          
+          echo "Copying docs to production..."
+          rm -rf docs
+          git restore --source origin/docs --staged --worktree -- docs/ || true
+          
+          echo "✓ Documentation updated"
+{% endif %}
 
       - name: Check for changes
         id: check_changes
@@ -164,7 +178,7 @@ jobs:
       - name: Commit changes
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
-          git commit -m "Sync from src-data"
+          git commit -m "Sync from src-data{% if has_docs_branch %} and docs{% endif %}"
           git push origin {{ pages_branch }}
 {% if enable_github_pages %}
 
