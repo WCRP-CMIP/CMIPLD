@@ -1,21 +1,34 @@
+#!/usr/bin/env python3
+"""
+Template Prefill Link Generator
+
+Generates CONTRIBUTING.md with prefilled GitHub issue links for modifying
+existing data entries. Reads JSON files from src-data branch and creates
+links that pre-populate the issue form fields.
+
+Uses shared utilities from template_utils.py.
+"""
 
 import subprocess
 import yaml
-import glob,os,json
+import glob, os, json
 from urllib.parse import urlencode
 from typing import OrderedDict
-import cmipld
 from tqdm import tqdm
 
-def extract(val):
-    ''' Extract the relevant value from a field '''
-    if isinstance(val, list):
-        return [extract(v) for v in val]
-    if isinstance(val, dict):
-        val = next(iter(val.values()))
-        print(val.get('validation_key'))
-        return val.get('validation_key', val.get('@id'))
-    return val
+# Import shared utilities
+from .template_utils import (
+    get_repo_info,
+    get_folders_from_branch,
+    get_json_files_from_branch,
+    get_file_content_from_branch,
+    get_template_fields_and_options,
+    find_matching_option,
+    extract_value,
+    generate_prefill_link,
+    generate_prefill_links_for_folder,
+    DATA_BRANCH
+)
 
 
 def print_red(*args, sep=' ', end='\n', flush=False):
@@ -24,41 +37,10 @@ def print_red(*args, sep=' ', end='\n', flush=False):
     RESET = '\033[0m'
     print(RED + sep.join(map(str, args)) + RESET, end=end, flush=flush)
 
+
 CONTRIBUTING_FILE = '.github/CONTRIBUTING.md'
 DESCRIPTION_FILE = '.github/description.md'
 ISSUES_FILE = '.github/issues.md'
-DATA_BRANCH = 'src-data'
-
-
-def get_repo_info():
-    """Get repository URL and name from git remote."""
-    try:
-        result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        remote_url = result.stdout.strip()
-        
-        # Parse the URL to get owner/repo
-        if remote_url.startswith('https://'):
-            parts = remote_url.replace('.git', '').split('/')
-            owner = parts[-2]
-            repo = parts[-1]
-        elif remote_url.startswith('git@'):
-            parts = remote_url.replace('.git', '').split(':')[-1].split('/')
-            owner = parts[0]
-            repo = parts[1]
-        else:
-            owner = 'WCRP-CMIP'
-            repo = 'Unknown'
-        
-        repo_url = f"https://github.com/{owner}/{repo}"
-        return repo_url, owner, repo
-    except Exception as e:
-        print_red(f"Error getting repo info: {e}")
-        # return "https://github.com/WCRP-CMIP/CMIP7-CVs", "WCRP-CMIP", "CMIP7-CVs"
 
 
 def get_template_categories():
@@ -87,148 +69,6 @@ def get_template_categories():
     return sorted(categories)
 
 
-def get_folders_from_branch(branch=DATA_BRANCH):
-    """Get list of folders from a specific git branch."""
-    folders = []
-    skip_folders = ['project', 'cmor', 'content_summaries', 'docs', 'summaries', '.git', '.github', '.src', '__pycache__']
-    
-    try:
-        # List tree from the branch
-        result = subprocess.run(
-            ["git", "ls-tree", "-d", "--name-only", f"origin/{branch}"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        
-        for line in result.stdout.strip().split('\n'):
-            folder = line.strip()
-            if folder and folder not in skip_folders and not folder.startswith('.'):
-                folders.append(folder)
-                
-    except subprocess.CalledProcessError as e:
-        print_red(f"Could not list folders from {branch} branch: {e}")
-    
-    return sorted(folders)
-
-
-def get_json_files_from_branch(folder, branch=DATA_BRANCH):
-    """Get list of JSON files in a folder from a specific branch."""
-    json_files = []
-    
-    try:
-        # List files in folder from the branch
-        result = subprocess.run(
-            ["git", "ls-tree", "--name-only", f"origin/{branch}", f"{folder}/"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        
-        for line in result.stdout.strip().split('\n'):
-            filename = line.strip()
-            if filename.endswith('.json') and 'graph.jsonld' not in filename:
-                json_files.append(filename)
-                
-    except subprocess.CalledProcessError as e:
-        print_red(f"Could not list files from {folder}/ on {branch}: {e}")
-    
-    return json_files
-
-
-def get_file_content_from_branch(filepath, branch=DATA_BRANCH):
-    """Get file content from a specific branch."""
-    try:
-        result = subprocess.run(
-            ["git", "show", f"origin/{branch}:{filepath}"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print_red(f"Could not get {filepath} from {branch}: {e}")
-        return None
-
-
-def get_template_name(folder):
-    """Convert folder name to template name."""
-    return f"{folder}.yml"
-
-
-def normalize_value(val):
-    """Normalize a value for comparison (lowercase, hyphens to underscores)."""
-    if val is None:
-        return None
-    return str(val).lower().replace('-', '_').replace(' ', '_')
-
-
-def find_matching_option(value, options):
-    """Find the matching option from a list of dropdown options.
-    
-    Handles case-insensitivity and hyphen/underscore differences.
-    Returns the exact option text if found, otherwise the original value.
-    """
-    if not options or not value:
-        return value
-    
-    normalized_value = normalize_value(value)
-    
-    for option in options:
-        if normalize_value(option) == normalized_value:
-            return option
-    
-    # No match found, return original
-    return value
-
-
-def get_template_fields_and_options(folder):
-    """Get field IDs, types, and dropdown options from the YAML issue template."""
-    template_name = get_template_name(folder)
-    dyaml = None
-    
-    # Try local file first (most up to date)
-    try:
-        with open(f".github/ISSUE_TEMPLATE/{template_name}", 'r') as f:
-            dyaml = yaml.safe_load(f)
-    except:
-        pass
-    
-    # Try to get from git if local failed
-    if dyaml is None:
-        try:
-            yresult = subprocess.run(
-                ["git", "show", f"refs/remotes/origin/main:.github/ISSUE_TEMPLATE/{template_name}"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            dyaml = yaml.safe_load(yresult.stdout)
-        except:
-            return set(), [], [], {}
-    
-    # Get field IDs and types
-    ids = set([item['id'] for item in dyaml['body'] if 'id' in item])
-    dropdown = []
-    multi = []
-    dropdown_options = {}  # field_id -> list of options
-
-    for entry in dyaml['body']:
-        if entry['type'] == 'dropdown':
-            if 'id' in entry:
-                field_id = entry['id']
-                dropdown.append(field_id)
-                
-                # Get options for this dropdown
-                options = entry.get('attributes', {}).get('options', [])
-                dropdown_options[field_id] = options
-                
-                if entry['attributes'].get('multiple', False):
-                    multi.append(field_id)
-
-    return ids, dropdown, multi, dropdown_options
-
-
 # Fetch from origin (but don't fail if it doesn't work)
 try:
     subprocess.run(
@@ -245,6 +85,8 @@ except:
 def process_category(category, repo_url, repo_name):
     '''
     Process a category (template) and generate modification links if data exists.
+    
+    Uses the shared utility functions for link generation.
     '''
     
     display_name = category.replace('_', ' ').title()
@@ -282,7 +124,7 @@ def process_category(category, repo_url, repo_name):
 
         match = OrderedDict()
         
-        match['template'] = get_template_name(category)
+        match['template'] = f"{category}.yml"
         
         # Get the ID for the title
         item_id = jd.get('validation_key', jd.get('id', jd.get('@id', f'Unknown ({filepath})')))
@@ -293,7 +135,7 @@ def process_category(category, repo_url, repo_name):
             try:
                 if key in jd:
                     value = jd.get(key)
-                    entry = extract(value)
+                    entry = extract_value(value)
                     
                     if key in multi:
                         # Multi-select: handle list of values
@@ -356,7 +198,12 @@ def read_file_if_exists(filepath):
 
 def main():
     # Get repository info
-    repo_url, owner, repo_name = get_repo_info()
+    repo_info = get_repo_info()
+    if repo_info[0] is None:
+        print_red("Could not get repository info")
+        return
+    
+    repo_url, owner, repo_name = repo_info
     print(f"Repository: {repo_url}")
     print(f"Owner: {owner}, Repo: {repo_name}")
     
@@ -400,7 +247,7 @@ def main():
     # 3. Add modification links at the end
     if modifications_entries:
         contributing_content += f'''
-## 2 Modifying or reusing existing entries
+## 2. Modifying or reusing existing entries
 
 The following links will open pre-filled GitHub issues with content from the selected files. These can be used to update entries or make new ones. 
 '''

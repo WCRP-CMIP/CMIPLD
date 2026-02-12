@@ -10,10 +10,16 @@ Generates GitHub Issue Form YAML templates from:
 All three files must exist for a template to be processed.
 
 Template Substitution:
-- Use {key} in field_guidance to substitute values from DATA
+- Use {key} in field_guidance OR description to substitute values from DATA
 - Lists become bullet points
 - Dicts have their keys listed as bullet points
 - Strings are inserted directly
+
+Substitution Format Specifiers:
+- {key} - default bullet list format
+- {key:comma} - comma-separated format
+- {key:plain} - plain newline-separated format
+- {key:bullet} - explicit bullet list format
 """
 
 import csv, os, json
@@ -29,10 +35,13 @@ import re
 GITHUB_RESERVED_WORDS = {'None', 'none', 'True', 'true', 'False', 'false'}
 
 # Default dropdown title for collapsible sections
-DEFAULT_DROPDOWN_TITLE = "Completion Guidance"
+DEFAULT_DROPDOWN_TITLE = "Detailed Guidance"
 
 # Indentation for YAML literal blocks
 YAML_INDENT = "        "  # 8 spaces for value content
+
+failed = []
+
 
 def sanitize_option(option):
     """Replace GitHub reserved words with safe alternatives."""
@@ -47,10 +56,10 @@ def sanitize_option(option):
             return f'{option}-value'
     return option
 
+
 def random_color():
     return f"{random.randint(0, 0xFFFFFF):06X}"
 
-failed = []
 
 def indent_multiline(text, indent=YAML_INDENT):
     """
@@ -74,6 +83,7 @@ def indent_multiline(text, indent=YAML_INDENT):
     indented_lines = [indent + line if i > 0 else line for i, line in enumerate(lines)]
     
     return '\n'.join(indented_lines)
+
 
 def format_data_value(value, format_type='bullet'):
     """
@@ -110,6 +120,7 @@ def format_data_value(value, format_type='bullet'):
     else:  # bullet (default)
         return '\n'.join(f'- {item}' for item in items)
 
+
 def substitute_data_placeholders(text, data):
     """
     Substitute {key} placeholders in text with values from DATA.
@@ -145,10 +156,12 @@ def substitute_data_placeholders(text, data):
     
     return re.sub(pattern, replace_match, text)
 
+
 def load_json_config(json_file):
     """Load configuration from JSON file."""
     with open(json_file, 'r', encoding='utf-8') as f:
         return json.load(f)
+
 
 def load_template_data(py_file):
     """Load data from Python file."""
@@ -161,6 +174,7 @@ def load_template_data(py_file):
     config = namespace.get('TEMPLATE_CONFIG', {})
     data = namespace.get('DATA', {})
     return config, data
+
 
 def load_csv_fields(csv_file):
     """Load field definitions from CSV."""
@@ -195,12 +209,15 @@ def load_csv_fields(csv_file):
     
     return final_fields
 
+
 def build_description_with_guidance(base_description, field_id, field_type, config, data):
     """
     Build the field description, adding guidance section if available.
     
     For markdown fields: guidance is appended directly
     For other fields: guidance is wrapped in a collapsible <details> section
+    
+    DATA substitution is applied to BOTH the base description AND guidance.
     
     Args:
         base_description: The base description from CSV
@@ -215,6 +232,9 @@ def build_description_with_guidance(base_description, field_id, field_type, conf
     field_guidance = config.get('field_guidance', {})
     dropdown_title = config.get('dropdown_title', DEFAULT_DROPDOWN_TITLE)
     
+    # Apply DATA substitution to base description first
+    base_description = substitute_data_placeholders(base_description, data)
+    
     # Check if there's guidance for this field
     if field_id not in field_guidance:
         return base_description
@@ -223,7 +243,7 @@ def build_description_with_guidance(base_description, field_id, field_type, conf
     if not guidance_content:
         return base_description
     
-    # Substitute {key} placeholders with DATA values
+    # Substitute {key} placeholders with DATA values in guidance
     guidance_content = substitute_data_placeholders(guidance_content, data)
     
     # For markdown fields, append guidance directly (no collapsible section)
@@ -241,6 +261,7 @@ def build_description_with_guidance(base_description, field_id, field_type, conf
     
     return description
 
+
 def generate_field_yaml(field_def, data, config):
     """Generate YAML for a single field."""
     
@@ -255,6 +276,7 @@ def generate_field_yaml(field_def, data, config):
     default_value = field_def['default_value']
     
     # Build description with guidance from JSON if available
+    # This now also applies DATA substitution to the description
     description = build_description_with_guidance(description, field_id, field_type, config, data)
     
     # Map multi-select to dropdown with multiple attribute
@@ -297,8 +319,9 @@ def generate_field_yaml(field_def, data, config):
         else:
             yaml_lines.append(f"      description: {description}")
     
-    # Add placeholder for inputs
+    # Add placeholder for inputs (also apply DATA substitution)
     if field_type in ['input', 'textarea'] and placeholder:
+        placeholder = substitute_data_placeholders(placeholder, data)
         yaml_lines.append(f"      placeholder: \"{placeholder}\"")
     
     # Add options for dropdowns and multi-selects
@@ -360,6 +383,7 @@ def generate_field_yaml(field_def, data, config):
     
     return '\n'.join(yaml_lines)
 
+
 def generate_template_yaml(config, fields, data):
     """Generate complete YAML template."""
     
@@ -389,6 +413,7 @@ body:
     
     return yaml_content.rstrip() + "\n"
 
+
 def validate_yaml(content):
     """Validate YAML syntax."""
     try:
@@ -397,6 +422,7 @@ def validate_yaml(content):
     except Exception as e:
         print(f"    YAML Parse Error: {e}")
         return False
+
 
 def check_template_files(template_name, template_dir):
     """
@@ -422,6 +448,7 @@ def check_template_files(template_name, template_dir):
         return None
     
     return csv_file, py_file, json_file
+
 
 def process_template(template_name, csv_file, py_file, json_file, output_dir):
     """Process a single template from its three source files."""
@@ -471,6 +498,7 @@ def process_template(template_name, csv_file, py_file, json_file, output_dir):
         traceback.print_exc()
         return False
 
+
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Generate GitHub issue templates')
@@ -479,6 +507,7 @@ def parse_arguments():
     parser.add_argument('--template', type=str, help='Generate specific template')
     parser.add_argument('--no-docs', action='store_false', help='Disable documentation generation')
     return parser.parse_args()
+
 
 def main():
     """Main function."""
@@ -600,6 +629,7 @@ The following forms are available for this repository, and can be used to add or
     
     return success_count > 0
 
+
 # Label management
 try:
     existing = subprocess.run(
@@ -611,6 +641,7 @@ try:
 except Exception as e:
     print(f"Note: Could not fetch existing labels: {e}")
     existing_labels = []
+
 
 def makelabel(config):
     """Create GitHub labels if they don't exist."""
