@@ -12,7 +12,7 @@ import os
 import glob
 import yaml
 from urllib.parse import urlencode
-from typing import Optional, Dict, List, Any, OrderedDict
+from typing import Optional, Dict, List, Any, OrderedDict, Union
 
 # Default branch for data files
 DATA_BRANCH = 'src-data'
@@ -242,6 +242,128 @@ def get_template_fields_and_options(folder: str) -> tuple:
     return ids, dropdown, multi, dropdown_options
 
 
+def load_template_config(template_name: str) -> Optional[Dict]:
+    """
+    Load template JSON configuration file.
+    
+    Args:
+        template_name: Template name (without extension)
+        
+    Returns:
+        Config dictionary or None if not found
+    """
+    config_paths = [
+        f".github/GEN_ISSUE_TEMPLATE/{template_name}.json",
+        f".github/ISSUE_TEMPLATE/{template_name}.json",
+    ]
+    
+    for path in config_paths:
+        try:
+            with open(path, 'r') as f:
+                return json.load(f)
+        except:
+            continue
+    
+    return None
+
+
+def resolve_prefill_sources(config: Dict) -> Dict[str, Dict]:
+    """
+    Resolve prefill_sources from template config into normalized format.
+    
+    Supports multiple formats:
+    - Not set / "all": Use folder matching issue_category with all fields
+    - {"folder": "all"}: All fields from folder
+    - {"folder": {...}}: Custom config for folder
+    
+    Config options per folder:
+    - display_name: JSON key to use as link text (default: "name" or "@id")
+    - subtitle: JSON key for secondary info (optional)
+    - section_title: Header text for this group (optional)
+    - fields: "all" or list of field names (default: "all")
+    - field_mapping: {json_key: template_field_id} for renaming
+    - link_type: "prefill" (default), "reference", or "view"
+    
+    Args:
+        config: Template configuration dictionary
+        
+    Returns:
+        Dictionary of folder -> resolved config
+    """
+    sources = config.get("prefill_sources")
+    category = config.get("issue_category", "")
+    
+    # Default config for a folder
+    def default_config(folder: str) -> Dict:
+        return {
+            "folder": folder,
+            "display_name": "name",
+            "subtitle": None,
+            "section_title": None,
+            "fields": "all",
+            "field_mapping": {},
+            "link_type": "prefill"
+        }
+    
+    # Case 1: Not set or "all" string - use issue_category folder
+    if sources is None or sources == "all":
+        if category:
+            return {category: default_config(category)}
+        return {}
+    
+    # Case 2: Dictionary of folder configs
+    resolved = {}
+    for folder, folder_config in sources.items():
+        if folder_config == "all":
+            resolved[folder] = default_config(folder)
+        elif isinstance(folder_config, dict):
+            resolved[folder] = {
+                "folder": folder,
+                "display_name": folder_config.get("display_name", "name"),
+                "subtitle": folder_config.get("subtitle"),
+                "section_title": folder_config.get("section_title"),
+                "fields": folder_config.get("fields", "all"),
+                "field_mapping": folder_config.get("field_mapping", {}),
+                "link_type": folder_config.get("link_type", "prefill")
+            }
+        else:
+            resolved[folder] = default_config(folder)
+    
+    return resolved
+
+
+def apply_field_mapping(data: Dict, config: Dict) -> Dict:
+    """
+    Apply field selection and mapping to JSON data for prefill.
+    
+    Args:
+        data: Original JSON data from file
+        config: Resolved prefill source config for this folder
+        
+    Returns:
+        Mapped data dictionary ready for prefill
+    """
+    fields = config.get("fields", "all")
+    mapping = config.get("field_mapping", {})
+    
+    # Start with all or selected fields
+    if fields == "all":
+        result = dict(data)
+    else:
+        result = {k: v for k, v in data.items() if k in fields}
+    
+    # Apply renames: json_key -> template_field_id
+    for json_key, template_field in mapping.items():
+        if json_key in result:
+            value = result.pop(json_key)
+            result[template_field] = value
+        elif json_key in data:
+            # Field wasn't in result but exists in original - add with new name
+            result[template_field] = data[json_key]
+    
+    return result
+
+
 def generate_prefill_link(
     repo_url: str,
     template_name: str,
@@ -281,37 +403,53 @@ def generate_prefill_link(
 def generate_prefill_links_for_folder(
     folder: str,
     repo_url: Optional[str] = None,
-    branch: str = DATA_BRANCH
+    branch: str = DATA_BRANCH,
+    template_name: Optional[str] = None,
+    source_config: Optional[Dict] = None
 ) -> List[Dict[str, str]]:
     """
     Generate prefill links for all JSON files in a folder.
     
-    This can be used in template .py files to generate dynamic DATA content.
-    
     Args:
-        folder: The data folder name (matches template name)
+        folder: The data folder name
         repo_url: Repository URL (auto-detected if None)
         branch: Git branch containing data files
+        template_name: Target template (defaults to folder name)
+        source_config: Prefill source config (from resolve_prefill_sources)
         
     Returns:
-        List of dicts with 'id', 'url', and 'markdown' keys
+        List of dicts with 'id', 'name', 'subtitle', 'url', 'markdown', 'link_type'
     """
     if repo_url is None:
         repo_url, _, _ = get_repo_info()
         if not repo_url:
             return []
     
+    if template_name is None:
+        template_name = folder
+    
     json_files = get_json_files_from_branch(folder, branch)
     if not json_files:
         return []
     
-    ids, dropdown, multi, dropdown_options = get_template_fields_and_options(folder)
+    ids, dropdown, multi, dropdown_options = get_template_fields_and_options(template_name)
     if not ids:
         return []
     
+    # Default source config
+    if source_config is None:
+        source_config = {
+            "folder": folder,
+            "display_name": "name",
+            "subtitle": None,
+            "fields": "all",
+            "field_mapping": {},
+            "link_type": "prefill"
+        }
+    
     links = []
-    template_name = f"{folder}.yml"
-    display_name = folder.replace('_', ' ').title()
+    yaml_template = f"{template_name}.yml"
+    display_folder = folder.replace('_', ' ').title()
     
     for filepath in json_files:
         content = get_file_content_from_branch(filepath, branch)
@@ -323,64 +461,200 @@ def generate_prefill_links_for_folder(
         except:
             continue
         
-        item_id = jd.get('validation_key', jd.get('id', jd.get('@id', f'Unknown')))
+        # Get display values
+        item_id = jd.get('validation_key', jd.get('id', jd.get('@id', 'Unknown')))
+        display_name_key = source_config.get("display_name", "name")
+        display_name = jd.get(display_name_key, jd.get('name', item_id))
         
+        subtitle_key = source_config.get("subtitle")
+        subtitle = jd.get(subtitle_key) if subtitle_key else None
+        
+        link_type = source_config.get("link_type", "prefill")
+        
+        # Apply field mapping
+        mapped_data = apply_field_mapping(jd, source_config)
+        
+        # Build prefill data
         data = {}
         for key in ids:
-            if key in jd:
-                value = jd.get(key)
-                entry = extract_value(value)
+            # Check both original key and mapped keys
+            value = mapped_data.get(key)
+            if value is None:
+                continue
                 
-                if key in multi:
-                    if isinstance(entry, str):
-                        matched = find_matching_option(entry, dropdown_options.get(key, []))
-                        entry = f'"{matched}"'
-                    else:
-                        matched_entries = []
-                        for e in list(entry):
-                            matched = find_matching_option(e, dropdown_options.get(key, []))
-                            matched_entries.append(f'"{matched}"')
-                        entry = ','.join(matched_entries)
-                elif key in dropdown:
+            entry = extract_value(value)
+            
+            if key in multi:
+                if isinstance(entry, str):
                     matched = find_matching_option(entry, dropdown_options.get(key, []))
                     entry = f'"{matched}"'
-                elif isinstance(entry, list):
-                    entry = ', '.join(str(e) for e in entry)
-                
-                data[key] = entry
+                else:
+                    matched_entries = []
+                    for e in list(entry):
+                        matched = find_matching_option(e, dropdown_options.get(key, []))
+                        matched_entries.append(f'"{matched}"')
+                    entry = ','.join(matched_entries)
+            elif key in dropdown:
+                matched = find_matching_option(entry, dropdown_options.get(key, []))
+                entry = f'"{matched}"'
+            elif isinstance(entry, list):
+                entry = ', '.join(str(e) for e in entry)
+            
+            data[key] = entry
         
-        url = generate_prefill_link(
-            repo_url=repo_url,
-            template_name=template_name,
-            data=data,
-            title=f"Modify: {display_name}: {item_id}",
-            issue_kind="Modify"
-        )
+        # Generate URL based on link type
+        if link_type == "prefill":
+            url = generate_prefill_link(
+                repo_url=repo_url,
+                template_name=yaml_template,
+                data=data,
+                title=f"Modify: {display_folder}: {item_id}",
+                issue_kind="Modify"
+            )
+        elif link_type == "view":
+            url = f"{repo_url}/blob/{branch}/{filepath}"
+        else:  # reference
+            url = None
+        
+        # Build markdown
+        if subtitle:
+            label = f"{display_name} ({subtitle})"
+        else:
+            label = str(display_name)
+        
+        if url:
+            markdown = f"- [{label}]({url})"
+        else:
+            markdown = f"- `{item_id}`: {label}"
         
         links.append({
             'id': item_id,
+            'name': display_name,
+            'subtitle': subtitle,
             'url': url,
-            'markdown': f"- [{item_id}]({url})"
+            'markdown': markdown,
+            'link_type': link_type,
+            'folder': folder
         })
     
-    return sorted(links, key=lambda x: x['id'])
+    return sorted(links, key=lambda x: str(x.get('name', x['id'])))
 
 
-def get_existing_entries_markdown(folder: str, repo_url: Optional[str] = None) -> str:
+def get_existing_entries_markdown(
+    template_or_folder: str,
+    repo_url: Optional[str] = None,
+    branch: str = DATA_BRANCH
+) -> str:
     """
-    Generate markdown content listing all existing entries with prefill links.
+    Generate markdown content listing existing entries with prefill links.
     
-    Useful for including in template DATA for dynamic guidance.
+    Supports:
+    - Single folder name (backwards compatible)
+    - Template name with prefill_sources config
     
     Args:
-        folder: The data folder name
+        template_or_folder: Template name or folder name
         repo_url: Repository URL (auto-detected if None)
+        branch: Git branch containing data
         
     Returns:
-        Markdown string with links, or empty string if no entries
+        Markdown string with links grouped by section, or empty string
     """
-    links = generate_prefill_links_for_folder(folder, repo_url)
-    if not links:
+    if repo_url is None:
+        repo_url, _, _ = get_repo_info()
+        if not repo_url:
+            return ""
+    
+    # Try to load template config
+    config = load_template_config(template_or_folder)
+    
+    if config:
+        # Use prefill_sources from config
+        sources = resolve_prefill_sources(config)
+        template_name = template_or_folder
+    else:
+        # Backwards compatible: single folder
+        sources = {
+            template_or_folder: {
+                "folder": template_or_folder,
+                "display_name": "name",
+                "subtitle": None,
+                "section_title": None,
+                "fields": "all",
+                "field_mapping": {},
+                "link_type": "prefill"
+            }
+        }
+        template_name = template_or_folder
+    
+    # Generate links for each source folder
+    sections = []
+    
+    for folder, source_config in sources.items():
+        links = generate_prefill_links_for_folder(
+            folder=folder,
+            repo_url=repo_url,
+            branch=branch,
+            template_name=template_name,
+            source_config=source_config
+        )
+        
+        if not links:
+            continue
+        
+        section_title = source_config.get("section_title")
+        link_markdown = "\n".join(link['markdown'] for link in links)
+        
+        if section_title:
+            sections.append(f"**{section_title}**\n\n{link_markdown}")
+        else:
+            sections.append(link_markdown)
+    
+    if not sections:
         return ""
     
-    return "\n".join(link['markdown'] for link in links)
+    return "\n\n".join(sections)
+
+
+def get_prefill_links_by_folder(
+    template_name: str,
+    repo_url: Optional[str] = None,
+    branch: str = DATA_BRANCH
+) -> Dict[str, List[Dict]]:
+    """
+    Get prefill links organized by source folder.
+    
+    Useful when you need programmatic access to links by folder.
+    
+    Args:
+        template_name: Template name
+        repo_url: Repository URL
+        branch: Git branch
+        
+    Returns:
+        Dictionary of folder -> list of link dicts
+    """
+    if repo_url is None:
+        repo_url, _, _ = get_repo_info()
+        if not repo_url:
+            return {}
+    
+    config = load_template_config(template_name)
+    if not config:
+        return {}
+    
+    sources = resolve_prefill_sources(config)
+    result = {}
+    
+    for folder, source_config in sources.items():
+        links = generate_prefill_links_for_folder(
+            folder=folder,
+            repo_url=repo_url,
+            branch=branch,
+            template_name=template_name,
+            source_config=source_config
+        )
+        if links:
+            result[folder] = links
+    
+    return result
