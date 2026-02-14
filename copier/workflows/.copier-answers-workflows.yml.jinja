@@ -17,9 +17,6 @@ has_docs_branch: {{ has_docs_branch }}
 # Workflow Features
 {% if repo_type in ['vocabulary', 'mixed'] %}
 enable_graph_generation: {{ enable_graph_generation }}
-{% if enable_graph_generation %}
-use_python_graphs: {{ use_python_graphs }}
-{% endif %}
 enable_prepublish_scripts: {{ enable_prepublish_scripts }}
 {% endif %}
 enable_issue_templates: {{ enable_issue_templates }}
@@ -41,4 +38,9 @@ pages_branch: {{ pages_branch }}
 has_mkdocs: {{ has_mkdocs }}
 {% if has_mkdocs %}
 mkdocs_dir: {{ mkdocs_dir }}
+{% endif %}
+{% if build_mkdocs_on_sync is defined and build_mkdocs_on_sync %}
+build_mkdocs_on_sync: {{ build_mkdocs_on_sync }}
+mkdocs_config_path: {{ mkdocs_config_path }}
+mkdocs_requirements_path: {{ mkdocs_requirements_path }}
 {% endif %}
