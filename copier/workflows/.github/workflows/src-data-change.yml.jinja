@@ -76,47 +76,59 @@ jobs:
 {% endif %}
 {% if has_docs_branch %}
 
-      - name: Copy content from docs branch
+      - name: Copy documentation sources from docs branch
         run: |
           echo "Fetching docs branch..."
           git fetch origin docs:docs
           
-          echo "Copying content from docs branch to production..."
-          git restore --source origin/docs --staged --worktree -- . || true
+          echo "Copying documentation sources from docs branch..."
+          # Only copy documentation-related paths, not vocabulary data
+          git restore --source origin/docs --staged --worktree -- src/ 2>/dev/null || true
+          git restore --source origin/docs --staged --worktree -- docs/ 2>/dev/null || true
+          git restore --source origin/docs --staged --worktree -- mkdocs.yml 2>/dev/null || true
           
-          echo "✓ Docs branch content copied to production"
-{% if build_mkdocs_on_sync %}
+          echo "✓ Documentation sources copied from docs branch"
       
-      - name: Build MkDocs site on production branch
+      - name: Build MkDocs site
         continue-on-error: true
         run: |
-          if [ -f "{{ mkdocs_config_path }}" ]; then
-            echo "Building MkDocs site on production branch..."
-            
-            # Install dependencies
-            if [ -f "{{ mkdocs_requirements_path }}" ]; then
-              echo "Installing from {{ mkdocs_requirements_path }}..."
-              pip install -r "{{ mkdocs_requirements_path }}"
-            else
-              echo "Installing default MkDocs packages..."
-              pip install mkdocs mkdocs-material
+          # Find mkdocs.yml - check common locations
+          MKDOCS_CONFIG=""
+          for config in "src/mkdocs/mkdocs.yml" "mkdocs.yml" "docs/mkdocs.yml"; do
+            if [ -f "$config" ]; then
+              MKDOCS_CONFIG="$config"
+              break
             fi
-            
-            # Build to 'build' folder
-            rm -rf build
-            mkdocs build -f "{{ mkdocs_config_path }}" -d ../../build
-            
-            # Clean up: remove src and docs
-            rm -rf src docs
-            
-            # Move build to docs
-            mv build docs
-            
-            echo "✓ Built MkDocs site - docs/ folder now contains built site only"
-          else
-            echo "No {{ mkdocs_config_path }} found, skipping MkDocs build"
+          done
+          
+          if [ -z "$MKDOCS_CONFIG" ]; then
+            echo "No mkdocs.yml found, skipping MkDocs build"
+            exit 0
           fi
-{% endif %}
+          
+          echo "Building MkDocs site from $MKDOCS_CONFIG..."
+          
+          # Find and install requirements
+          MKDOCS_DIR=$(dirname "$MKDOCS_CONFIG")
+          if [ -f "$MKDOCS_DIR/requirements.txt" ]; then
+            echo "Installing from $MKDOCS_DIR/requirements.txt..."
+            pip install -r "$MKDOCS_DIR/requirements.txt"
+          else
+            echo "Installing default MkDocs packages..."
+            pip install mkdocs mkdocs-material
+          fi
+          
+          # Build to temporary 'build' folder
+          rm -rf build
+          mkdocs build -f "$MKDOCS_CONFIG" -d build
+          
+          # Clean up source files and old docs
+          rm -rf src docs
+          
+          # Move built site to docs
+          mv build docs
+          
+          echo "✓ Built MkDocs site - docs/ now contains the built site"
 {% endif %}
 
       - name: Check for changes
@@ -130,6 +142,34 @@ jobs:
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "Changes detected"
+            
+            # Generate summary of changes
+            echo "## 📝 Files Changed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Count changes
+            ADDED=$(git diff --cached --name-only --diff-filter=A | wc -l)
+            MODIFIED=$(git diff --cached --name-only --diff-filter=M | wc -l)
+            DELETED=$(git diff --cached --name-only --diff-filter=D | wc -l)
+            
+            echo "| Type | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ➕ Added | $ADDED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✏️ Modified | $MODIFIED |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🗑️ Deleted | $DELETED |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # List files (limit to 50 to avoid huge summaries)
+            echo "<details><summary>File list (click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            git diff --cached --name-status | head -50 >> $GITHUB_STEP_SUMMARY
+            TOTAL=$(git diff --cached --name-only | wc -l)
+            if [ "$TOTAL" -gt 50 ]; then
+              echo "... and $((TOTAL - 50)) more files" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Commit changes

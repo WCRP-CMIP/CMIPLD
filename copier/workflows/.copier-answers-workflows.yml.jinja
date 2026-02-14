@@ -33,14 +33,3 @@ enable_github_pages: {{ enable_github_pages }}
 {% if enable_github_pages %}
 pages_branch: {{ pages_branch }}
 {% endif %}
-
-# Documentation
-has_mkdocs: {{ has_mkdocs }}
-{% if has_mkdocs %}
-mkdocs_dir: {{ mkdocs_dir }}
-{% endif %}
-{% if build_mkdocs_on_sync is defined and build_mkdocs_on_sync %}
-build_mkdocs_on_sync: {{ build_mkdocs_on_sync }}
-mkdocs_config_path: {{ mkdocs_config_path }}
-mkdocs_requirements_path: {{ mkdocs_requirements_path }}
-{% endif %}
