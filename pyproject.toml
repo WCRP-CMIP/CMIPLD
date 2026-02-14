@@ -18,6 +18,7 @@ dependencies = [
     "rich",
     "pyyaml",
     "copier>=9.0.0",
+    "rdflib>=6.0.0",
     "jsonld-recursive @ git+https://github.com/wolfiex/jsonld-recursive"
 ]
 
