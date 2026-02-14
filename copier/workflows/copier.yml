@@ -43,7 +43,7 @@ _exclude:
 _metadata:
   name: "CMIP Workflows"
   description: "Complete GitHub Actions workflow setup for CMIP vocabulary repositories"
-  version: "2.1.0"
+  version: "2.2.0"
   author: "CMIP-IPO"
 
 # ============================================
@@ -85,7 +85,7 @@ has_docs_branch:
 # Workflow Features
 enable_graph_generation:
   type: bool
-  help: "Enable JSON-LD graph generation (ld2graph)"
+  help: "Enable JSON-LD graph generation (uses graphify)"
   default: true
   when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
 
@@ -105,13 +105,6 @@ enable_summaries:
   help: "Enable content summary generation"
   default: false
   when: "{{ repo_type in ['vocabulary', 'mixed'] }}"
-
-# Python Script Options
-use_python_graphs:
-  type: bool
-  help: "Use Python graphify for graph generation instead of ld2graph command"
-  default: true
-  when: "{{ enable_graph_generation }}"
 
 # CI/CD Schedule
 ci_schedule:
