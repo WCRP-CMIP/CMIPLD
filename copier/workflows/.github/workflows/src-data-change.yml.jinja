@@ -149,6 +149,51 @@ jobs:
           done
 {% endif %}
 {% if has_docs_branch %}
+{% if build_mkdocs_on_sync %}
+
+      - name: Copy all content from docs branch to production
+        run: |
+          echo "Fetching docs branch..."
+          git fetch origin docs:docs
+          
+          echo "Copying all docs branch content to production..."
+          git restore --source origin/docs --staged --worktree -- . || true
+          
+          echo "✓ Docs branch copied to production"
+      
+      - name: Build MkDocs site on production branch
+        continue-on-error: true
+        run: |
+          if [ -f "{{ mkdocs_config_path }}" ]; then
+            echo "Building MkDocs site on production branch..."
+            
+            # Install dependencies
+            if [ -f "{{ mkdocs_requirements_path }}" ]; then
+              echo "Installing from {{ mkdocs_requirements_path }}..."
+              pip install -r "{{ mkdocs_requirements_path }}"
+            else
+              echo "Installing default MkDocs packages..."
+              pip install mkdocs mkdocs-material
+            fi
+            
+            # Calculate relative output path
+            MKDOCS_DIR=$(dirname "{{ mkdocs_config_path }}")
+            
+            # Build to 'build' folder
+            rm -rf build
+            mkdocs build -f "{{ mkdocs_config_path }}" -d ../../build
+            
+            # Clean up: remove src and docs
+            rm -rf src docs
+            
+            # Move build to docs
+            mv build docs
+            
+            echo "✓ Built MkDocs site - docs/ folder now contains built site only"
+          else
+            echo "No {{ mkdocs_config_path }} found, skipping MkDocs build"
+          fi
+{% else %}
 
       - name: Build documentation from docs branch
         run: |
@@ -160,6 +205,7 @@ jobs:
           git restore --source origin/docs --staged --worktree -- docs/ || true
           
           echo "✓ Documentation updated"
+{% endif %}
 {% endif %}
 
       - name: Check for changes

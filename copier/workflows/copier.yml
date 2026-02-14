@@ -43,7 +43,7 @@ _exclude:
 _metadata:
   name: "CMIP Workflows"
   description: "Complete GitHub Actions workflow setup for CMIP vocabulary repositories"
-  version: "2.0.0"
+  version: "2.1.0"
   author: "CMIP-IPO"
 
 # ============================================
@@ -109,8 +109,8 @@ enable_summaries:
 # Python Script Options
 use_python_graphs:
   type: bool
-  help: "Use Python script for graph generation instead of ld2graph command"
-  default: false
+  help: "Use Python graphify for graph generation instead of ld2graph command"
+  default: true
   when: "{{ enable_graph_generation }}"
 
 # CI/CD Schedule
@@ -136,7 +136,7 @@ pages_branch:
   default: "production"
   when: "{{ enable_github_pages }}"
 
-# Documentation  
+# Documentation - MkDocs
 has_mkdocs:
   type: bool
   help: "Use MkDocs for documentation"
@@ -147,6 +147,25 @@ mkdocs_dir:
   help: "Directory containing mkdocs.yml (relative to repo root)"
   default: "docs"
   when: "{{ has_mkdocs }}"
+
+# MkDocs build during src-data sync
+build_mkdocs_on_sync:
+  type: bool
+  help: "Build MkDocs site during src-data sync (merges docs branch content)?"
+  default: false
+  when: "{{ has_src_data_branch and has_docs_branch }}"
+
+mkdocs_config_path:
+  type: str
+  help: "Path to mkdocs.yml (relative to docs branch root)"
+  default: "src/mkdocs/mkdocs.yml"
+  when: "{{ build_mkdocs_on_sync }}"
+
+mkdocs_requirements_path:
+  type: str
+  help: "Path to MkDocs requirements.txt (relative to docs branch root)"
+  default: "src/mkdocs/requirements.txt"
+  when: "{{ build_mkdocs_on_sync }}"
 
 # ============================================
 # DERIVED VALUES (computed, not asked)

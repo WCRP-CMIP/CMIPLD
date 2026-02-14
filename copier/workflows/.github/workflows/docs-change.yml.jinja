@@ -12,9 +12,9 @@ on:
       - "docs"
     paths:
       - "docs/**"
-{% if has_mkdocs %}
+{% if has_mkdocs or build_mkdocs_on_sync %}
       - "mkdocs.yml"
-      - "{{ mkdocs_dir }}/**"
+      - "{{ mkdocs_dir if has_mkdocs else 'src/mkdocs' }}/**"
 {% endif %}
   workflow_dispatch:
 
@@ -44,7 +44,49 @@ jobs:
       - name: Checkout production branch
         run: |
           git checkout {{ pages_branch }}
-{% if has_mkdocs %}
+{% if build_mkdocs_on_sync %}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Copy all content from docs branch
+        run: |
+          echo "Copying all docs branch content to production..."
+          git restore --source origin/docs --staged --worktree -- . || true
+          echo "✓ Docs branch copied"
+
+      - name: Build MkDocs site
+        continue-on-error: true
+        run: |
+          if [ -f "{{ mkdocs_config_path }}" ]; then
+            echo "Building MkDocs site..."
+            
+            # Install dependencies
+            if [ -f "{{ mkdocs_requirements_path }}" ]; then
+              echo "Installing from {{ mkdocs_requirements_path }}..."
+              pip install -r "{{ mkdocs_requirements_path }}"
+            else
+              echo "Installing default MkDocs packages..."
+              pip install mkdocs mkdocs-material
+            fi
+            
+            # Build to 'build' folder
+            rm -rf build
+            mkdocs build -f "{{ mkdocs_config_path }}" -d ../../build
+            
+            # Clean up: remove src and docs
+            rm -rf src docs
+            
+            # Move build to docs
+            mv build docs
+            
+            echo "✓ Built MkDocs site - docs/ folder now contains built site only"
+          else
+            echo "No {{ mkdocs_config_path }} found, skipping MkDocs build"
+          fi
+{% elif has_mkdocs %}
 
       - name: Setup Python
         uses: actions/setup-python@v5
