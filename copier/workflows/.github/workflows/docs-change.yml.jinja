@@ -22,12 +22,11 @@ jobs:
       - name: Checkout repository with all branches
         uses: actions/checkout@v4
         with:
-          ref: docs
+          ref: {{ pages_branch }}
           fetch-depth: 0
           
-      - name: Fetch required branches
+      - name: Fetch docs branch
         run: |
-          git fetch origin {{ pages_branch }}:{{ pages_branch }}
           git fetch origin docs:docs
 
       - name: Configure Git
@@ -35,16 +34,15 @@ jobs:
           git config user.name "cmip-ipo"
           git config user.email "actions@wcrp-cmip.org"
 
-      - name: Checkout production branch
+      - name: Copy documentation sources from docs branch
         run: |
-          git checkout {{ pages_branch }}
-
-      - name: Copy documentation from docs branch
-        run: |
-          echo "Copying documentation content from docs branch..."
-          git restore --source origin/docs --staged --worktree -- . || true
+          echo "Copying documentation sources from docs branch..."
+          # Only copy documentation-related paths, not data files
+          git restore --source origin/docs --staged --worktree -- src/ 2>/dev/null || true
+          git restore --source origin/docs --staged --worktree -- docs/ 2>/dev/null || true
+          git restore --source origin/docs --staged --worktree -- mkdocs.yml 2>/dev/null || true
           
-          echo "✓ Documentation copied from docs branch"
+          echo "✓ Documentation sources copied from docs branch"
 
       - name: Build MkDocs site
         continue-on-error: true

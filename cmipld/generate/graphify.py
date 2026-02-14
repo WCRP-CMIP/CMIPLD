@@ -3,8 +3,8 @@
 graphify - Generate JSON-LD graphs, RDF/Turtle, and visualization JSON
 
 This tool processes vocabulary directories to generate:
-1. JSON-LD graph files (_graph.jsonld) - Collection of all entities
-2. RDF/Turtle files (_graph.ttl) - Semantic web format
+1. JSON-LD graph files (_graph.json) - Collection of all entities
+2. RDF/Turtle files (_graph.ttl) - Semantic web format (if .ttl allowed)
 3. D3/Graphology JSON files - For visualization
    - _d3graph.json: Entity-level relationship graph
    - _d3structure.json: Folder-level structure graph
@@ -144,6 +144,7 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
     Generate JSON-LD graph file from vocabulary directory.
     
     Collects all JSON files in the directory and creates a Collection graph.
+    Uses .json extension for compatibility with restrictive .gitignore patterns.
     """
     result = {
         "directory": vocab_dir.name,
@@ -189,7 +190,8 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
         }
         
         # Write graph file (compact format for @id references)
-        graph_file = vocab_dir / "_graph.jsonld"
+        # Use .json extension for gitignore compatibility
+        graph_file = vocab_dir / "_graph.json"
         graph_json = json.dumps(graph, indent=2)
         # Compact single-key objects
         graph_json = re.sub(
@@ -200,10 +202,10 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
         
         with open(graph_file, 'w') as f:
             f.write(graph_json)
-        result["files_created"].append("_graph.jsonld")
+        result["files_created"].append("_graph.json")
         
         if verbose:
-            print(f"  ✓ _graph.jsonld ({len(ids)} entities)")
+            print(f"  ✓ _graph.json ({len(ids)} entities)")
         
         result["message"] = f"{len(ids)} entities"
         
@@ -224,6 +226,7 @@ def generate_rdf_turtle(
     Generate RDF/Turtle file from JSON-LD graph.
     
     Requires cmipld and rdflib to be available.
+    Note: .ttl files may be gitignored in some repos.
     """
     result = {
         "directory": vocab_dir.name,
@@ -257,8 +260,8 @@ def generate_rdf_turtle(
         for v in vocab_types:
             cmipld_module.mapping[f'vocab_{v}'] = f'https://{prefix}.mipcvs.dev/docs/vocabularies/{v}/'
         
-        # Expand JSON-LD
-        graph_file = f'{prefix}:{vocab_dir.name}/_graph.jsonld'
+        # Expand JSON-LD (use .json extension now)
+        graph_file = f'{prefix}:{vocab_dir.name}/_graph.json'
         data = cmipld_module.expand(graph_file, depth=3)
         
         # Create RDF graph

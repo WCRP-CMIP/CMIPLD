@@ -50,7 +50,10 @@ jobs:
           echo "Restoring files from src-data..."
           git restore --source origin/src-data --staged --worktree -- . || true
           
-          echo "✓ Copied from src-data"
+          # Keep production's .gitignore (don't copy from src-data)
+          git restore --source HEAD --staged --worktree -- .gitignore 2>/dev/null || true
+          
+          echo "✓ Copied from src-data (kept production .gitignore)"
 {% if enable_graph_generation %}
 
       - name: Generate graphs (graphify)
