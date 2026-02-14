@@ -9,10 +9,11 @@ _answers_file: ".copier-answers-workflows.yml"
 # FILE HANDLING
 # ============================================
 
-# Never overwrite these user files (only custom/user-created files)
+# Only skip user-customized files (everything else is overwritten on update)
 _skip_if_exists:
-  - ".git*"
   - "README.md"
+  - ".gitignore"
+  - ".gitattributes"
   - ".github/prepublish/03-*.sh"  # User custom scripts (numbered 03+)
   - ".github/prepublish/04-*.sh"
   - ".github/prepublish/05-*.sh"
@@ -20,6 +21,11 @@ _skip_if_exists:
   - ".github/scripts/custom_*.py"  # Only files starting with "custom_"
   - ".copier-answers.yml"  # Don't overwrite main copier answers
   - ".copier-answers-documentation.yml"  # Don't overwrite docs template answers
+
+# IMPORTANT: All workflow files (.github/workflows/*.yml) are intentionally
+# NOT in _skip_if_exists so they always get updated when running:
+#   cmipcopier workflows
+#   cmipcopier workflows update
 
 # Preserve configuration
 _preserve_files:
@@ -43,7 +49,7 @@ _exclude:
 _metadata:
   name: "CMIP Workflows"
   description: "Complete GitHub Actions workflow setup for CMIP vocabulary repositories"
-  version: "2.3.0"
+  version: "2.4.0"
   author: "CMIP-IPO"
 
 # ============================================

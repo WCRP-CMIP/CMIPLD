@@ -136,9 +136,12 @@ def install_template(template: str, destination: str = "."):
     print(f"Detected: {info['repo_owner']}/{info['repo_name']}")
     
     # Build copier command
+    # Use --overwrite to always overwrite files (not in _skip_if_exists)
+    # Use --defaults to use default values for questions
     cmd = [
         "copier", "copy",
-        "--force",  # Force overwrite (combines --overwrite + --defaults)
+        "--overwrite",  # Overwrite files that exist
+        "--defaults",   # Use defaults for unanswered questions
         template_path, destination,
         "--data", f"repo_owner={info['repo_owner']}",
         "--data", f"repo_name={info['repo_name']}",
@@ -147,11 +150,13 @@ def install_template(template: str, destination: str = "."):
     # If answers file exists, use it for configuration
     if os.path.exists(answers_file):
         print(f"Found existing configuration: {os.path.basename(answers_file)}")
-        print("Using saved answers (will overwrite existing files)")
+        print("Using saved answers (will overwrite workflow files)")
         cmd.extend(["--answers-file", answers_file])
     else:
         print(f"No existing configuration found")
         print("Interactive mode: please answer questions")
+        # Remove --defaults for interactive mode
+        cmd.remove("--defaults")
     
     if info["description"]:
         cmd.extend(["--data", f"description={info['description']}"])
@@ -204,9 +209,11 @@ def update_template(template: str, destination: str = "."):
     print(f"Updating {template} template...")
     print(f"Using configuration from: {os.path.basename(answers_file)}")
     
+    # Use --overwrite to always overwrite workflow files
     cmd = [
         "copier", "copy",
-        "--force",  # Force overwrite
+        "--overwrite",  # Overwrite files that exist
+        "--defaults",   # Use defaults/answers file values
         "--answers-file", answers_file,
         template_path, destination
     ]
