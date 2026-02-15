@@ -29,40 +29,40 @@ runs:
         echo "## Context URL Validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Find all context files
-        CONTEXT_FILES=$(find . -name "_context" -o -name "_context.json" 2>/dev/null | grep -v node_modules | grep -v .git || true)
-        
-        if [ -z "$CONTEXT_FILES" ]; then
-          echo "No _context files found." >> $GITHUB_STEP_SUMMARY
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "failed_count=0" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        
-        # Extract unique URLs using Python
+        # Extract unique URLs using Python (handles nested directories and nested @context)
         UNIQUE_URLS=$(python3 << 'PYEOF'
         import json
         import os
-        import subprocess
+        
+        def extract_urls(obj, urls):
+            """Recursively extract all HTTP URLs from @context fields."""
+            if isinstance(obj, str):
+                if obj.startswith('http'):
+                    urls.add(obj)
+            elif isinstance(obj, list):
+                for item in obj:
+                    extract_urls(item, urls)
+            elif isinstance(obj, dict):
+                for key, value in obj.items():
+                    if key == '@context':
+                        extract_urls(value, urls)
+                    elif isinstance(value, (dict, list)):
+                        extract_urls(value, urls)
         
         urls = set()
-        result = subprocess.run(['find', '.', '-name', '_context', '-o', '-name', '_context.json'], 
-                                capture_output=True, text=True)
-        files = [f for f in result.stdout.strip().split('\n') if f and 'node_modules' not in f and '.git' not in f]
         
-        for filepath in files:
-            try:
-                with open(filepath) as f:
-                    data = json.load(f)
-                ctx = data.get('@context', [])
-                if isinstance(ctx, str) and ctx.startswith('http'):
-                    urls.add(ctx)
-                elif isinstance(ctx, list):
-                    for item in ctx:
-                        if isinstance(item, str) and item.startswith('http'):
-                            urls.add(item)
-            except:
-                pass
+        for root, dirs, files in os.walk('.'):
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'node_modules']
+            
+            for filename in files:
+                if filename in ('_context', '_context.json'):
+                    filepath = os.path.join(root, filename)
+                    try:
+                        with open(filepath) as f:
+                            data = json.load(f)
+                        extract_urls(data, urls)
+                    except:
+                        pass
         
         print('\n'.join(sorted(urls)))
         PYEOF
