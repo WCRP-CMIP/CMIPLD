@@ -405,7 +405,8 @@ def generate_prefill_links_for_folder(
     repo_url: Optional[str] = None,
     branch: str = DATA_BRANCH,
     template_name: Optional[str] = None,
-    source_config: Optional[Dict] = None
+    source_config: Optional[Dict] = None,
+    issue_kind: str = "Modify"
 ) -> List[Dict[str, str]]:
     """
     Generate prefill links for all JSON files in a folder.
@@ -416,9 +417,10 @@ def generate_prefill_links_for_folder(
         branch: Git branch containing data files
         template_name: Target template (defaults to folder name)
         source_config: Prefill source config (from resolve_prefill_sources)
+        issue_kind: "New" or "Modify" for the prefilled issue
         
     Returns:
-        List of dicts with 'id', 'name', 'subtitle', 'url', 'markdown', 'link_type'
+        List of dicts with 'id', 'name', 'subtitle', 'url', 'markdown', 'html', 'link_type'
     """
     if repo_url is None:
         repo_url, _, _ = get_repo_info()
@@ -508,15 +510,15 @@ def generate_prefill_links_for_folder(
                 repo_url=repo_url,
                 template_name=yaml_template,
                 data=data,
-                title=f"Modify: {display_folder}: {item_id}",
-                issue_kind="Modify"
+                title=f"{display_folder}: {item_id}",
+                issue_kind=issue_kind
             )
         elif link_type == "view":
             url = f"{repo_url}/blob/{branch}/{filepath}"
         else:  # reference
             url = None
         
-        # Build markdown
+        # Build markdown and html
         if subtitle:
             label = f"{display_name} ({subtitle})"
         else:
@@ -524,8 +526,10 @@ def generate_prefill_links_for_folder(
         
         if url:
             markdown = f"- [{label}]({url})"
+            html = f'<li><a href="{url}" target="_blank" rel="noopener">{label}</a></li>'
         else:
             markdown = f"- `{item_id}`: {label}"
+            html = f"<li><code>{item_id}</code>: {label}</li>"
         
         links.append({
             'id': item_id,
@@ -533,6 +537,7 @@ def generate_prefill_links_for_folder(
             'subtitle': subtitle,
             'url': url,
             'markdown': markdown,
+            'html': html,
             'link_type': link_type,
             'folder': folder
         })
@@ -543,7 +548,8 @@ def generate_prefill_links_for_folder(
 def get_existing_entries_markdown(
     template_or_folder: str,
     repo_url: Optional[str] = None,
-    branch: str = DATA_BRANCH
+    branch: str = DATA_BRANCH,
+    issue_kind: str = "Modify"
 ) -> str:
     """
     Generate markdown content listing existing entries with prefill links.
@@ -556,6 +562,7 @@ def get_existing_entries_markdown(
         template_or_folder: Template name or folder name
         repo_url: Repository URL (auto-detected if None)
         branch: Git branch containing data
+        issue_kind: "New" or "Modify" for prefilled issues
         
     Returns:
         Markdown string with links grouped by section, or empty string
@@ -596,7 +603,8 @@ def get_existing_entries_markdown(
             repo_url=repo_url,
             branch=branch,
             template_name=template_name,
-            source_config=source_config
+            source_config=source_config,
+            issue_kind=issue_kind
         )
         
         if not links:
