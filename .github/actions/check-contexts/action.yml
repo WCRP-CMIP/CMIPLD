@@ -12,8 +12,9 @@ runs:
         echo "## Context URL Validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Find all URLs in _context files
-        URLS=$(grep -rh "http" --include="_context" --include="_context.json" . 2>/dev/null | \
+        # Find URLs that are values of @context keys
+        URLS=$(grep -rh '"@context"' --include="_context" --include="_context.json" . 2>/dev/null | \
+               grep -oE '"@context"\s*:\s*"https?://[^"]+' | \
                grep -oE 'https?://[^"]+' | sort -u)
         
         if [ -z "$URLS" ]; then
@@ -23,18 +24,22 @@ runs:
         
         PASSED=""
         FAILED=""
+        PASS_COUNT=0
+        FAIL_COUNT=0
         
         for url in $URLS; do
           CODE=$(curl -s -o /dev/null -w "%{http_code}" -L -A "Mozilla/5.0" --max-time 10 "$url")
           if [ "$CODE" = "200" ]; then
             PASSED="${PASSED}| ${url} | ${CODE} |\n"
+            PASS_COUNT=$((PASS_COUNT + 1))
           else
             FAILED="${FAILED}| ${url} | ${CODE} |\n"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
           fi
         done
         
         if [ -n "$PASSED" ]; then
-          echo "### Accessible" >> $GITHUB_STEP_SUMMARY
+          echo "### Accessible (${PASS_COUNT})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| URL | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
@@ -43,7 +48,7 @@ runs:
         fi
         
         if [ -n "$FAILED" ]; then
-          echo "### Inaccessible" >> $GITHUB_STEP_SUMMARY
+          echo "### Inaccessible (${FAIL_COUNT})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| URL | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
