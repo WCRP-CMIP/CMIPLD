@@ -24,11 +24,13 @@ runs:
       id: check
       shell: bash
       run: |
+        set +e
+        
         echo "## Context URL Validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Find all context files
-        CONTEXT_FILES=$(find . -name "_context" -o -name "_context.json" 2>/dev/null | grep -v node_modules | grep -v .git)
+        CONTEXT_FILES=$(find . -name "_context" -o -name "_context.json" 2>/dev/null | grep -v node_modules | grep -v .git || true)
         
         if [ -z "$CONTEXT_FILES" ]; then
           echo "No _context files found." >> $GITHUB_STEP_SUMMARY
@@ -37,29 +39,34 @@ runs:
           exit 0
         fi
         
-        # Extract unique URLs
-        URLS=""
-        for file in $CONTEXT_FILES; do
-          FILE_URLS=$(cat "$file" | python3 -c "
-        import json, sys
-        try:
-            data = json.load(sys.stdin)
-            ctx = data.get('@context', [])
-            if isinstance(ctx, str):
-                if ctx.startswith('http'):
-                    print(ctx)
-            elif isinstance(ctx, list):
-                for item in ctx:
-                    if isinstance(item, str) and item.startswith('http'):
-                        print(item)
-        except:
-            pass
-        " 2>/dev/null)
-          URLS="$URLS $FILE_URLS"
-        done
+        # Extract unique URLs using Python
+        UNIQUE_URLS=$(python3 << 'PYEOF'
+        import json
+        import os
+        import subprocess
         
-        # Get unique URLs
-        UNIQUE_URLS=$(echo $URLS | tr ' ' '\n' | sort -u | grep -v '^$')
+        urls = set()
+        result = subprocess.run(['find', '.', '-name', '_context', '-o', '-name', '_context.json'], 
+                                capture_output=True, text=True)
+        files = [f for f in result.stdout.strip().split('\n') if f and 'node_modules' not in f and '.git' not in f]
+        
+        for filepath in files:
+            try:
+                with open(filepath) as f:
+                    data = json.load(f)
+                ctx = data.get('@context', [])
+                if isinstance(ctx, str) and ctx.startswith('http'):
+                    urls.add(ctx)
+                elif isinstance(ctx, list):
+                    for item in ctx:
+                        if isinstance(item, str) and item.startswith('http'):
+                            urls.add(item)
+            except:
+                pass
+        
+        print('\n'.join(sorted(urls)))
+        PYEOF
+        )
         
         if [ -z "$UNIQUE_URLS" ]; then
           echo "No external context URLs found." >> $GITHUB_STEP_SUMMARY
@@ -68,23 +75,27 @@ runs:
           exit 0
         fi
         
-        # Check each URL and collect results
+        # Check each URL
         PASSED_URLS=""
         FAILED_URLS=""
         FAILED=0
         PASSED=0
         
-        for url in $UNIQUE_URLS; do
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
-          
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
-            PASSED_URLS="${PASSED_URLS}| ${url} | ${HTTP_CODE} |\n"
-            PASSED=$((PASSED + 1))
-          else
-            FAILED_URLS="${FAILED_URLS}| ${url} | ${HTTP_CODE} |\n"
-            FAILED=$((FAILED + 1))
+        while IFS= read -r url; do
+          if [ -n "$url" ]; then
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
+              PASSED_URLS="${PASSED_URLS}| ${url} | ${HTTP_CODE} |
+        "
+              PASSED=$((PASSED + 1))
+            else
+              FAILED_URLS="${FAILED_URLS}| ${url} | ${HTTP_CODE} |
+        "
+              FAILED=$((FAILED + 1))
+            fi
           fi
-        done
+        done <<< "$UNIQUE_URLS"
         
         # Output results
         if [ $PASSED -gt 0 ]; then
@@ -92,7 +103,7 @@ runs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| URL | HTTP Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|-------------|" >> $GITHUB_STEP_SUMMARY
-          printf "$PASSED_URLS" >> $GITHUB_STEP_SUMMARY
+          echo "$PASSED_URLS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         fi
         
@@ -101,7 +112,7 @@ runs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| URL | HTTP Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|-------------|" >> $GITHUB_STEP_SUMMARY
-          printf "$FAILED_URLS" >> $GITHUB_STEP_SUMMARY
+          echo "$FAILED_URLS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "---" >> $GITHUB_STEP_SUMMARY
@@ -117,14 +128,13 @@ runs:
           
           echo "status=failure" >> $GITHUB_OUTPUT
           echo "failed_count=$FAILED" >> $GITHUB_OUTPUT
-          printf '%s' "$FAILED_URLS" > /tmp/failed_urls.txt
+          echo "$FAILED_URLS" > /tmp/failed_urls.txt
         else
           echo "All context URLs are accessible." >> $GITHUB_STEP_SUMMARY
           echo "status=success" >> $GITHUB_OUTPUT
           echo "failed_count=0" >> $GITHUB_OUTPUT
         fi
         
-        # Always exit 0 - do not fail the workflow
         exit 0
 
     - name: Create issue for failed contexts
@@ -134,9 +144,9 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         FAILED_COUNT: ${{ steps.check.outputs.failed_count }}
       run: |
+        set +e
         FAILED_URLS=$(cat /tmp/failed_urls.txt 2>/dev/null || echo "Unknown")
         
-        # Check if issue already exists
         EXISTING=$(gh issue list --label "context-validation" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
         
         BODY="## Context URL Validation Failed
@@ -157,12 +167,14 @@ runs:
         *This issue was automatically created by the context validation workflow.*"
 
         if [ -n "$EXISTING" ]; then
-          gh issue comment "$EXISTING" --body "$BODY"
+          gh issue comment "$EXISTING" --body "$BODY" || true
           echo "Updated existing issue #$EXISTING"
         else
           gh issue create \
             --title "Context URL Validation Failed" \
             --body "$BODY" \
-            --label "context-validation,automated" || echo "Could not create issue"
+            --label "context-validation,automated" || true
           echo "Created new issue"
         fi
+        
+        exit 0
