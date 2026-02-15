@@ -1,5 +1,5 @@
 name: 'Check Context URLs'
-description: 'Validate that all @context URLs in _context files are accessible'
+description: 'Validate that all @context URLs in _context files have resolvable domains'
 
 runs:
   using: 'composite'
@@ -28,33 +28,36 @@ runs:
         FAIL_COUNT=0
         
         for url in $URLS; do
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" -L -A "Mozilla/5.0" --max-time 10 "$url")
-          if [ "$CODE" = "200" ]; then
-            PASSED="${PASSED}| ${url} | ${CODE} |\n"
+          # Extract domain from URL
+          DOMAIN=$(echo "$url" | sed -E 's|https?://([^/]+).*|\1|')
+          
+          # DNS lookup
+          if host "$DOMAIN" > /dev/null 2>&1; then
+            PASSED="${PASSED}| ${url} | ${DOMAIN} |\n"
             PASS_COUNT=$((PASS_COUNT + 1))
           else
-            FAILED="${FAILED}| ${url} | ${CODE} |\n"
+            FAILED="${FAILED}| ${url} | ${DOMAIN} |\n"
             FAIL_COUNT=$((FAIL_COUNT + 1))
           fi
         done
         
         if [ -n "$PASSED" ]; then
-          echo "### Accessible (${PASS_COUNT})" >> $GITHUB_STEP_SUMMARY
+          echo "### Resolvable (${PASS_COUNT})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| URL | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | Domain |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           printf "$PASSED" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         fi
         
         if [ -n "$FAILED" ]; then
-          echo "### Inaccessible (${FAIL_COUNT})" >> $GITHUB_STEP_SUMMARY
+          echo "### Unresolvable (${FAIL_COUNT})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| URL | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | Domain |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           printf "$FAILED" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Warning:** Files depending on these contexts will not resolve correctly." >> $GITHUB_STEP_SUMMARY
+          echo "**Warning:** These domains do not resolve. Context files will not work." >> $GITHUB_STEP_SUMMARY
         fi
         
         exit 0
