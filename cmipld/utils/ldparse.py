@@ -2,38 +2,54 @@ from collections import OrderedDict
 rmld = ['@id', '@type', '@context']
 
 
+def graph_entry(url, entry='validation_key', depth=2, pretty=False):
+    """
+    Fetch a _graph.json and extract entry values from its contents.
+    
+    Args:
+        url: The graph URL (e.g., 'constants:grid_type/_graph.json')
+        entry: The field to extract (default: 'validation_key')
+        depth: Fetch depth (default: 2)
+        pretty: If True, make values presentable (replace _/- with space, title case)
+    
+    Returns:
+        List of entry values from the graph contents
+    """
+    import cmipld
+    data = cmipld.get(url, depth=depth)
+    result = get_entry(data.get('contents', []), entry)
+    if pretty:
+        result = [v.replace('_', ' ').replace('-', ' ').title() if v else v for v in result]
+    return result
+
+
 def get_entry(data, entry='validation_key'):
     """Extract entry values from nested or flat structures"""
     if isinstance(data, dict):
         if '@id' in data:
-            # Single entry case
             return [data.get(entry)]
         else:
-            # Nested dict case - extract from nested values
             result = []
             for value in data.values():
                 if isinstance(value, dict) and entry in value:
                     result.append(value[entry])
             return result
     elif isinstance(data, list):
-        # List case
         return [i.get(entry) for i in data if isinstance(i, dict) and entry in i]
     return []
 
 
-def name_entry(data, value='description', key='validation_key'):
+def name_entry(data, value='ui-label', key='validation_key'):
     """Create a dict mapping key to value from nested or flat structures"""
     if isinstance(data, list):
-        return sortd({entry[key]: entry[value] for entry in data if isinstance(entry, dict) and key in entry})
+        return sortd({entry[key]: entry[value] for entry in data if isinstance(entry, dict) and key in entry and value in entry})
     elif isinstance(data, dict):
         if '@id' in data:
-            # Single entry
             return sortd({data[key]: data[value]})
         else:
-            # Nested dict - iterate over nested entries
-            return sortd({entry_key: entry_data[value] 
+            return sortd({entry_data[key]: entry_data[value] 
                          for entry_key, entry_data in data.items() 
-                         if isinstance(entry_data, dict) and value in entry_data})
+                         if isinstance(entry_data, dict) and value in entry_data and key in entry_data})
     return {}
 
 
@@ -47,7 +63,6 @@ def multikey_extract(data, keep_list):
     if isinstance(data, list):
         return [dict(key_extract(d, keep_list)) for d in data if isinstance(d, dict)]
     elif isinstance(data, dict):
-        # Handle nested dict case
         if '@id' in data:
             return [dict(key_extract(data, keep_list))]
         else:
@@ -62,14 +77,11 @@ def name_multikey_extract(data, keep_list, name_key='validation_key'):
                 for d in data if isinstance(d, dict) and name_key in d}
     elif isinstance(data, dict):
         if '@id' in data:
-            # Single entry
             return {data[name_key]: dict(key_extract(data, keep_list))}
         else:
-            # Nested dict case - use dict keys or validation_key
             result = {}
             for entry_key, entry_data in data.items():
                 if isinstance(entry_data, dict):
-                    # Use validation_key if present, otherwise use the dict key
                     key_to_use = entry_data.get(name_key, entry_key)
                     result[key_to_use] = dict(key_extract(entry_data, keep_list))
             return result
@@ -94,12 +106,10 @@ def name_extract(data, fields=None, key='validation_key'):
     """Extract specified fields from entries, keyed by validation_key"""
     if isinstance(data, dict):
         if '@id' in data:
-            # Single entry case
             if fields is None:
                 fields = [i for i in data.keys() if i not in rmld]
             return {data[key]: {k: data[k] for k in fields if k in data}}
         else:
-            # Nested dict case
             result = {}
             for entry_key, entry_data in data.items():
                 if isinstance(entry_data, dict):
@@ -109,7 +119,6 @@ def name_extract(data, fields=None, key='validation_key'):
                         result[entry_data[key]] = {k: entry_data[k] for k in fields if k in entry_data}
             return sortd(result)
     elif isinstance(data, list):
-        # List case
         if fields is None and len(data) > 0:
             fields = [i for i in data[0].keys() if i not in rmld]
         return sortd({entry[key]: {k: entry[k] for k in fields if k in entry} 
@@ -130,13 +139,11 @@ def cvjson_validation_key(e):
     result = []
     for k in e:
         if isinstance(k, dict):
-            # Try validation_key first, then @id
             val_key = k.get('validation_key')
             if val_key is None:
                 val_key = k.get('@id')
             result.append(val_key)
         else:
-            # Not a dict, convert to string
             result.append(str(k) if k is not None else None)
     
     return result

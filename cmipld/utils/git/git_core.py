@@ -11,7 +11,9 @@ Core git operations for CMIP-LD repositories including:
 import os
 import re
 import subprocess
-from ...__init__ import prefix, mapping
+
+# Import mapping from locations directly to avoid circular import
+from ...locations import mapping, reverse_direct
 
 # =============================================================================
 # REPOSITORY PATH & URL
@@ -54,6 +56,17 @@ def get_repo_url():
     parts[3] = parts[3].lower()
     
     return '/'.join(parts)
+
+
+def get_prefix():
+    """
+    Get the prefix for the current repository.
+    
+    Returns:
+        str: Repository prefix or URL if not found in mappings
+    """
+    myurl = get_repo_url()
+    return reverse_direct.get(myurl, myurl)
 
 
 def get_relative_path(cwd=None):
@@ -183,7 +196,6 @@ def cmip_info():
     # Lazy imports to avoid circular dependencies
     from rich.panel import Panel
     from rich.console import Console
-    from ...locations import reverse_mapping
     from .git_repo_metadata import getreponame
     
     console = Console()
@@ -192,13 +204,11 @@ def cmip_info():
     from ..jsontools import DotAccessibleDict
     
     repo_url = get_repo_url()
-    # io_url = url2io(repo_url.rstrip('/'))
     repopath = toplevel()
     reponame = getreponame()
-    prx = prefix()
+    prx = get_prefix()
     
-    
-    print(prx,mapping)
+    print(prx, mapping)
     
     data = DotAccessibleDict(
         prefix=prx,
@@ -207,7 +217,6 @@ def cmip_info():
         url=repo_url,
         link=mapping.get(prx, repo_url)
     )
-
 
     console.print(Panel.fit(
         f"[bold cyan]Parsing repo:[/bold cyan] {data['prefix']}\n"

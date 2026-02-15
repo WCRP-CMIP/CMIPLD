@@ -40,6 +40,7 @@ DEFAULT_DROPDOWN_TITLE = "Detailed Guidance"
 # Indentation for YAML literal blocks
 YAML_INDENT = "        "  # 8 spaces for value content
 
+# Track failed templates: list of (name, error_message)
 failed = []
 
 
@@ -62,40 +63,17 @@ def random_color():
 
 
 def indent_multiline(text, indent=YAML_INDENT):
-    """
-    Properly indent all lines of a multi-line string for YAML literal blocks.
-    
-    Args:
-        text: The text to indent
-        indent: The indentation string to use
-    
-    Returns:
-        Text with all lines properly indented
-    """
+    """Properly indent all lines of a multi-line string for YAML literal blocks."""
     if not text:
         return text
-    
-    # First, normalize any escaped newlines to actual newlines
     text = text.replace('\\n', '\n')
-    
-    # Split into lines and indent each one
     lines = text.split('\n')
     indented_lines = [indent + line if i > 0 else line for i, line in enumerate(lines)]
-    
     return '\n'.join(indented_lines)
 
 
 def format_data_value(value, format_type='bullet'):
-    """
-    Format a DATA value for insertion into guidance text.
-    
-    Args:
-        value: The value from DATA (can be list, dict, or string)
-        format_type: How to format the output ('bullet', 'comma', 'plain')
-    
-    Returns:
-        Formatted string representation
-    """
+    """Format a DATA value for insertion into guidance text."""
     if value is None:
         return ''
     
@@ -103,7 +81,6 @@ def format_data_value(value, format_type='bullet'):
         return value
     
     if isinstance(value, dict):
-        # For dicts, list the keys
         items = list(value.keys())
     elif isinstance(value, (list, tuple)):
         items = list(value)
@@ -122,36 +99,18 @@ def format_data_value(value, format_type='bullet'):
 
 
 def substitute_data_placeholders(text, data):
-    """
-    Substitute {key} placeholders in text with values from DATA.
-    
-    Supports format specifiers:
-    - {key} - default bullet list format
-    - {key:comma} - comma-separated format
-    - {key:plain} - plain newline-separated format
-    - {key:bullet} - explicit bullet list format
-    
-    Args:
-        text: The text containing {key} placeholders
-        data: The DATA dictionary from the Python file
-    
-    Returns:
-        Text with placeholders substituted
-    """
+    """Substitute {key} placeholders in text with values from DATA."""
     if not text or not data:
         return text
     
-    # Pattern matches {key} or {key:format}
     pattern = r'\{(\w+)(?::(\w+))?\}'
     
     def replace_match(match):
         key = match.group(1)
         format_type = match.group(2) or 'bullet'
-        
         if key in data:
             return format_data_value(data[key], format_type)
         else:
-            # Leave unmatched placeholders as-is (might be intentional)
             return match.group(0)
     
     return re.sub(pattern, replace_match, text)
@@ -169,8 +128,6 @@ def load_template_data(py_file):
     with open(py_file, 'r', encoding='utf-8') as f:
         exec(f.read(), namespace)
     
-    # For backwards compatibility, also check for TEMPLATE_CONFIG
-    # but prefer JSON config
     config = namespace.get('TEMPLATE_CONFIG', {})
     data = namespace.get('DATA', {})
     return config, data
@@ -186,12 +143,9 @@ def load_csv_fields(csv_file):
     
     fields.sort(key=lambda x: int(x['field_order']))
     
-    # Move issue_kind and collaborators to the end (in that order)
-    end_fields = []
-    remaining_fields = []
-    
     issue_kind_field = None
     collaborators_field = None
+    remaining_fields = []
     
     for field in fields:
         if field['field_id'] == 'issue_kind':
@@ -211,31 +165,12 @@ def load_csv_fields(csv_file):
 
 
 def build_description_with_guidance(base_description, field_id, field_type, config, data):
-    """
-    Build the field description, adding guidance section if available.
-    
-    For markdown fields: guidance is appended directly
-    For other fields: guidance is wrapped in a collapsible <details> section
-    
-    DATA substitution is applied to BOTH the base description AND guidance.
-    
-    Args:
-        base_description: The base description from CSV
-        field_id: The field identifier
-        field_type: The field type (markdown, dropdown, etc.)
-        config: The JSON config containing field_guidance and dropdown_title
-        data: The DATA dictionary for template substitution
-    
-    Returns:
-        Description string with optional guidance section
-    """
+    """Build the field description, adding guidance section if available."""
     field_guidance = config.get('field_guidance', {})
     dropdown_title = config.get('dropdown_title', DEFAULT_DROPDOWN_TITLE)
     
-    # Apply DATA substitution to base description first
     base_description = substitute_data_placeholders(base_description, data)
     
-    # Check if there's guidance for this field
     if field_id not in field_guidance:
         return base_description
     
@@ -243,17 +178,14 @@ def build_description_with_guidance(base_description, field_id, field_type, conf
     if not guidance_content:
         return base_description
     
-    # Substitute {key} placeholders with DATA values in guidance
     guidance_content = substitute_data_placeholders(guidance_content, data)
     
-    # For markdown fields, append guidance directly (no collapsible section)
     if field_type == 'markdown':
         if base_description:
             return f"{base_description}\n\n{guidance_content}"
         else:
             return guidance_content
     
-    # For other fields, build the description with collapsible section
     if base_description:
         description = f"{base_description}\n\n<details markdown=\"1\">\n<summary>{dropdown_title}</summary>\n\n{guidance_content}\n\n</details>"
     else:
@@ -275,63 +207,48 @@ def generate_field_yaml(field_def, data, config):
     options_type = field_def['options_type']
     default_value = field_def['default_value']
     
-    # Build description with guidance from JSON if available
-    # This now also applies DATA substitution to the description
     description = build_description_with_guidance(description, field_id, field_type, config, data)
     
-    # Map multi-select to dropdown with multiple attribute
     actual_field_type = 'dropdown' if field_type == 'multi-select' else field_type
     yaml_lines = [f"  - type: {actual_field_type}"]
     
-    # Handle markdown differently
     if field_type == 'markdown':
         yaml_lines.append("    attributes:")
-        # Also substitute placeholders in markdown descriptions
         description = substitute_data_placeholders(description, data)
-        # Properly indent all lines for YAML literal block
         formatted_desc = indent_multiline(description)
         yaml_lines.append("      value: |")
         yaml_lines.append(f"        {formatted_desc}")
         return '\n'.join(yaml_lines)
     
-    # All fields get an id (including multi-select)
     yaml_lines.append(f"    id: {field_id}")
     
-    # For multi-select fields, add multiple attribute
     if field_type == 'multi-select':
         yaml_lines.append("    attributes:")
         yaml_lines.append("      multiple: true")
         yaml_lines.append(f"      label: {label}")
     else:
-        # Regular fields
         yaml_lines.append("    attributes:")
         yaml_lines.append(f"      label: {label}")
     
-    # Add description if present
     if description:
-        # Check if description needs literal block (has newlines or is long)
         has_newlines = '\\n' in description or '\n' in description
         if has_newlines or len(description) > 80:
-            # Use literal block for multi-line or long descriptions
             formatted_desc = indent_multiline(description)
             yaml_lines.append("      description: |")
             yaml_lines.append(f"        {formatted_desc}")
         else:
             yaml_lines.append(f"      description: {description}")
     
-    # Add placeholder for inputs (also apply DATA substitution)
     if field_type in ['input', 'textarea'] and placeholder:
         placeholder = substitute_data_placeholders(placeholder, data)
         yaml_lines.append(f"      placeholder: \"{placeholder}\"")
     
-    # Add options for dropdowns and multi-selects
     if field_type in ['dropdown', 'multi-select']:
         options_available = False
         
         if data_source != 'none' and data_source in data:
             source_data = data[data_source]
             
-            # Check if source_data has any options
             if source_data:
                 options_available = True
                 yaml_lines.append("      options:")
@@ -366,14 +283,11 @@ def generate_field_yaml(field_def, data, config):
                         safe_item = sanitize_option(item)
                         yaml_lines.append(f"        - \"{safe_item}\"")
         
-        # Warning if no options available for dropdown/multi-select
         if not options_available:
             print(f"    ⚠️  WARNING: No options available for dropdown field '{field_id}' (data_source: '{data_source}')")
-            # Add a placeholder option to prevent YAML errors
             yaml_lines.append("      options:")
             yaml_lines.append("        - \"No options available\"")
     
-    # Only add default for dropdown types (not input/textarea)
     if default_value and field_type in ['dropdown', 'multi-select']:
         yaml_lines.append(f"      default: {default_value}")
     
@@ -387,7 +301,6 @@ def generate_field_yaml(field_def, data, config):
 def generate_template_yaml(config, fields, data):
     """Generate complete YAML template."""
     
-    # Properly format the name and description - quote if contains special chars
     name = config['name']
     if ':' in name or '/' in name:
         name = f'"{name}"'
@@ -404,7 +317,6 @@ body:
 """
     
     for field_def in fields:
-        # Merge the config defaults into data if needed (e.g. issue category)
         if field_def['field_id'] not in data and field_def['field_id'] in config: 
             data[field_def['field_id']] = config[field_def['field_id']]
             
@@ -420,17 +332,12 @@ def validate_yaml(content):
         parsed = yaml.safe_load(content)
         return isinstance(parsed, dict) and 'name' in parsed and 'body' in parsed
     except Exception as e:
-        print(f"    YAML Parse Error: {e}")
-        return False
+        return False, str(e)
+    return True, None
 
 
 def check_template_files(template_name, template_dir):
-    """
-    Check that all required files exist for a template.
-    
-    Returns:
-        tuple: (csv_file, py_file, json_file) if all exist, None otherwise
-    """
+    """Check that all required files exist for a template."""
     csv_file = template_dir / f"{template_name}.csv"
     py_file = template_dir / f"{template_name}.py"
     json_file = template_dir / f"{template_name}.json"
@@ -456,20 +363,16 @@ def process_template(template_name, csv_file, py_file, json_file, output_dir):
     print(f"Processing {template_name}...")
     
     try:
-        # Load configuration from JSON (primary source)
         config = load_json_config(json_file)
-        
-        # Load data from Python file
         py_config, data = load_template_data(py_file)
         
-        # For backwards compatibility: if JSON config is missing fields,
-        # fall back to Python config
         for key in ['name', 'description', 'title', 'labels']:
             if key not in config and key in py_config:
                 config[key] = py_config[key]
         
         if 'name' not in config:
-            print(f"    No 'name' found in config")
+            failed.append((template_name, "No 'name' found in config"))
+            print(f"    ✗ No 'name' found in config")
             return False
         
         print(f"    Loaded: {config['name']}")
@@ -480,9 +383,15 @@ def process_template(template_name, csv_file, py_file, json_file, output_dir):
         
         yaml_content = generate_template_yaml(config, fields, data)
         
-        if not validate_yaml(yaml_content):
-            print(f"    Invalid YAML generated")
-            failed.append(yaml_content)
+        try:
+            parsed = yaml.safe_load(yaml_content)
+            if not (isinstance(parsed, dict) and 'name' in parsed and 'body' in parsed):
+                failed.append((template_name, "Invalid YAML structure"))
+                print(f"    ✗ Invalid YAML structure")
+                return False
+        except Exception as e:
+            failed.append((template_name, f"YAML parse error: {e}"))
+            print(f"    ✗ YAML parse error: {e}")
             return False
         
         output_file = output_dir / f"{template_name}.yml"
@@ -493,6 +402,7 @@ def process_template(template_name, csv_file, py_file, json_file, output_dir):
         return True
         
     except Exception as e:
+        failed.append((template_name, str(e)))
         print(f"    ✗ Error: {e}")
         import traceback
         traceback.print_exc()
@@ -530,7 +440,6 @@ def main():
     
     output_dir.mkdir(exist_ok=True)
     
-    # Find all CSV files (primary indicator of a template)
     csv_files = list(template_dir.glob('*.csv'))
     
     if args.template:
@@ -550,7 +459,6 @@ def main():
     for csv_file in csv_files:
         template_name = csv_file.stem
         
-        # Check all three files exist
         files = check_template_files(template_name, template_dir)
         if files is None:
             skipped_count += 1
@@ -563,11 +471,17 @@ def main():
             created.append(template_name)
     
     print("-" * 40)
-    print(f"Results: {success_count} successful, {skipped_count} skipped, {len(csv_files) - success_count - skipped_count} failed")
+    fail_count = len(csv_files) - success_count - skipped_count
+    print(f"Results: {success_count} successful, {skipped_count} skipped, {fail_count} failed")
     
-    for i in range(len(failed)):
-        print(f"\nFailed YAML {i+1}:\n")
-        print(failed[i])
+    if failed:
+        print("\n" + "=" * 60)
+        print("FAILED TEMPLATES:")
+        print("=" * 60)
+        for name, error in failed:
+            print(f"\n  ✗ {name}")
+            print(f"    Error: {error}")
+            print(f"    Retry: generate_templates --template {name}")
     
     # Generate documentation
     print("\n" + "=" * 60)
@@ -607,7 +521,6 @@ The following forms are available for this repository, and can be used to add or
                     if t in created:
                         created.remove(t)
         
-        # Create config.yml for GitHub
         output_file = output_dir / "config.yml"
         yaml_data = {
             "blank_issues_enabled": False,
