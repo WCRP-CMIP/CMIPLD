@@ -254,22 +254,22 @@ def generate_field_yaml(field_def, data, config):
                 yaml_lines.append("      options:")
                 
                 if options_type == 'dict_keys':
-                    for key in source_data.keys():
+                    for key in sorted(source_data.keys(), key=str.lower):
                         safe_key = sanitize_option(key)
                         yaml_lines.append(f"        - \"{safe_key}\"")
                 
                 elif options_type == 'list':
-                    for item in source_data:
+                    for item in sorted(source_data, key=lambda x: str(x).lower()):
                         safe_item = sanitize_option(item)
                         yaml_lines.append(f"        - \"{safe_item}\"")
                 
                 elif options_type in ['dict_multiple']:
-                    for key in source_data.keys():
+                    for key in sorted(source_data.keys(), key=str.lower):
                         safe_key = sanitize_option(key)
                         yaml_lines.append(f"        - \"{safe_key}\"")
                 
                 elif options_type == 'dict_with_extra':
-                    for key in source_data.keys():
+                    for key in sorted(source_data.keys(), key=str.lower):
                         safe_key = sanitize_option(key)
                         yaml_lines.append(f"        - \"{safe_key}\"")
                     yaml_lines.append("        - \"Open Source\"")
@@ -279,7 +279,7 @@ def generate_field_yaml(field_def, data, config):
                 elif options_type == 'list_with_na':
                     if field_id != 'issue_kind':
                         yaml_lines.append("        - \"Not specified\"")
-                    for item in source_data:
+                    for item in sorted(source_data, key=lambda x: str(x).lower()):
                         safe_item = sanitize_option(item)
                         yaml_lines.append(f"        - \"{safe_item}\"")
         
