@@ -24,14 +24,14 @@ runs:
       id: check
       shell: bash
       run: |
-        echo "## 🔗 Context URL Validation" >> $GITHUB_STEP_SUMMARY
+        echo "## Context URL Validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Find all context files
         CONTEXT_FILES=$(find . -name "_context" -o -name "_context.json" 2>/dev/null | grep -v node_modules | grep -v .git)
         
         if [ -z "$CONTEXT_FILES" ]; then
-          echo "No _context files found" >> $GITHUB_STEP_SUMMARY
+          echo "No _context files found." >> $GITHUB_STEP_SUMMARY
           echo "status=success" >> $GITHUB_OUTPUT
           echo "failed_count=0" >> $GITHUB_OUTPUT
           exit 0
@@ -62,47 +62,70 @@ runs:
         UNIQUE_URLS=$(echo $URLS | tr ' ' '\n' | sort -u | grep -v '^$')
         
         if [ -z "$UNIQUE_URLS" ]; then
-          echo "No external context URLs found" >> $GITHUB_STEP_SUMMARY
+          echo "No external context URLs found." >> $GITHUB_STEP_SUMMARY
           echo "status=success" >> $GITHUB_OUTPUT
           echo "failed_count=0" >> $GITHUB_OUTPUT
           exit 0
         fi
         
-        # Check each URL
-        echo "| URL | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-        
-        FAILED=0
+        # Check each URL and collect results
+        PASSED_URLS=""
         FAILED_URLS=""
+        FAILED=0
+        PASSED=0
         
         for url in $UNIQUE_URLS; do
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
           
           if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
-            echo "| \`$url\` | ✅ $HTTP_CODE |" >> $GITHUB_STEP_SUMMARY
+            PASSED_URLS="$PASSED_URLS| \`$url\` | $HTTP_CODE |\n"
+            PASSED=$((PASSED + 1))
           else
-            echo "| \`$url\` | ❌ $HTTP_CODE |" >> $GITHUB_STEP_SUMMARY
+            FAILED_URLS="$FAILED_URLS| \`$url\` | $HTTP_CODE |\n"
             FAILED=$((FAILED + 1))
-            FAILED_URLS="$FAILED_URLS- $url (HTTP $HTTP_CODE)\n"
           fi
         done
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        # Output results
+        if [ $PASSED -gt 0 ]; then
+          echo "### Accessible ($PASSED)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | HTTP Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------------|" >> $GITHUB_STEP_SUMMARY
+          printf "$PASSED_URLS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
         
         if [ $FAILED -gt 0 ]; then
-          echo "### ⚠️ Warning" >> $GITHUB_STEP_SUMMARY
+          echo "### Inaccessible ($FAILED)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**$FAILED context URL(s) failed validation.**" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | HTTP Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------------|" >> $GITHUB_STEP_SUMMARY
+          printf "$FAILED_URLS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Files in this repository that depend on these contexts will not resolve correctly." >> $GITHUB_STEP_SUMMARY
+          
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**$FAILED context URL(s) failed validation.** Files in this repository that depend on these contexts will not resolve correctly." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY
+          echo "- The upstream context server is temporarily unavailable" >> $GITHUB_STEP_SUMMARY
+          echo "- The URL is incorrect in the \`_context\` file" >> $GITHUB_STEP_SUMMARY
+          echo "- The external context has been moved or removed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**To resolve:** Review the URLs listed above and verify they are correct and accessible." >> $GITHUB_STEP_SUMMARY
+          
           echo "status=failure" >> $GITHUB_OUTPUT
           echo "failed_count=$FAILED" >> $GITHUB_OUTPUT
           printf '%s' "$FAILED_URLS" > /tmp/failed_urls.txt
         else
-          echo "✅ All context URLs are accessible" >> $GITHUB_STEP_SUMMARY
+          echo "All context URLs are accessible." >> $GITHUB_STEP_SUMMARY
           echo "status=success" >> $GITHUB_OUTPUT
           echo "failed_count=0" >> $GITHUB_OUTPUT
         fi
+        
+        # Always exit 0 - do not fail the workflow
+        exit 0
 
     - name: Create issue for failed contexts
       if: inputs.create-issue == 'true' && steps.check.outputs.status == 'failure'
@@ -138,7 +161,7 @@ runs:
           echo "Updated existing issue #$EXISTING"
         else
           gh issue create \
-            --title "⚠️ Context URL Validation Failed" \
+            --title "Context URL Validation Failed" \
             --body "$BODY" \
             --label "context-validation,automated" || echo "Could not create issue"
           echo "Created new issue"
