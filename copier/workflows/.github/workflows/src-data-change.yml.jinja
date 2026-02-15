@@ -3,6 +3,7 @@ description: Sync and process data from src-data to production
 
 permissions:
   contents: write
+  issues: write
   pages: write
   id-token: write
 
@@ -25,9 +26,12 @@ jobs:
           ref: {{ pages_branch }}
           fetch-depth: 0
           
-      - name: Fetch src-data branch
+      - name: Fetch all branches
         run: |
           git fetch origin src-data:src-data
+{% if has_docs_branch %}
+          git fetch origin docs:docs
+{% endif %}
 
       - name: Install CMIPLD
         run: |
@@ -45,15 +49,20 @@ jobs:
           rm -rf -- !(docs|summaries|.git|.github) || true
           echo "✓ Cleaned production branch"
 
-      - name: Copy from src-data branch
+      - name: Copy data from src-data branch
         run: |
-          echo "Restoring files from src-data..."
-          git restore --source origin/src-data --staged --worktree -- . || true
+          echo "Copying files from src-data..."
+          git checkout origin/src-data -- . 2>/dev/null || true
           
-          # Keep production's .gitignore (don't copy from src-data)
-          git restore --source HEAD --staged --worktree -- .gitignore 2>/dev/null || true
+          # Keep production's .gitignore
+          git checkout {{ pages_branch }} -- .gitignore 2>/dev/null || true
           
-          echo "✓ Copied from src-data (kept production .gitignore)"
+          echo "✓ Copied from src-data"
+
+      - name: Check context URLs
+        uses: ./.github/actions/check-contexts
+        with:
+          create-issue: 'false'
 {% if enable_graph_generation %}
 
       - name: Generate graphs (graphify)
@@ -79,25 +88,19 @@ jobs:
 {% endif %}
 {% if has_docs_branch %}
 
-      - name: Copy documentation sources from docs branch
+      - name: Copy mkdocs from docs branch
         run: |
-          echo "Fetching docs branch..."
-          git fetch origin docs:docs
-          
-          echo "Copying documentation sources from docs branch..."
-          # Only copy documentation-related paths, not vocabulary data
-          git restore --source origin/docs --staged --worktree -- src/ 2>/dev/null || true
-          git restore --source origin/docs --staged --worktree -- docs/ 2>/dev/null || true
-          git restore --source origin/docs --staged --worktree -- mkdocs.yml 2>/dev/null || true
-          
-          echo "✓ Documentation sources copied from docs branch"
+          echo "Copying mkdocs configuration from docs branch..."
+          git checkout origin/docs -- src/mkdocs 2>/dev/null && echo "✓ Copied src/mkdocs/" || echo "No src/mkdocs/ on docs branch"
+          git checkout origin/docs -- mkdocs.yml 2>/dev/null && echo "✓ Copied mkdocs.yml" || true
+          echo "Looking for mkdocs.yml:"
+          find . -name "mkdocs.yml" 2>/dev/null | head -5
       
       - name: Build MkDocs site
         continue-on-error: true
         run: |
-          # Find mkdocs.yml - check common locations
           MKDOCS_CONFIG=""
-          for config in "src/mkdocs/mkdocs.yml" "mkdocs.yml" "docs/mkdocs.yml"; do
+          for config in "src/mkdocs/mkdocs.yml" "mkdocs.yml" "mkdocs/mkdocs.yml" "docs/mkdocs.yml"; do
             if [ -f "$config" ]; then
               MKDOCS_CONFIG="$config"
               break
@@ -110,69 +113,49 @@ jobs:
           fi
           
           echo "Building MkDocs site from $MKDOCS_CONFIG..."
-          
-          # Find and install requirements
           MKDOCS_DIR=$(dirname "$MKDOCS_CONFIG")
           if [ -f "$MKDOCS_DIR/requirements.txt" ]; then
-            echo "Installing from $MKDOCS_DIR/requirements.txt..."
             pip install -r "$MKDOCS_DIR/requirements.txt"
           else
-            echo "Installing default MkDocs packages..."
             pip install mkdocs mkdocs-material
           fi
           
-          # Build to temporary 'build' folder
           rm -rf build
           mkdocs build -f "$MKDOCS_CONFIG" -d build
-          
-          # Clean up source files and old docs
-          rm -rf src docs
-          
-          # Move built site to docs
+          rm -rf src mkdocs
+          [ -d docs ] && rm -rf docs
           mv build docs
-          
-          echo "✓ Built MkDocs site - docs/ now contains the built site"
+          echo "✓ Built MkDocs site"
 {% endif %}
+
+      - name: Create root redirect to docs
+        run: |
+          if [ ! -f "index.html" ]; then
+            echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><link rel="canonical" href="docs/"><title>Redirecting...</title></head><body><p>Redirecting to <a href="docs/">documentation</a>...</p></body></html>' > index.html
+            echo "✓ Created root redirect to docs/"
+          else
+            echo "index.html already exists, skipping redirect"
+          fi
 
       - name: Check for changes
         id: check_changes
         run: |
           git add -A
-          
           if git diff --cached --quiet; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "No changes"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "Changes detected"
-            
-            # Generate summary of changes
             echo "## 📝 Files Changed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # Count changes
             ADDED=$(git diff --cached --name-only --diff-filter=A | wc -l)
             MODIFIED=$(git diff --cached --name-only --diff-filter=M | wc -l)
             DELETED=$(git diff --cached --name-only --diff-filter=D | wc -l)
-            
             echo "| Type | Count |" >> $GITHUB_STEP_SUMMARY
             echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "| ➕ Added | $ADDED |" >> $GITHUB_STEP_SUMMARY
             echo "| ✏️ Modified | $MODIFIED |" >> $GITHUB_STEP_SUMMARY
             echo "| 🗑️ Deleted | $DELETED |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # List files (limit to 50 to avoid huge summaries)
-            echo "<details><summary>File list (click to expand)</summary>" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            git diff --cached --name-status | head -50 >> $GITHUB_STEP_SUMMARY
-            TOTAL=$(git diff --cached --name-only | wc -l)
-            if [ "$TOTAL" -gt 50 ]; then
-              echo "... and $((TOTAL - 50)) more files" >> $GITHUB_STEP_SUMMARY
-            fi
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "</details>" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Commit changes

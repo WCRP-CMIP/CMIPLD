@@ -4,8 +4,9 @@ graphify - Generate JSON-LD graphs, RDF/Turtle, and visualization JSON
 
 This tool processes vocabulary directories to generate:
 1. JSON-LD graph files (_graph.json) - Collection of all entities
-2. RDF/Turtle files (_graph.ttl) - Semantic web format (if .ttl allowed)
-3. D3/Graphology JSON files - For visualization
+2. _context.json files (from _context if needed)
+3. RDF/Turtle files (_graph.ttl) - Semantic web format (if .ttl allowed)
+4. D3/Graphology JSON files - For visualization
    - _d3graph.json: Entity-level relationship graph
    - _d3structure.json: Folder-level structure graph
 
@@ -25,6 +26,7 @@ import sys
 import os
 import re
 import glob
+import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
@@ -145,6 +147,7 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
     
     Collects all JSON files in the directory and creates a Collection graph.
     Uses .json extension for compatibility with restrictive .gitignore patterns.
+    Also creates _context.json if only _context exists.
     """
     result = {
         "directory": vocab_dir.name,
@@ -164,6 +167,15 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
         
         with open(ctx_file, 'r') as f:
             ctx = json.load(f)
+        
+        # If context file doesn't have .json extension, create _context.json
+        if ctx_file.name == "_context":
+            ctx_json_file = vocab_dir / "_context.json"
+            with open(ctx_json_file, 'w') as f:
+                json.dump(ctx, f, indent=2)
+            result["files_created"].append("_context.json")
+            if verbose:
+                print(f"  ✓ _context.json (from _context)")
         
         # Collect all entity IDs
         ids = []

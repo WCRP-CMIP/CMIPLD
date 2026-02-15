@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from .locations import *
-from . import utils
 from jsonld_recursive import LdrClient
 import os
 import time
@@ -38,6 +37,9 @@ print("LDR client initialized.", flush=True)
 if not client._is_server_running():
     raise RuntimeError("There was a problem starting the JSON-LD Recursive server.")
 
+# Import utils AFTER client is initialized to avoid circular import
+from . import utils
+
 def get(url, depth=3):
     return client.compact(url, depth=depth)
 
@@ -56,13 +58,14 @@ def debug(url):
     """Print detailed debug info about a URL."""
     return client.debug_url(url)
     
-def map_current(prefix,path=None):
+def map_current(prefix_name, path=None):
     '''Local mapping for current repo using given prefix'''
-    if path is None:path = os.getcwd()+'/'
+    if path is None:
+        path = os.getcwd()+'/'
     # get all mappings
     mappings = client.get_mappings()
     # use the existing mapping for the prefix to create a new mapping
-    url = mappings[f'{prefix}:*'].replace('${rest}', '')
+    url = mappings[f'{prefix_name}:*'].replace('${rest}', '')
     mappings[f'{url}*'] = path + '${rest}'
     # update mappings
     client.set_mappings(mappings)
@@ -70,44 +73,5 @@ def map_current(prefix,path=None):
     
     
 def prefix():
-    myurl = utils.git.get_repo_url()
-    return reverse_direct.get(myurl,myurl)    
-    
-
-
-# # from pyld import jsonld
-
-# # from .utils.server_tools.offline import LD_server
-
-# # remap the requests links using prefixe mapping
-# from .utils.server_tools.monkeypatch_requests import RequestRedirector
-# redir = RequestRedirector({}, mapping)
-
-
-# from .utils.server_tools.loader import Loader
-# # Don't import everything from utils to avoid circular dependencies
-# # Import specific items as needed
-# from .utils.io import *
-# from .utils.write06 import *
-# from .utils.jsontools import *
-# from .utils import git 
-# from .utils.extract import *
-
-
-# loader = Loader(tries=3)
-
-
-
-# def reload(module=None):
-#     # nowork
-#     import sys
-#     if not module:
-#         module = sys.modules[__name__]
-
-#     import importlib
-#     del sys.modules[module.__name__]
-#     importlib.invalidate_caches()
-#     module = importlib.import_module(module.__name__)
-#     importlib.reload(module)
-#     print('Reloaded', module)
-
+    """Get the prefix for the current repository."""
+    return utils.git.get_prefix()
