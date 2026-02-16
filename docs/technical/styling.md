@@ -2,6 +2,8 @@
 
 The CSS architecture uses CSS custom properties and a consistent naming convention.
 
+> **Note:** This documentation uses `cv` as the example CSS prefix. Your project may use a different prefix configured via the copier template.
+
 ## File Structure
 
 ```
@@ -18,19 +20,19 @@ All colors and values use CSS custom properties in `:root`:
 ```css
 :root {
     /* Colors */
-    --{{ css_prefix }}-primary: #3b82f6;
-    --{{ css_prefix }}-primary-rgb: 59, 130, 246;
-    --{{ css_prefix }}-primary-light: #dbeafe;
-    --{{ css_prefix }}-primary-dark: #2563eb;
-    --{{ css_prefix }}-accent: #0ea5e9;
-    --{{ css_prefix }}-text: #1e293b;
-    --{{ css_prefix }}-text-secondary: #475569;
-    --{{ css_prefix }}-text-tertiary: #94a3b8;
-    --{{ css_prefix }}-bg: #ffffff;
-    --{{ css_prefix }}-bg-secondary: #f8fafc;
-    --{{ css_prefix }}-bg-tertiary: #f1f5f9;
-    --{{ css_prefix }}-border: #e2e8f0;
-    --{{ css_prefix }}-border-light: #f1f5f9;
+    --cv-primary: #3b82f6;
+    --cv-primary-rgb: 59, 130, 246;
+    --cv-primary-light: #dbeafe;
+    --cv-primary-dark: #2563eb;
+    --cv-accent: #0ea5e9;
+    --cv-text: #1e293b;
+    --cv-text-secondary: #475569;
+    --cv-text-tertiary: #94a3b8;
+    --cv-bg: #ffffff;
+    --cv-bg-secondary: #f8fafc;
+    --cv-bg-tertiary: #f1f5f9;
+    --cv-border: #e2e8f0;
+    --cv-border-light: #f1f5f9;
 }
 ```
 
@@ -40,31 +42,31 @@ Variables automatically adjust for dark mode:
 
 ```css
 .dark {
-    --{{ css_prefix }}-primary: #60a5fa;
-    --{{ css_prefix }}-primary-rgb: 96, 165, 250;
-    --{{ css_prefix }}-primary-light: rgba(59, 130, 246, 0.15);
-    --{{ css_prefix }}-primary-dark: #93c5fd;
-    --{{ css_prefix }}-text: #f1f5f9;
-    --{{ css_prefix }}-text-secondary: #cbd5e1;
-    --{{ css_prefix }}-text-tertiary: #64748b;
-    --{{ css_prefix }}-bg: #0f172a;
-    --{{ css_prefix }}-bg-secondary: #1e293b;
-    --{{ css_prefix }}-bg-tertiary: #334155;
-    --{{ css_prefix }}-border: #334155;
-    --{{ css_prefix }}-border-light: #1e293b;
+    --cv-primary: #60a5fa;
+    --cv-primary-rgb: 96, 165, 250;
+    --cv-primary-light: rgba(59, 130, 246, 0.15);
+    --cv-primary-dark: #93c5fd;
+    --cv-text: #f1f5f9;
+    --cv-text-secondary: #cbd5e1;
+    --cv-text-tertiary: #64748b;
+    --cv-bg: #0f172a;
+    --cv-bg-secondary: #1e293b;
+    --cv-bg-tertiary: #334155;
+    --cv-border: #334155;
+    --cv-border-light: #1e293b;
 }
 ```
 
 ## Class Naming
 
-All custom classes use the `{{ css_prefix }}-` prefix to avoid conflicts with the theme:
+All custom classes use the `cv-` prefix to avoid conflicts with the theme:
 
 | Prefix | Purpose |
 |--------|---------|
-| `{{ css_prefix }}-primary` | Primary color variable |
-| `{{ css_prefix }}-text-*` | Text color variants |
-| `{{ css_prefix }}-bg-*` | Background variants |
-| `{{ css_prefix }}-border-*` | Border variants |
+| `cv-primary` | Primary color variable |
+| `cv-text-*` | Text color variants |
+| `cv-bg-*` | Background variants |
+| `cv-border-*` | Border variants |
 
 ## Typography
 
@@ -116,12 +118,12 @@ All custom classes use the `{{ css_prefix }}-` prefix to avoid conflicts with th
 
 ```css
 :root {
-    --{{ css_prefix }}-success: #10b981;
-    --{{ css_prefix }}-success-light: #d1fae5;
+    --cv-success: #10b981;
+    --cv-success-light: #d1fae5;
 }
 
 .dark {
-    --{{ css_prefix }}-success-light: #065f46;
+    --cv-success-light: #065f46;
 }
 ```
 
@@ -131,7 +133,7 @@ Use `!important` sparingly to override shadcn defaults:
 
 ```css
 article a {
-    color: var(--{{ css_prefix }}-primary) !important;
+    color: var(--cv-primary) !important;
 }
 ```
 
@@ -177,7 +179,7 @@ This content is **markdown** and will be properly rendered.
 ### Styling
 
 Details/summary elements are styled with:
-- Summary text: `--{{ css_prefix }}-primary-dark` color
+- Summary text: `--cv-primary-dark` color
 - Chevron indicator that rotates on expand
 - Light background with subtle border
 - Proper spacing for nested content
