@@ -445,18 +445,7 @@ class MarkdownGenerator:
         # Use pydantic docstring if available, otherwise existing or placeholder
         description = existing_description or self.vocab.description or "_No description provided yet._"
         
-        # Generation date for badge (use underscores, shields.io friendly)
-        gen_date = datetime.utcnow().strftime("%Y_%m_%d")
-        
-        # Badges - all on one line with no line breaks
-        pydantic_badge = "![Pydantic](https://img.shields.io/badge/Pydantic-✓-green)" if self.vocab.pydantic_class else "![Pydantic](https://img.shields.io/badge/Pydantic-✗-red)"
-        type_encoded = urllib.parse.quote(self.vocab.type_uri, safe='')
-        
-        badge_line = f"![Generated](https://img.shields.io/badge/Generated-{gen_date}-708090) ![Type](https://img.shields.io/badge/Type-{type_encoded}-blue) {pydantic_badge} ![Files](https://img.shields.io/badge/Files-{len(self.vocab.json_files)}-lightgrey)"
-        
         return f'''# {self.vocab.display_name}
-
-{badge_line}
 
 {description}
 '''
@@ -468,19 +457,28 @@ class MarkdownGenerator:
         repo_url = self.urls.get('repo', '#')
         io_url = self.urls.get('io', '#')
         short = self.urls.get('short', 'N/A')
+        
         # Build contributing URL (main branch)
         contrib_url = repo_url.rstrip('/') + '/tree/main?tab=readme-ov-file#contributing'
         
-        return f'''## Quick Reference
+        # Generation date
+        gen_date = datetime.utcnow().strftime("%Y-%m-%d")
+        
+        # Pydantic status
+        pydantic_status = "✓ Validated" if self.vocab.pydantic_class else "✗ Not yet"
+        
+        return f'''## Reference
 
-| Property | Value |
-|----------|-------|
+| | |
+|---|---|
 | **Type URI** | `{self.vocab.type_uri}` |
-| **Prefix** | `{self.vocab.prefix}` |
+| **Entries** | {len(self.vocab.json_files)} |
+| **Validation** | {pydantic_status} |
 | **Pydantic Model** | {pydantic_info} |
 | **JSON-LD** | [`{short}`]({io_url}) |
-| **Repository** | [![View Source](https://img.shields.io/badge/GitHub-View_Source-blue?logo=github)]({content_url}) |
-| **Contribute** | [![Submit New / Edit Existing](https://img.shields.io/badge/Submit_New-Edit_Existing-grey?labelColor=orange&logo=github)]({contrib_url}) |
+| **Source** | [View on GitHub]({content_url}) |
+| **Contribute** | [Submit or Edit]({contrib_url}) |
+| **Generated** | {gen_date} |
 '''
 
     def _format_pydantic_info(self) -> str:
@@ -697,69 +695,24 @@ _No schema information available._
         
         return f'''## Usage
 
-<details markdown="1" open>
-<summary><strong>Online</strong></summary>
+**Direct Access:**
 
-| Resource | Link |
-|----------|------|
-| **Direct JSON** | [{example}.json]({content_url}/{example}.json) |
-| **Interactive Viewer** | [Open Viewer](https://wcrp-cmip.github.io/CMIPLD/viewer/index.html?uri={urllib.parse.quote(short, safe='')}/{example}) |
-| **Full URL** | [{io_url}/{example}.json]({io_url}/{example}.json) |
+- JSON: [`{io_url}/{example}.json`]({io_url}/{example}.json)
+- Viewer: [Open in CMIP-LD Viewer](https://wcrp-cmip.github.io/CMIPLD/viewer/index.html?uri={urllib.parse.quote(short, safe='')}/{example})
 
-</details>
-
-<details markdown="1">
-<summary><strong>cmipld</strong></summary>
+**Python (cmipld):**
 
 ```python
 import cmipld
-
-# Fetch and resolve a single record
 data = cmipld.get("{short}/{example}")
-print(data)
 ```
 
-</details>
-
-<details markdown="1">
-<summary><strong>esgvoc</strong></summary>
+**Python (esgvoc):**
 
 ```python
 from esgvoc.api import search
-
-# Search for terms in this vocabulary
 results = search.find("{self.vocab.name}", term="{example}")
-print(results)
 ```
-
-</details>
-
-<details markdown="1">
-<summary><strong>HTTP</strong></summary>
-
-```python
-import requests
-
-url = "{io_url}/{example}.json"
-response = requests.get(url)
-data = response.json()
-print(data)
-```
-
-</details>
-
-<details markdown="1">
-<summary><strong>CLI / Node / Web</strong></summary>
-
-```bash
-# Install
-npm install -g jsonld-recursive
-
-# Compact a JSON-LD document
-ldr compact {io_url}/{example}.json
-```
-
-</details>
 '''
 
     def generate_dependencies(self, dependencies: list) -> str:
