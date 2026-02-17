@@ -60,6 +60,7 @@ get_contributors = "cmipld.generate.get_contributors:main"  # Generate contribut
 cmipcopier = "cmipld.copier:main"  # Install/update copier templates
 graphify = "cmipld.generate.graphify:main"  # Generate JSON-LD graphs for vocabulary directories
 cmipworkflow = "cmipld.cli.workflow:main"  # Run GitHub Actions workflows
+cmip-contributor = "cmipld.cli.contributor:main"  # Get/assign file contributors by GitHub handle
 
 [tool.setuptools]
 packages = ["cmipld"]

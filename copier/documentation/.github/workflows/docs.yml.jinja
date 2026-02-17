@@ -99,6 +99,34 @@ jobs:
           echo "📌 Version: $VERSION"
 
       # ==========================================
+      # Start LDR Server
+      # ==========================================
+      - name: Initialize LDR Server
+        run: |
+          echo ""
+          echo "🔧 Starting LDR server..."
+          python3 -c "
+          import sys
+          import time
+          try:
+              import cmipld
+              print('✅ LDR server initialized and ready')
+              time.sleep(2)  # Give server time to fully start
+              # Verify server is responsive
+              try:
+                  cmipld.client.get_mappings()
+                  print('✅ LDR server verified responsive')
+              except Exception as e:
+                  print(f'⚠️  Warning: LDR server not responding: {e}', file=sys.stderr)
+                  print('   Scripts that depend on LDR may fail', file=sys.stderr)
+          except ImportError:
+              print('⚠️  cmipld not available - scripts requiring LDR will fail', file=sys.stderr)
+          except Exception as e:
+              print(f'❌ Failed to initialize LDR server: {e}', file=sys.stderr)
+          " || echo "⚠️  LDR server initialization had issues, continuing anyway..."
+          echo ""
+
+      # ==========================================
       # Build with MkDocs
       # ==========================================
       - name: Build documentation
