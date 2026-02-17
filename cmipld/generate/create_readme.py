@@ -451,7 +451,7 @@ class MarkdownGenerator:
 '''
 
     def generate_info_table(self) -> str:
-        """Generate the information reference table."""
+        """Generate the quick reference information table."""
         pydantic_info = self._format_pydantic_info()
         content_url = self.urls.get('content', '#')
         repo_url = self.urls.get('repo', '#')
@@ -467,7 +467,7 @@ class MarkdownGenerator:
         # Pydantic status
         pydantic_status = "✓ Validated" if self.vocab.pydantic_class else "✗ Not yet"
         
-        return f'''## Reference
+        return f'''## Quick Reference
 
 | | |
 |---|---|

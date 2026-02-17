@@ -23,9 +23,8 @@ _skip_if_exists:
   - ".copier-answers.yml"  # Don't overwrite main copier answers
   - ".copier-answers-workflows.yml"  # Don't overwrite workflows template answers
 
-# Files created once but never touched during updates
-_preserve_files:
-  - ".copier-answers-documentation.yml"    # Your saved answers
+# Note: .copier-answers-documentation.yml is managed by copier automatically
+# via the _answers_file directive - don't add it to _preserve_files
 
 # Exclude from copying entirely
 _exclude:
@@ -135,6 +134,11 @@ enable_scripts:
   type: bool
   help: "Enable Python scripts in docs/scripts/ to run during build"
   default: true
+
+use_cmip_logo:
+  type: bool
+  help: "Use CMIP logo in header (instead of generated icon)"
+  default: false
 
 css_prefix:
   type: str

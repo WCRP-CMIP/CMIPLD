@@ -207,7 +207,7 @@ function setupCollapsibleNav() {
   const isHomePage = currentPath === baseUrl || 
                      currentPath === baseUrl.replace(/\/$/, '') ||
                      currentPath.endsWith('/index.html') ||
-                     currentPath.match(/^\/[^\/]*\/?$/) !== null;
+                     currentPath === '/' + baseUrl.split('/').filter(Boolean)[0] + '/';
   
   groups.forEach((group, index) => {
     const label = group.querySelector('[data-slot="sidebar-group-label"]');
@@ -233,14 +233,16 @@ function setupCollapsibleNav() {
     // Check if any link in this group is active (current page)
     let hasActivePage = content.querySelector('a[data-active="true"]') !== null;
     
-    // Fallback: check if current URL matches any link in this group (exact match)
-    if (!hasActivePage && !isHomePage) {
+    // Fallback: check if current URL matches any link in this group
+    if (!hasActivePage) {
       const links = content.querySelectorAll('a[href]');
       for (const link of links) {
         const href = link.getAttribute('href');
-        const normalizedHref = href.replace(/\/$/, '').replace(/^\.\//, '');
-        const normalizedPath = currentPath.replace(/\/$/, '');
-        if (normalizedPath.endsWith(normalizedHref) || normalizedPath === normalizedHref) {
+        const normalizedHref = href.replace(/\/$/, '').replace(/^\.\//, '').replace(/^\//, '');
+        const normalizedPath = currentPath.replace(/\/$/, '').replace(/^\//, '');
+        if (normalizedPath.endsWith(normalizedHref) || 
+            normalizedPath === normalizedHref ||
+            normalizedPath.includes('/' + normalizedHref)) {
           hasActivePage = true;
           break;
         }
@@ -248,10 +250,10 @@ function setupCollapsibleNav() {
     }
     
     // On first run: set initial state
-    // Home page: all closed. Nested pages: open if contains active page
+    // If group contains active page, always expand it
     if (!label.dataset.collapsibleSetup) {
       label.classList.remove('expanded');
-      if (hasActivePage && !isHomePage) {
+      if (hasActivePage) {
         label.classList.add('expanded');
       }
     }
