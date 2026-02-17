@@ -51,12 +51,9 @@ def fix_html_links(site_dir, replacements):
                 
                 # Replace each prefixed name with clean name in URLs
                 for old_name, clean_name in replacements.items():
-                    # Match in href, src attributes and general paths
-                    content = re.sub(
-                        rf'(["\'/])({re.escape(old_name)})([/"\'])',
-                        rf'\1{clean_name}\3',
-                        content
-                    )
+                    # Simple string replacement - directory/file names are unique enough
+                    # This catches ALL occurrences in HTML (href, src, text, etc.)
+                    content = content.replace(old_name, clean_name)
                 
                 if content != original:
                     filepath.write_text(content, encoding='utf-8')
