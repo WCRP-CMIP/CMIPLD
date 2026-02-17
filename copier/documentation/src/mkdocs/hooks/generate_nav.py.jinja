@@ -35,13 +35,6 @@ def clean_title_file(filename):
     return name.replace('_', ' ').replace('-', ' ')
 
 
-def clean_path(path):
-    """Clean all numeric prefixes from a path."""
-    parts = path.split('/')
-    clean_parts = [clean_name(part) for part in parts]
-    return '/'.join(clean_parts)
-
-
 def get_sort_key(name):
     """Get sort key for ordering - works for both files and directories."""
     base = name.replace('.md', '').replace('.html', '')
@@ -110,8 +103,7 @@ def build_tree(docs_path, exclude=None):
             items.append({
                 'type': 'file',
                 'name': item.name,
-                'path': item.name,
-                'clean_path': clean_name(item.name),  # Add clean path for links
+                'path': item.name,  # Use original path with prefixes for MkDocs to find
                 'sort': get_sort_key(item.name)
             })
         elif item.is_dir():
@@ -143,8 +135,7 @@ def build_subtree(dir_path, base_path):
             items.append({
                 'type': 'file',
                 'name': item.name,
-                'path': str(rel).replace(os.sep, '/'),
-                'clean_path': clean_path(str(rel).replace(os.sep, '/')),  # Add clean path
+                'path': str(rel).replace(os.sep, '/'),  # Use original path with prefixes
                 'sort': get_sort_key(item.name)
             })
         elif item.is_dir():
@@ -161,12 +152,16 @@ def build_subtree(dir_path, base_path):
 
 
 def items_to_nav(items, nav_lines, indent=""):
-    """Convert items to nav lines, sorted by numerical prefix."""
+    """Convert items to nav lines, sorted by numerical prefix.
+    
+    Uses original paths (with numeric prefixes) so MkDocs can find the files.
+    The post_build hook will rename files and fix links after build completes.
+    """
     for item in sorted(items, key=lambda x: x['sort']):
         if item['type'] == 'file':
             title = clean_title_file(item['name'])
-            # Use clean_path instead of path for the link
-            nav_lines.append(f"{indent}- [{title}]({item['clean_path']})")
+            # Use original path so MkDocs can find the file during build
+            nav_lines.append(f"{indent}- [{title}]({item['path']})")
         else:
             title = clean_title_folder(item['name'])
             nav_lines.append(f'{indent}- {title}:')
@@ -174,7 +169,10 @@ def items_to_nav(items, nav_lines, indent=""):
 
 
 def generate_navigation(docs_path):
-    """Generate SUMMARY.md with clean paths (matching post-build URL cleaning)."""
+    """Generate SUMMARY.md with original paths (MkDocs needs to find source files).
+    
+    The post_build hook will rename files and update all links after build completes.
+    """
     items = build_tree(docs_path)
     nav_lines = []
     
