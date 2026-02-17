@@ -22,6 +22,13 @@ def clean_name(name):
     return re.sub(r'^\d+[-_.](?=\w)', '', name)
 
 
+def clean_path(path):
+    """Clean numeric prefixes from all components of a path."""
+    parts = path.split('/')
+    clean_parts = [clean_name(part) for part in parts]
+    return '/'.join(clean_parts)
+
+
 def clean_title_folder(name):
     """Convert folder name to display title - preserves original casing."""
     name = clean_name(name)
@@ -132,10 +139,11 @@ def build_subtree(dir_path, base_path):
         rel = item.relative_to(base_path)
         
         if item.is_file() and item.suffix in ('.md', '.html'):
+            original_path = str(rel).replace(os.sep, '/')
             items.append({
                 'type': 'file',
                 'name': item.name,
-                'path': str(rel).replace(os.sep, '/'),  # Use original path with prefixes
+                'path': clean_path(original_path),  # Clean ALL path components
                 'sort': get_sort_key(item.name)
             })
         elif item.is_dir():
