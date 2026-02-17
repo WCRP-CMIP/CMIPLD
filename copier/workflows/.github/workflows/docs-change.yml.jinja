@@ -75,6 +75,30 @@ jobs:
             pip install mkdocs mkdocs-material
           fi
           
+          # Start LDR server before any build processes
+          echo ""
+          echo "🔧 Starting LDR server..."
+          python3 -c "
+          import sys
+          import time
+          try:
+              import cmipld
+              print('✅ LDR server initialized and ready')
+              time.sleep(2)  # Give server time to fully start
+              # Verify server is responsive
+              try:
+                  cmipld.client.get_mappings()
+                  print('✅ LDR server verified responsive')
+              except Exception as e:
+                  print(f'⚠️  Warning: LDR server not responding: {e}', file=sys.stderr)
+                  print('   Scripts that depend on LDR may fail', file=sys.stderr)
+          except ImportError:
+              print('⚠️  cmipld not available - scripts requiring LDR will fail', file=sys.stderr)
+          except Exception as e:
+              print(f'❌ Failed to initialize LDR server: {e}', file=sys.stderr)
+          " || echo "⚠️  LDR server initialization had issues, continuing anyway..."
+          echo ""
+          
           # Run pre-build scripts (generates HTML/MD files before MkDocs scans)
           if [ -f "$MKDOCS_DIR/pre_build.py" ]; then
             echo "Running pre-build scripts..."
@@ -84,16 +108,25 @@ jobs:
           fi
           
           rm -rf build
-          mkdocs build -f "$MKDOCS_CONFIG" -d build
+          mkdocs build -f "$MKDOCS_CONFIG"
           
-          if [ -d "build" ]; then
-            rm -rf src mkdocs
-            [ -d docs ] && rm -rf docs
-            mv build docs
-            echo "Built MkDocs site to docs/"
+          # Find where mkdocs actually built to
+          if [ -d "src/mkdocs/site" ]; then
+            BUILD_DIR="src/mkdocs/site"
+          elif [ -d "site" ]; then
+            BUILD_DIR="site"
+          elif [ -d "build" ]; then
+            BUILD_DIR="build"
           else
-            echo "MkDocs build did not produce output"
+            echo "Error: Could not find built site directory"
+            exit 1
           fi
+          
+          echo "Found built site at: $BUILD_DIR"
+          rm -rf src mkdocs
+          [ -d docs ] && rm -rf docs
+          mv "$BUILD_DIR" docs
+          echo "Built MkDocs site to docs/"
 
       - name: Create root redirect to docs
         run: |
