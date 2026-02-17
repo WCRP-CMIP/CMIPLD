@@ -11,12 +11,17 @@ site_dir: site
 # Theme configuration
 theme:
   name: shadcn
+  custom_dir: overrides
   palette:
     primary: {{ header_color }}
     accent: {{ header_color }}
   show_stargazers: false
   favicon: assets/favicon.svg
+{% if use_cmip_logo %}
+  logo: assets/cmip-logo.svg
+{% else %}
   logo: assets/logo.svg
+{% endif %}
 
 # Plugins
 plugins:

@@ -317,11 +317,12 @@ def get_commits_since(since_date: str = None, branch: str = 'src-data', cwd: str
     cmd = [
         'git', 'log', branch,
         '--format=%H|%an|%ae|%aI|%s',
-        '--name-status'
+        '--name-status',
+        '--'  # Separate revisions from paths to avoid ambiguity
     ]
     
     if since_date:
-        cmd.append(f'--since={since_date}')
+        cmd.insert(-1, f'--since={since_date}')  # Insert before '--'
     
     output = run_git_command(cmd, cwd)
     if not output:

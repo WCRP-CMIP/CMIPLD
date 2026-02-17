@@ -5,7 +5,8 @@ CMIPLD Copier CLI - Install and update templates.
 Usage:
     cmipcopier list                   # List available templates
     cmipcopier documentation          # Install documentation template
-    cmipcopier documentation update   # Update existing documentation
+    cmipcopier documentation update   # Update existing documentation (interactive)
+    cmipcopier documentation update --force  # Update without prompts
     cmipcopier workflows              # Install workflows template
     cmipcopier workflows update       # Update existing workflows
 """
@@ -136,10 +137,9 @@ def install_template(template: str, destination: str = "."):
     print(f"Detected: {info['repo_owner']}/{info['repo_name']}")
     
     # Build copier command
-    # Use --overwrite to always overwrite files (not in _skip_if_exists)
-    # Use --defaults to use default values for questions
     cmd = [
         "copier", "copy",
+        "--trust",      # Allow template tasks to run
         "--overwrite",  # Overwrite files that exist
         "--defaults",   # Use defaults for unanswered questions
         template_path, destination,
@@ -178,8 +178,15 @@ def install_template(template: str, destination: str = "."):
         print(f"\n💡 To update: Run 'cmipcopier {template} update'")
 
 
-def update_template(template: str, destination: str = "."):
-    """Update an existing project from template."""
+def update_template(template: str, destination: str = ".", force: bool = False):
+    """Update an existing project from template.
+    
+    Args:
+        template: Template name
+        destination: Target directory
+        force: If True, use defaults without prompting (non-interactive)
+               If False, show all questions with pre-filled values (interactive)
+    """
     if template not in TEMPLATES:
         print(f"Error: Unknown template '{template}'")
         sys.exit(1)
@@ -202,25 +209,36 @@ def update_template(template: str, destination: str = "."):
         install_template(template, destination)
         return
     
-    # Clone template repo
+    # Clone/get template repo
     tmp_dir = clone_template()
     template_path = os.path.join(tmp_dir, "copier", template)
     
     print(f"Updating {template} template...")
     print(f"Using configuration from: {os.path.basename(answers_file)}")
     
-    # Use --overwrite to always overwrite workflow files
+    # Build command
     cmd = [
         "copier", "copy",
-        "--overwrite",  # Overwrite files that exist
-        "--defaults",   # Use defaults/answers file values
+        "--trust",
+        "--overwrite",
         "--answers-file", answers_file,
-        template_path, destination
+        template_path, 
+        destination,
     ]
+    
+    if force:
+        # Non-interactive: use defaults for any new questions
+        print("(Using --force: applying defaults for any new template options)")
+        cmd.insert(4, "--defaults")
+    else:
+        # Interactive: show all questions with pre-filled values
+        print("(Press Enter to accept pre-filled values, or type new values)")
+        print()
     
     run_command(cmd, check=False)
     
     print("\n✅ Template updated successfully!")
+    print(f"📝 Configuration saved to: {os.path.basename(answers_file)}")
 
 
 def main():
@@ -233,9 +251,9 @@ def main():
 Examples:
   cmipcopier list                   List available templates
   cmipcopier documentation          Install documentation template
-  cmipcopier documentation update   Update existing documentation
+  cmipcopier documentation update   Update (interactive - press Enter to accept)
+  cmipcopier documentation update --force   Update without prompts
   cmipcopier workflows              Install workflows template
-  cmipcopier workflows update       Update existing workflows
   cmipcopier workflows --local /path/to/CMIP-LD   Use local template
         """
     )
@@ -261,6 +279,11 @@ Examples:
         "-l", "--local",
         help="Use local CMIPLD repo path instead of cloning from GitHub"
     )
+    parser.add_argument(
+        "-f", "--force",
+        action="store_true",
+        help="For update: skip prompts and use defaults for new options"
+    )
     
     args = parser.parse_args()
     
@@ -272,7 +295,7 @@ Examples:
         return
     
     if args.action == "update":
-        update_template(args.template, args.destination)
+        update_template(args.template, args.destination, force=args.force)
     else:
         install_template(args.template, args.destination)
 
