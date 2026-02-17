@@ -136,32 +136,29 @@ def install_template(template: str, destination: str = "."):
     info = get_repo_info()
     print(f"Detected: {info['repo_owner']}/{info['repo_name']}")
     
-    # Build copier command
+    # Build copier command - ALWAYS interactive to ensure all answers are saved
     cmd = [
         "copier", "copy",
         "--trust",      # Allow template tasks to run
         "--overwrite",  # Overwrite files that exist
-        "--defaults",   # Use defaults for unanswered questions
         template_path, destination,
         "--data", f"repo_owner={info['repo_owner']}",
         "--data", f"repo_name={info['repo_name']}",
     ]
     
-    # If answers file exists, use it for configuration
+    # If answers file exists, use it for pre-filled values
     if os.path.exists(answers_file):
         print(f"Found existing configuration: {os.path.basename(answers_file)}")
-        print("Using saved answers (will overwrite workflow files)")
+        print("Values will be pre-filled (press Enter to accept)")
         cmd.extend(["--answers-file", answers_file])
     else:
         print(f"No existing configuration found")
-        print("Interactive mode: please answer questions")
-        # Remove --defaults for interactive mode
-        cmd.remove("--defaults")
+        print("Please answer the following questions:")
     
     if info["description"]:
         cmd.extend(["--data", f"description={info['description']}"])
     
-    print(f"Installing {template} template...")
+    print()
     run_command(cmd, check=False)
     
     print("\n✅ Template installed successfully!")
@@ -229,6 +226,7 @@ def update_template(template: str, destination: str = ".", force: bool = False):
     if force:
         # Non-interactive: use defaults for any new questions
         print("(Using --force: applying defaults for any new template options)")
+        print("⚠️  Note: New template options will use defaults and may not be saved")
         cmd.insert(4, "--defaults")
     else:
         # Interactive: show all questions with pre-filled values
@@ -252,7 +250,7 @@ Examples:
   cmipcopier list                   List available templates
   cmipcopier documentation          Install documentation template
   cmipcopier documentation update   Update (interactive - press Enter to accept)
-  cmipcopier documentation update --force   Update without prompts
+  cmipcopier documentation update --force   Update without prompts (uses defaults)
   cmipcopier workflows              Install workflows template
   cmipcopier workflows --local /path/to/CMIP-LD   Use local template
         """
