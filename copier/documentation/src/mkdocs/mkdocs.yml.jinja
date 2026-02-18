@@ -1,7 +1,6 @@
 site_name: {{ project_name }}
-# site_url: Uses ENV variable for flexibility - empty locally, full URL in production
-# This allows mike versioning to work in CI while keeping relative paths for local dev
-site_url: !ENV [SITE_URL, '{{ site_url }}']
+# site_url: Empty for relative paths - works at any deployment location (/project/, /custom/, etc.)
+site_url: '{{ site_url }}'
 repo_url: {{ repo_url }}
 repo_name: {{ repo_owner }}/{{ repo_name }}
 site_description: {{ description }}
@@ -9,6 +8,7 @@ site_author: {{ author_name }}
 
 docs_dir: ../../docs
 site_dir: site
+use_directory_urls: true  # Creates clean URLs like /page/ instead of /page.html
 
 # Theme configuration
 theme:
