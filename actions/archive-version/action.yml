@@ -1,0 +1,99 @@
+name: 'Archive Documentation Version'
+description: 'Archive built documentation to versions branch with date-based folder'
+
+inputs:
+  version:
+    description: 'Version string (v.yy.mm.dd)'
+    required: true
+  artifact-name:
+    description: 'Name of the artifact containing built docs'
+    required: false
+    default: 'docs-build'
+  versions-branch:
+    description: 'Branch to store version archives'
+    required: false
+    default: 'versions'
+  repository:
+    description: 'Repository (owner/name)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout or create versions branch
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # Try to checkout existing versions branch
+        if git ls-remote --heads origin ${{ inputs.versions-branch }} | grep -q ${{ inputs.versions-branch }}; then
+          echo "📥 Checking out existing versions branch..."
+          git clone --depth 1 --branch ${{ inputs.versions-branch }} \
+            https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.repository }}.git versions-repo
+        else
+          echo "🆕 Creating new versions branch..."
+          git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.repository }}.git versions-repo
+          cd versions-repo
+          git checkout --orphan ${{ inputs.versions-branch }}
+          git rm -rf . 2>/dev/null || true
+          echo "# Documentation Version Archive" > README.md
+          echo "" >> README.md
+          echo "This branch contains archived versions of the documentation." >> README.md
+          echo "" >> README.md
+          echo "## Versions" >> README.md
+          echo "" >> README.md
+          git add README.md
+          git commit -m "Initialize versions branch"
+          git push origin ${{ inputs.versions-branch }}
+          cd ..
+        fi
+
+    - name: Configure Git
+      shell: bash
+      working-directory: versions-repo
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
+    - name: Download docs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: docs-artifact
+
+    - name: Archive version
+      shell: bash
+      working-directory: versions-repo
+      run: |
+        VERSION="${{ inputs.version }}"
+        echo "📁 Archiving version $VERSION to versions branch..."
+        
+        # Remove old version if it exists (same-day updates)
+        if [ -d "$VERSION" ]; then
+          echo "  Replacing existing $VERSION..."
+          rm -rf "$VERSION"
+        fi
+        
+        # Create version directory and copy docs
+        mkdir -p "$VERSION"
+        cp -r ../docs-artifact/* "$VERSION"/
+        
+        # Update README with version list
+        if ! grep -q "- $VERSION" README.md 2>/dev/null; then
+          echo "- [$VERSION]($VERSION/) - $(date +'%Y-%m-%d %H:%M UTC')" >> README.md
+        fi
+        
+        echo "✅ Version $VERSION ready"
+
+    - name: Commit and push
+      shell: bash
+      working-directory: versions-repo
+      run: |
+        git add .
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "📚 Archive version ${{ inputs.version }}"
+          git push origin ${{ inputs.versions-branch }}
+          echo "✅ Pushed version ${{ inputs.version }} to ${{ inputs.versions-branch }} branch"
+        else
+          echo "ℹ️  No changes to commit"
+        fi
