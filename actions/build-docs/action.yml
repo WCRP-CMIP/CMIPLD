@@ -43,6 +43,12 @@ runs:
       run: |
         echo "📥 Fetching docs source from ${{ inputs.docs-branch }} branch..."
         git fetch origin ${{ inputs.docs-branch }}:${{ inputs.docs-branch }}
+        
+        # CRITICAL: Delete old docs/ and src/ first to prevent mixing
+        echo "🧹 Removing old docs/ and src/..."
+        rm -rf docs/ src/
+        
+        # Now copy fresh from docs branch
         git checkout origin/${{ inputs.docs-branch }} -- docs/ src/
         echo "✅ Docs source ready"
 
