@@ -151,7 +151,7 @@ css_prefix:
 
 site_url:
   type: str
-  default: ''  # Empty for relative paths - works with any deployment path
+  default: "https://{{ repo_owner }}.github.io/{{ repo_name }}/"
   when: false
 
 repo_url:

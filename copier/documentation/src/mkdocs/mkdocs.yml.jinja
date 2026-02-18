@@ -1,6 +1,7 @@
 site_name: {{ project_name }}
-# site_url: empty for relative navigation (works at any deployment path: /, /emd/, etc.)
-site_url: {{ site_url }}
+# site_url: Uses ENV variable for flexibility - empty locally, full URL in production
+# This allows mike versioning to work in CI while keeping relative paths for local dev
+site_url: !ENV [SITE_URL, '{{ site_url }}']
 repo_url: {{ repo_url }}
 repo_name: {{ repo_owner }}/{{ repo_name }}
 site_description: {{ description }}
