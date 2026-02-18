@@ -101,7 +101,11 @@ runs:
         git add .
         if [ -n "$(git status --porcelain)" ]; then
           git commit -m "📚 Archive version ${{ inputs.version }}"
+          
+          # Pull first in case of concurrent updates, then push
+          git pull --rebase origin ${{ inputs.versions-branch }} || true
           git push origin ${{ inputs.versions-branch }}
+          
           echo "✅ Pushed version ${{ inputs.version }} to ${{ inputs.versions-branch }} branch"
         else
           echo "ℹ️  No changes to commit"
