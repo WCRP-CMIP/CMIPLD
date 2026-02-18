@@ -78,6 +78,13 @@ runs:
         echo "$VERSION" > docs/.version
         echo "📌 Version: $VERSION"
 
+    - name: Upload docs artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-build
+        path: docs/
+        retention-days: 90
+
     - name: Commit to production
       shell: bash
       run: |
