@@ -8,7 +8,7 @@ A lightweight [Copier](https://copier.readthedocs.io/) template for creating MkD
 - 🔗 **Custom Links** - Add external links to sidebar via `links.yml`
 - 🐍 **Script Support** - Run Python scripts during build
 - 🎨 **Theme Colors** - Choose from Material Design color palette
-- 📌 **Versioning** - Manual version deployment with mike
+- 🔄 **Auto-redirect** - Root redirects to docs/ automatically
 
 ## Quick Start
 
@@ -101,59 +101,16 @@ mkdocs serve
 mkdocs build
 ```
 
-## Versioning with Mike
+## Version Tracking
 
-Mike allows you to deploy multiple versions of your documentation.
-
-### Auto-versioning (recommended)
-
-The template includes auto-versioning that:
-- Tracks version in `docs/.version`
-- Auto-increments patch version when `.md` files change
-- Only deploys on production branches (main/master)
+The template tracks documentation versions in `docs/.version` file.
+This is automatically updated with the current date (v.yy.mm.dd) during deployment.
 
 ```bash
-# Check status
-python docs/scripts/auto_version.py --status
-
-# Auto-deploy (bumps patch if .md files changed)
-python docs/scripts/auto_version.py
-
-# Force deploy
-python docs/scripts/auto_version.py --force
-
-# Bump minor/major version and deploy
-python docs/scripts/auto_version.py --bump minor --deploy
-python docs/scripts/auto_version.py --bump major --deploy
+# Version is auto-generated during build
+cat docs/.version
+# Output: v.26.02.18
 ```
-
-### Auto-deploy on build
-
-Enable auto-versioning during mkdocs build:
-
-```bash
-AUTO_VERSION=1 mkdocs build
-```
-
-### Manual deployment
-
-```bash
-# Deploy specific version
-python docs/scripts/deploy_version.py v1.0 --latest --push
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `auto_version.py --status` | Show current version status |
-| `auto_version.py` | Auto-deploy if .md files changed |
-| `auto_version.py --force` | Force deploy current version |
-| `auto_version.py --bump patch` | Bump patch version |
-| `auto_version.py --bump minor --deploy` | Bump minor and deploy |
-| `auto_version.py --bump major --deploy` | Bump major and deploy |
-| `deploy_version.py v1.0 --latest --push` | Manual deploy specific version |
-| `deploy_version.py --list` | List all versions |
 
 ## Demo Configuration
 
