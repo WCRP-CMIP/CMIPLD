@@ -30,10 +30,19 @@ runs:
           echo "📥 Checking out existing versions branch..."
           git clone --depth 1 --branch ${{ inputs.versions-branch }} \
             https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.repository }}.git versions-repo
+          cd versions-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          cd ..
         else
           echo "🆕 Creating new versions branch..."
           git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/${{ inputs.repository }}.git versions-repo
           cd versions-repo
+          
+          # Configure git BEFORE any commits
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
           git checkout --orphan ${{ inputs.versions-branch }}
           git rm -rf . 2>/dev/null || true
           echo "# Documentation Version Archive" > README.md
