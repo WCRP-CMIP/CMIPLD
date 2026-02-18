@@ -438,18 +438,24 @@ function updateFooter() {
     main.appendChild(footer);
   }
   
-  // Add attribution
+  // Add attribution to docs div (not always visible - only appears at bottom after scrolling)
   if (!document.querySelector('.footer-attribution')) {
-    const attribution = document.createElement('div');
-    attribution.className = 'footer-attribution';
-    attribution.innerHTML = `
-      <p>
-        Built by <a href="https://github.com/wolfiex">Daniel Ellis</a>
-        for <a href="https://wcrp-cmip.org">WCRP-CMIP</a>
-        using the <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn</a> theme.
-      </p>
-    `;
-    document.body.appendChild(attribution);
+    const docsDiv = document.querySelector('[data-slot="docs"]');
+    if (docsDiv) {
+      // Ensure docs div has minimum height
+      docsDiv.style.minHeight = '85vh';
+      
+      const attribution = document.createElement('div');
+      attribution.className = 'footer-attribution';
+      attribution.innerHTML = `
+        <p>
+          Built by <a href="https://github.com/wolfiex">Daniel Ellis</a>
+          for <a href="https://wcrp-cmip.org">WCRP-CMIP</a>
+          using the <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn</a> theme.
+        </p>
+      `;
+      docsDiv.appendChild(attribution);
+    }
   }
 }
 
