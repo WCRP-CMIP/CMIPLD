@@ -23,6 +23,12 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Configure Git
+      shell: bash
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
