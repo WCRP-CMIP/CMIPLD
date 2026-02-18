@@ -58,12 +58,9 @@ if not scripts_dir:
 else:
     print(f"📁 Found scripts directory: {scripts_dir}")
     
-    # Find all Python scripts
+    # Find all Python scripts (skip files starting with _)
     scripts = sorted(scripts_dir.glob("*.py"))
     scripts = [s for s in scripts if not s.name.startswith('_')]
-    
-    # Exclude version management scripts (called by post_build hook if AUTO_VERSION is set)
-    scripts = [s for s in scripts if s.name not in ('auto_version.py', 'deploy_version.py')]
     
     if not scripts:
         print("ℹ️  No Python scripts found in docs/scripts/")
