@@ -159,7 +159,7 @@ def build_subtree(dir_path, base_path):
     return items
 
 
-def items_to_nav(items, nav_lines, indent=""):
+def items_to_nav(items, nav_lines, indent="", base_path=None):
     """Convert items to nav lines, sorted by numerical prefix.
     
     Uses original paths (with numeric prefixes) so MkDocs can find the files.
@@ -172,8 +172,20 @@ def items_to_nav(items, nav_lines, indent=""):
             nav_lines.append(f"{indent}- [{title}]({item['path']})")
         else:
             title = clean_title_folder(item['name'])
-            nav_lines.append(f'{indent}- {title}:')
-            items_to_nav(item['children'], nav_lines, indent + "  ")
+            # Check if folder has index.md - if so, make section header a link
+            if base_path:
+                folder_path = base_path / item['name']
+                if (folder_path / 'index.md').exists():
+                    # Section with index - make it a clickable link
+                    index_path = f"{item['name']}/index.md"
+                    nav_lines.append(f'{indent}- [{title}]({index_path})')
+                else:
+                    # Section without index - just a header
+                    nav_lines.append(f'{indent}- {title}:')
+            else:
+                # No base_path provided, use section header
+                nav_lines.append(f'{indent}- {title}:')
+            items_to_nav(item['children'], nav_lines, indent + "  ", base_path)
 
 
 def generate_navigation(docs_path):
@@ -196,7 +208,7 @@ def generate_navigation(docs_path):
     if index_item:
         nav_lines.append('- [Home](index.md)')
     
-    items_to_nav(other_items, nav_lines, "")
+    items_to_nav(other_items, nav_lines, "", docs_path)
     
 
     links = parse_links_file(docs_path)
