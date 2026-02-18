@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Generate contributors tracking file and HTML page.
+Generate contributors tracking file and optional HTML/Markdown pages.
 
-Tracks all contributors per file/folder from git history on src-data branch.
-Creates .contributors JSON file and contributors.html page.
+Tracks all contributors per file/folder from git history.
+Always creates .contributors JSON file.
+Optionally creates HTML page (--html) and/or Markdown page (--md).
 """
 
 import json
@@ -924,7 +925,7 @@ def main():
     parser.add_argument('--branch', default=None, help='Single branch to analyze (overrides default)')
     parser.add_argument('--branches', nargs='+', default=['src-data', 'docs'], help='Multiple branches to analyze (default: src-data docs)')
     parser.add_argument('--output', default='.contributors', help='Output JSON file (default: .contributors)')
-    parser.add_argument('--html', default='contributors.html', help='Output HTML file (default: contributors.html)')
+    parser.add_argument('--html', default=None, help='Output HTML file (optional, e.g., contributors.html)')
     parser.add_argument('--md', default=None, help='Output Markdown file (e.g., CONTRIBUTORS.md)')
     parser.add_argument('--full', action='store_true', help='Full scan (ignore existing .contributors)')
     parser.add_argument('--recheck-orcid', action='store_true', help='Re-fetch profiles for contributors without ORCID (tries social accounts API)')
@@ -943,7 +944,6 @@ def main():
         branches_to_check = args.branches
     
     contributors_path = os.path.join(repo_root, args.output)
-    html_path = os.path.join(repo_root, args.html)
     
     # Get repo info for GitHub API lookups and project name
     owner, repo = get_repo_info_from_remote(repo_root)
@@ -1004,9 +1004,11 @@ def main():
     print(f"  ({len(data.get('username_mappings', {}))} username mappings cached)")
     print(f"  ({len(data.get('user_profiles', {}))} user profiles cached)")
     
-    # Generate HTML
-    generate_html(data, html_path, project_name)
-    print(f"Generated {html_path}")
+    # Generate HTML if requested
+    if args.html:
+        html_path = os.path.join(repo_root, args.html)
+        generate_html(data, html_path, project_name)
+        print(f"Generated {html_path}")
     
     # Generate Markdown if requested
     if args.md:
