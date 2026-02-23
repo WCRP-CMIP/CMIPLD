@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_changes: {% raw %}${{ steps.check_changes.outputs.has_changes }}{% endraw %}
-    
+
     steps:
       - name: Checkout production branch
         uses: actions/checkout@v4
         with:
           ref: {{ pages_branch }}
           fetch-depth: 0
-          
+
       - name: Fetch docs branch
         run: git fetch origin docs:docs
 
@@ -36,105 +36,85 @@ jobs:
 
       - name: Copy docs source from docs branch
         run: |
-          echo "Copying documentation source from docs branch..."
-          
-          # Copy entire src folder (contains mkdocs config and docs source)
           git checkout origin/docs -- src 2>/dev/null && echo "Copied src/" || echo "No src/ on docs branch"
-          
-          # Also check for standalone mkdocs.yml or docs folder
-          git checkout origin/docs -- mkdocs.yml 2>/dev/null && echo "Copied mkdocs.yml" || true
           git checkout origin/docs -- docs 2>/dev/null && echo "Copied docs/" || true
-          
-          echo ""
-          echo "Documentation structure:"
-          find . -name "mkdocs.yml" 2>/dev/null
-          ls -la src/ 2>/dev/null || true
 
-      - name: Build MkDocs site
-        continue-on-error: true
+      - name: Install Node LDR server
+        run: npm i -g jsonld-recursive
+
+      - name: Install Python dependencies
         run: |
-          MKDOCS_CONFIG=""
-          for config in "src/mkdocs/mkdocs.yml" "mkdocs.yml" "mkdocs/mkdocs.yml" "docs/mkdocs.yml"; do
-            if [ -f "$config" ]; then
-              MKDOCS_CONFIG="$config"
-              break
-            fi
-          done
-          
-          if [ -z "$MKDOCS_CONFIG" ]; then
-            echo "No mkdocs.yml found, skipping MkDocs build"
-            exit 0
-          fi
-          
-          echo "Building MkDocs site from $MKDOCS_CONFIG..."
           python -m pip install --upgrade pip
-          MKDOCS_DIR=$(dirname "$MKDOCS_CONFIG")
+          MKDOCS_DIR="$GITHUB_WORKSPACE/src/mkdocs"
           if [ -f "$MKDOCS_DIR/requirements.txt" ]; then
             pip install -r "$MKDOCS_DIR/requirements.txt"
           else
-            pip install mkdocs mkdocs-material
+            pip install mkdocs mkdocs-material cmipld
           fi
-          
-          # Start LDR server before any build processes
+
+      - name: Pre-build diagnostics
+        # Show current branch, cwd, and vocab dirs so we can verify
+        # map_current() will find the right files at GITHUB_WORKSPACE
+        run: |
+          echo "## Pre-build diagnostics" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** $(git -C $GITHUB_WORKSPACE rev-parse --abbrev-ref HEAD)" >> $GITHUB_STEP_SUMMARY
+          echo "**CWD:** $(pwd)" >> $GITHUB_STEP_SUMMARY
+          echo "**GITHUB_WORKSPACE:** $GITHUB_WORKSPACE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Root files:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -la "$GITHUB_WORKSPACE" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "### Vocabulary directories (must be present for map_current):" >> $GITHUB_STEP_SUMMARY
+          for dir in "$GITHUB_WORKSPACE"/*/; do
+            if [ -f "${dir}_context" ] || [ -f "${dir}_context.json" ]; then
+              n=$(find "$dir" -maxdepth 1 -name "*.json" ! -name "_*" | wc -l)
+              echo "- \`$(basename $dir)/\` ($n entries)" >> $GITHUB_STEP_SUMMARY
+              echo "  $(basename $dir)/: $n entries"
+            fi
+          done
           echo ""
-          echo "🔧 Starting LDR server..."
-          python3 -c "
-          import sys
-          import time
-          try:
-              import cmipld
-              print('✅ LDR server initialized and ready')
-              time.sleep(2)  # Give server time to fully start
-              # Verify server is responsive
-              try:
-                  cmipld.client.get_mappings()
-                  print('✅ LDR server verified responsive')
-              except Exception as e:
-                  print(f'⚠️  Warning: LDR server not responding: {e}', file=sys.stderr)
-                  print('   Scripts that depend on LDR may fail', file=sys.stderr)
-          except ImportError:
-              print('⚠️  cmipld not available - scripts requiring LDR will fail', file=sys.stderr)
-          except Exception as e:
-              print(f'❌ Failed to initialize LDR server: {e}', file=sys.stderr)
-          " || echo "⚠️  LDR server initialization had issues, continuing anyway..."
-          echo ""
-          
-          # Run pre-build scripts (generates HTML/MD files before MkDocs scans)
-          if [ -f "$MKDOCS_DIR/pre_build.py" ]; then
-            echo "Running pre-build scripts..."
-            cd "$MKDOCS_DIR"
-            python pre_build.py
-            cd - > /dev/null
-          fi
-          
-          rm -rf build
-          mkdocs build -f "$MKDOCS_CONFIG"
-          
-          # Find where mkdocs actually built to
-          if [ -d "src/mkdocs/site" ]; then
-            BUILD_DIR="src/mkdocs/site"
-          elif [ -d "site" ]; then
-            BUILD_DIR="site"
-          elif [ -d "build" ]; then
-            BUILD_DIR="build"
-          else
-            echo "Error: Could not find built site directory"
-            exit 1
-          fi
-          
-          echo "Found built site at: $BUILD_DIR"
-          rm -rf src mkdocs
-          [ -d docs ] && rm -rf docs
-          mv "$BUILD_DIR" docs
+          echo "Branch: $(git -C $GITHUB_WORKSPACE rev-parse --abbrev-ref HEAD)"
+          echo "CWD: $(pwd)"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+
+      - name: Start LDR server
+        run: |
+          ldr server stop 2>/dev/null || true
+          ldr server start
+          echo "LDR server started"
+
+      - name: Build MkDocs site
+        # Run from GITHUB_WORKSPACE (repo root) with absolute config path.
+        # Pre-build scripts are invoked by the gen-files plugin inside mkdocs build.
+        # run_scripts.py uses GITHUB_WORKSPACE to chdir before calling map_current().
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          mkdocs build -f "$GITHUB_WORKSPACE/src/mkdocs/mkdocs.yml"
+
+          BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/site"
+          if [ ! -d "$BUILD_DIR" ]; then BUILD_DIR="$GITHUB_WORKSPACE/site"; fi
+          if [ ! -d "$BUILD_DIR" ]; then echo "Error: no built site dir"; exit 1; fi
+
+          echo "Built site at: $BUILD_DIR"
+          rm -rf "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/mkdocs"
+          [ -d "$GITHUB_WORKSPACE/docs" ] && rm -rf "$GITHUB_WORKSPACE/docs"
+          mv "$BUILD_DIR" "$GITHUB_WORKSPACE/docs"
           echo "Built MkDocs site to docs/"
 
-      - name: Create root redirect to docs
+      - name: Generate root redirect
         run: |
-          if [ ! -f "index.html" ]; then
-            echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=docs/"><link rel="canonical" href="docs/"><title>Redirecting...</title></head><body><p>Redirecting to <a href="docs/">documentation</a>...</p></body></html>' > index.html
-            echo "Created root redirect to docs/"
-          else
-            echo "index.html already exists, skipping redirect"
+          cd "$GITHUB_WORKSPACE"
+          if [ -f "$GITHUB_WORKSPACE/docs/scripts/create_redirect.py" ]; then
+            python "$GITHUB_WORKSPACE/docs/scripts/create_redirect.py"
+          elif [ ! -f "$GITHUB_WORKSPACE/index.html" ]; then
+            python3 -c "
+          open('index.html','w').write(
+            '<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">'
+            '<meta http-equiv=\"refresh\" content=\"3; url=docs/\">'
+            '<title>Redirecting...</title></head>'
+            '<body><p>Redirecting to <a href=\"docs/\">documentation</a>...</p></body></html>'
+          )"
           fi
 
       - name: Check for changes
@@ -143,10 +123,8 @@ jobs:
           git add -A
           if git diff --cached --quiet; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No documentation changes"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Documentation changes detected"
             echo "## Documentation Changes" >> $GITHUB_STEP_SUMMARY
             ADDED=$(git diff --cached --name-only --diff-filter=A | wc -l)
             MODIFIED=$(git diff --cached --name-only --diff-filter=M | wc -l)
@@ -159,7 +137,7 @@ jobs:
           fi
 
       - name: Commit changes
-        if: steps.check_changes.outputs.has_changes == 'true'
+        if: {% raw %}${{ steps.check_changes.outputs.has_changes == 'true' }}{% endraw %}
         run: |
           git commit -m "Update documentation from docs branch"
           git push origin {{ pages_branch }}
@@ -167,7 +145,7 @@ jobs:
 
   deploy:
     needs: build_and_deploy
-    if: needs.build_and_deploy.outputs.has_changes == 'true'
+    if: {% raw %}${{ needs.build_and_deploy.outputs.has_changes == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
     permissions:
       contents: read

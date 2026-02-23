@@ -16,7 +16,7 @@ CONFIG_FILE = SCRIPT_DIR / "summaries_config.py"
 
 # Early exit if no config
 if not CONFIG_FILE.exists():
-    print("ℹ️  No summaries_config.py found - skipping summary generation")
+    print("  No summaries_config.py found - skipping summary generation")
     sys.exit(0)
 
 # Only import dependencies if config exists
@@ -38,11 +38,11 @@ def load_config():
 def format_value(value, key=None, max_length=50):
     """Format a value for markdown table display."""
     if value is None or value == "" or value == "none":
-        return "*—*"
+        return "**"
     
     if isinstance(value, list):
         if len(value) == 0:
-            return "*—*"
+            return "**"
         formatted = ", ".join(
             str(v.get('validation_key', v) if isinstance(v, dict) else v) 
             for v in value[:3]
@@ -61,7 +61,9 @@ def format_value(value, key=None, max_length=50):
 
 
 def get_id(item, id_field='validation_key'):
-    """Extract ID from item."""
+    """Extract ID from item. Guards against bare strings slipping through."""
+    if not isinstance(item, dict):
+        return str(item)
     if id_field and id_field in item:
         return item[id_field]
     return item.get('validation_key') or item.get('@id', '').split('/')[-1] or 'unknown'
@@ -224,7 +226,7 @@ def main():
     print("-" * 40)
     total = sum(v for v in stats.values() if v)
     successful = len([v for v in stats.values() if v])
-    print(f"✓ Generated {successful} summary pages ({total} total records)")
+    print(f" Generated {successful} summary pages ({total} total records)")
 
 
 if __name__ == "__main__":

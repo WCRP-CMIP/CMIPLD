@@ -167,8 +167,9 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
         
         with open(ctx_file, 'r') as f:
             ctx = json.load(f)
-        
-        # If context file doesn't have .json extension, create _context.json
+
+        # Create _context.json only when the source file has no .json extension
+        # Guard against double-extension: _context.json → _context.json.json
         if ctx_file.name == "_context":
             ctx_json_file = vocab_dir / "_context.json"
             with open(ctx_json_file, 'w') as f:
@@ -176,48 +177,56 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
             result["files_created"].append("_context.json")
             if verbose:
                 print(f"  ✓ _context.json (from _context)")
-        
-        # Collect all entity IDs
+
+        # Collect all entity IDs from *.json files
+        # Also scan extensionless files that are valid JSON (production branch
+        # strips .json extensions via prepublish scripts)
         ids = []
-        for json_file in glob.glob(str(vocab_dir / "*.json")):
+        candidates = (
+            list(glob.glob(str(vocab_dir / "*.json"))) +
+            [str(p) for p in vocab_dir.iterdir()
+             if p.is_file() and '.' not in p.name and not p.name.startswith('_')]
+        )
+        for json_file in candidates:
             basename = os.path.basename(json_file)
             if basename.startswith("_"):
                 continue
-            
             try:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
                 if "@id" in data:
                     ids.append(data["@id"])
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
                 continue
-        
+
         result["entity_count"] = len(ids)
-        
+
         # Create graph document
         graph = {
             "@context": ctx.get("@context", ctx),
             "@type": ["Collection"],
             "contents": [{"@id": i} for i in ids]
         }
-        
-        # Write graph file (compact format for @id references)
-        # Use .json extension for gitignore compatibility
-        graph_file = vocab_dir / "_graph.json"
+
         graph_json = json.dumps(graph, indent=2)
-        # Compact single-key objects
+        # Compact single-key objects onto one line
         graph_json = re.sub(
             r'\{\s+"@id":\s+"([^"]+)"\s+\}',
             r'{"@id": "\1"}',
             graph_json
         )
-        
-        with open(graph_file, 'w') as f:
-            f.write(graph_json)
-        result["files_created"].append("_graph.json")
-        
+
+        # Write _graph.jsonld (canonical name, matches src-data convention and
+        # what ldr / emd.mipcvs.dev serves) AND _graph.json (alias, for local
+        # cmipld.get() calls and gitignore-friendly environments)
+        for out_name in ["_graph.jsonld", "_graph.json"]:
+            out_file = vocab_dir / out_name
+            with open(out_file, 'w') as f:
+                f.write(graph_json)
+            result["files_created"].append(out_name)
+
         if verbose:
-            print(f"  ✓ _graph.json ({len(ids)} entities)")
+            print(f"  ✓ _graph.jsonld + _graph.json ({len(ids)} entities)")
         
         result["message"] = f"{len(ids)} entities"
         
@@ -235,20 +244,23 @@ def generate_rdf_turtle(
     verbose: bool = True
 ) -> Dict[str, Any]:
     """
-    Generate RDF/Turtle file from JSON-LD graph.
-    
-    Requires cmipld and rdflib to be available.
-    Note: .ttl files may be gitignored in some repos.
+    Generate RDF/Turtle file from the individual entity JSON files in a
+    vocabulary directory.
+
+    Each entity file is read directly and parsed into rdflib using the
+    directory's _context.json.  This avoids the LDR server having to
+    serve the files and is not affected by the Collection wrapper in
+    _graph.json (which caused 0-triple results when rdflib only saw the
+    outer Collection node rather than the entity nodes inside it).
     """
     result = {
         "directory": vocab_dir.name,
-        "status": "success", 
+        "status": "success",
         "message": "",
         "files_created": [],
         "graph": None
     }
-    
-    # Check for required modules
+
     try:
         from rdflib import Graph as RGraph, Namespace
         from rdflib.namespace import NamespaceManager
@@ -256,55 +268,71 @@ def generate_rdf_turtle(
         result["status"] = "skipped"
         result["message"] = "rdflib not available"
         return result
-    
-    if cmipld_module is None:
-        result["status"] = "skipped"
-        result["message"] = "cmipld not available"
-        return result
-    
+
     try:
-        # Add vocabulary namespace mappings
-        vocab_types = [
-            'Model', 'ModelFamily', 'ModelComponent', 'ComponentConfig',
-            'HorizontalComputationalGrid', 'HorizontalGridCells',
-            'HorizontalSubgrid', 'VerticalComputationalGrid'
-        ]
-        for v in vocab_types:
-            cmipld_module.mapping[f'vocab_{v}'] = f'https://{prefix}.mipcvs.dev/docs/vocabularies/{v}/'
-        
-        # Expand JSON-LD (use .json extension now)
-        graph_file = f'{prefix}:{vocab_dir.name}/_graph.json'
-        data = cmipld_module.expand(graph_file, depth=3)
-        
-        # Create RDF graph
+        # Load context (provides @base and term mappings for rdflib)
+        ctx_file = get_context_file(vocab_dir)
+        if not ctx_file:
+            result["status"] = "warning"
+            result["message"] = "No _context file found"
+            return result
+
+        with open(ctx_file, 'r') as f:
+            ctx = json.load(f)
+
+        context = ctx.get("@context", ctx)
+
         g = RGraph()
-        g.namespace_manager = NamespaceManager(g)
-        
-        # Bind prefixes
-        for p, u in cmipld_module.mapping.items():
+
+        # Bind known prefixes if cmipld is available
+        if cmipld_module is not None:
             try:
-                g.bind(p, Namespace(u), replace=True)
-            except:
+                for p, u in cmipld_module.mapping.items():
+                    g.bind(p, Namespace(u), replace=True)
+            except Exception:
                 pass
-        
-        # Parse JSON-LD
-        g.parse(data=json.dumps(data), format='json-ld')
-        
+
+        # Parse each entity file individually — both *.json (src-data branch)
+        # and extensionless files (production branch after prepublish strips .json)
+        entity_files = [
+            f for f in glob.glob(str(vocab_dir / "*.json"))
+            if not os.path.basename(f).startswith("_")
+        ] + [
+            str(p) for p in vocab_dir.iterdir()
+            if p.is_file() and '.' not in p.name and not p.name.startswith('_')
+        ]
+
+        for entity_file in entity_files:
+            try:
+                with open(entity_file, 'r') as f:
+                    entity_data = json.load(f)
+
+                # Inject context if the entity doesn't already carry one,
+                # so rdflib can resolve all the compact terms to full URIs
+                if "@context" not in entity_data:
+                    entity_data = {"@context": context, **entity_data}
+
+                g.parse(data=json.dumps(entity_data), format='json-ld')
+            except Exception as e:
+                if verbose:
+                    print(f"    Warning: could not parse {os.path.basename(entity_file)}: {e}")
+                continue
+
         # Serialize to Turtle
         ttl_file = vocab_dir / "_graph.ttl"
         g.serialize(str(ttl_file), format='turtle')
         result["files_created"].append("_graph.ttl")
         result["graph"] = g
-        
+
         if verbose:
             print(f"  ✓ _graph.ttl ({len(g)} triples)")
-        
+
         result["message"] = f"{len(g)} triples"
-        
+
     except Exception as e:
         result["status"] = "failed"
         result["message"] = str(e)[:100]
-    
+
     return result
 
 
@@ -547,9 +575,29 @@ def process_all(
     
     try:
         import cmipld
+        import subprocess
         cmipld_module = cmipld
         prefix = cmipld.prefix()
-        cmipld.map_current(prefix)
+
+        # Only mount local files when running on the production branch.
+        # On all other branches (docs, src-data, main, CI) the LDR server
+        # resolves prefix: URLs to the live remote registry.
+        try:
+            branch = subprocess.run(
+                ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                capture_output=True, text=True, cwd=str(base_path)
+            ).stdout.strip()
+        except Exception:
+            branch = 'unknown'
+
+        if branch == 'production':
+            cmipld.map_current(prefix)
+            if verbose:
+                print(f"Branch: {branch} - mounted local files as '{prefix}:'")
+        else:
+            if verbose:
+                print(f"Branch: {branch} - using remote prefix URLs")
+
         mappings = cmipld.mapping
         if verbose:
             print(f"Project prefix: {prefix}")
@@ -589,12 +637,12 @@ def process_all(
     
     # Generate RDF/Turtle
     rdf_graphs = {}
-    if generate_rdf and cmipld_module is not None:
+    if generate_rdf:
         if verbose:
             print("\n" + "=" * 60)
             print("Generating RDF/Turtle...")
             print("=" * 60)
-        
+
         for vocab_dir in vocab_dirs:
             if verbose:
                 print(f"\nProcessing: {vocab_dir.name}")
@@ -602,9 +650,6 @@ def process_all(
             results["rdf"].append(result)
             if result.get("graph") is not None:
                 rdf_graphs[vocab_dir.name] = result["graph"]
-    elif generate_rdf:
-        if verbose:
-            print("\n⚠ Skipping RDF generation (cmipld not available)")
     
     # Generate visualization JSON
     relationships = []

@@ -36,7 +36,7 @@ def main():
         )
         
         if result.returncode == 0:
-            print(f"✓ Contributors page generated: {output_path}")
+            print(f" Contributors page generated: {output_path}")
             if result.stdout:
                 print(result.stdout)
         else:

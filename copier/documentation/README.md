@@ -4,11 +4,11 @@ A lightweight [Copier](https://copier.readthedocs.io/) template for creating MkD
 
 ## Features
 
-- 📚 **MkDocs shadcn** theme with light/dark mode
-- 🔗 **Custom Links** - Add external links to sidebar via `links.yml`
-- 🐍 **Script Support** - Run Python scripts during build
-- 🎨 **Theme Colors** - Choose from Material Design color palette
-- 🔄 **Auto-redirect** - Root redirects to docs/ automatically
+-  **MkDocs shadcn** theme with light/dark mode
+-  **Custom Links** - Add external links to sidebar via `links.yml`
+-  **Script Support** - Run Python scripts during build
+-  **Theme Colors** - Choose from Material Design color palette
+-  **Auto-redirect** - Root redirects to docs/ automatically
 
 ## Quick Start
 
@@ -45,19 +45,19 @@ After applying the template:
 
 ```
 your-repo/
-├── .copier-answers.yml      # Saved configuration
-├── src/
-│   └── mkdocs/
-│       ├── mkdocs.yml       # MkDocs configuration
-│       ├── requirements.txt # Python dependencies
-│       ├── hooks/           # Build hooks
-│       └── overrides/       # Theme overrides
-└── docs/
-    ├── index.md             # Homepage
-    ├── links.yml            # Custom sidebar links
-    ├── scripts/             # Python scripts (run at build)
-    ├── assets/              # Images, logos
-    └── stylesheets/         # Custom CSS
+ .copier-answers.yml      # Saved configuration
+ src/
+    mkdocs/
+        mkdocs.yml       # MkDocs configuration
+        requirements.txt # Python dependencies
+        hooks/           # Build hooks
+        overrides/       # Theme overrides
+ docs/
+     index.md             # Homepage
+     links.yml            # Custom sidebar links
+     scripts/             # Python scripts (run at build)
+     assets/              # Images, logos
+     stylesheets/         # Custom CSS
 ```
 
 ## Custom Links

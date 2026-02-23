@@ -96,7 +96,7 @@ jobs:
           fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📌 Version: $VERSION"
+          echo " Version: $VERSION"
 
       # ==========================================
       # Start LDR Server
@@ -104,26 +104,26 @@ jobs:
       - name: Initialize LDR Server
         run: |
           echo ""
-          echo "🔧 Starting LDR server..."
+          echo " Starting LDR server..."
           python3 -c "
           import sys
           import time
           try:
               import cmipld
-              print('✅ LDR server initialized and ready')
+              print(' LDR server initialized and ready')
               time.sleep(2)  # Give server time to fully start
               # Verify server is responsive
               try:
                   cmipld.client.get_mappings()
-                  print('✅ LDR server verified responsive')
+                  print(' LDR server verified responsive')
               except Exception as e:
-                  print(f'⚠️  Warning: LDR server not responding: {e}', file=sys.stderr)
+                  print(f'  Warning: LDR server not responding: {e}', file=sys.stderr)
                   print('   Scripts that depend on LDR may fail', file=sys.stderr)
           except ImportError:
-              print('⚠️  cmipld not available - scripts requiring LDR will fail', file=sys.stderr)
+              print('  cmipld not available - scripts requiring LDR will fail', file=sys.stderr)
           except Exception as e:
-              print(f'❌ Failed to initialize LDR server: {e}', file=sys.stderr)
-          " || echo "⚠️  LDR server initialization had issues, continuing anyway..."
+              print(f' Failed to initialize LDR server: {e}', file=sys.stderr)
+          " || echo "  LDR server initialization had issues, continuing anyway..."
           echo ""
 
       # ==========================================
@@ -132,9 +132,9 @@ jobs:
       - name: Build documentation
         working-directory: build/src/mkdocs
         run: |
-          echo "🏗️ Building MkDocs documentation..."
+          echo " Building MkDocs documentation..."
           mkdocs build --site-dir ../../../production/docs
-          echo "✅ Build complete"
+          echo " Build complete"
 
       # ==========================================
       # Deploy with Mike (versioning)
@@ -145,7 +145,7 @@ jobs:
           VERSION="${{ '{{' }} steps.version.outputs.version {{ '}}' }}"
           SET_LATEST="${{ '{{' }} github.event.inputs.set_latest || 'true' {{ '}}' }}"
           
-          echo "🏗️ Setting up mike versioning for $VERSION..."
+          echo " Setting up mike versioning for $VERSION..."
           
           # Create versions directory
           mkdir -p /tmp/versions-output
@@ -159,7 +159,7 @@ jobs:
           
           mike set-default latest -F mkdocs.yml --prefix /tmp/versions-output || true
           
-          echo "✅ Mike versioning complete"
+          echo " Mike versioning complete"
 
       # ==========================================
       # Save versions artifact
@@ -181,11 +181,11 @@ jobs:
           git add docs/
           
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "📚 Build documentation ${{ '{{' }} steps.version.outputs.version {{ '}}' }}"
+            git commit -m " Build documentation ${{ '{{' }} steps.version.outputs.version {{ '}}' }}"
             git push origin production
-            echo "✅ Documentation committed to production"
+            echo " Documentation committed to production"
           else
-            echo "ℹ️ No changes to commit"
+            echo " No changes to commit"
           fi
 
   # ==========================================
@@ -218,7 +218,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### 🚀 Documentation deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "###  Documentation deployed!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**URL:** ${{ '{{' }} steps.deployment.outputs.page_url {{ '}}' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ '{{' }} needs.build.outputs.version {{ '}}' }}" >> $GITHUB_STEP_SUMMARY
@@ -262,15 +262,15 @@ jobs:
           git add -A
           
           if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "📚 Update versions - ${{ '{{' }} needs.build.outputs.version {{ '}}' }}"
+            git commit -m " Update versions - ${{ '{{' }} needs.build.outputs.version {{ '}}' }}"
             git push origin versions --force-with-lease || git push origin versions --force
-            echo "✅ Versions branch updated"
+            echo " Versions branch updated"
           else
-            echo "ℹ️ No version changes to commit"
+            echo " No version changes to commit"
           fi
 
       - name: Summary
         run: |
-          echo "### 📌 Versions Updated" >> $GITHUB_STEP_SUMMARY
+          echo "###  Versions Updated" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Version **${{ '{{' }} needs.build.outputs.version {{ '}}' }}** added to versions branch" >> $GITHUB_STEP_SUMMARY

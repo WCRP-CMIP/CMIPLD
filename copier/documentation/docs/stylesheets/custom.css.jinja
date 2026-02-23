@@ -312,7 +312,7 @@ nav a {
 
 .nav-collapsible::before,
 [data-slot="sidebar-group-label"].nav-collapsible::before {
-  content: "▸";
+  content: "";
   display: inline-block;
   margin-right: 0.4rem;
   font-size: 0.7rem;
@@ -468,7 +468,7 @@ details summary::-webkit-details-marker {
 }
 
 details summary::after {
-  content: "▸";
+  content: "";
   color: var(--{{ css_prefix }}-primary-dark);
   font-size: 0.75rem;
   transition: transform 0.2s ease;
@@ -594,7 +594,7 @@ details h4, details h5, details h6 { font-size: 1rem; }
   font-size: 0.875em;
 }
 
-/* Override Tailwind typography/prose max-width (default is 65ch ≈ 672px) */
+/* Override Tailwind typography/prose max-width (default is 65ch  672px) */
 .typography {
   max-width: 1200px !important;
   padding: 0 2rem !important;
@@ -1514,7 +1514,7 @@ th[data-sort="desc"] .sort-indicator {
 }
 
 .nested-folder::before {
-  content: "▸";
+  content: "";
   display: inline-block;
   margin-right: 0.4rem;
   font-size: 0.7rem;

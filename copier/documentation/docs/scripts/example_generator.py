@@ -20,7 +20,7 @@ To use mkdocs_gen_files:
 import sys
 from datetime import datetime
 
-print(f"📝 Example script running at {datetime.now().isoformat()}")
+print(f" Example script running at {datetime.now().isoformat()}")
 
 # Example: You could generate content here
 # Uncomment and modify the following to generate pages:
@@ -33,8 +33,8 @@ print(f"📝 Example script running at {datetime.now().isoformat()}")
 #         f.write(f"Built at: {datetime.now().isoformat()}\n\n")
 #         f.write("This page was auto-generated during the build process.\n")
 #     
-#     print("✅ Generated build-info.md")
+#     print(" Generated build-info.md")
 # except ImportError:
-#     print("ℹ️  mkdocs_gen_files not available (running outside MkDocs)")
+#     print("  mkdocs_gen_files not available (running outside MkDocs)")
 
-print("✅ Example script completed")
+print(" Example script completed")

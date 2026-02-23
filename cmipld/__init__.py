@@ -74,4 +74,7 @@ def map_current(prefix_name, path=None):
     
 def prefix():
     """Get the prefix for the current repository."""
-    return utils.git.get_prefix()
+    try:
+        return utils.git.get_prefix()
+    except: 
+        None
