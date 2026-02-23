@@ -6,14 +6,14 @@ def snake_to_pascal(name):
     return ''.join(word.capitalize() for word in name.split('_'))
 
 
-def ld(linked):
+def ld(name,linked):
 
     if '@context' not in linked:
         return linked
     # elif '@type' in linked and linked['@type'] == '@id' and '@container'  not in linked:
     #     linked['@container'] = '@id'
         return linked
-    return {'@context': linked['@context'], '@type':'@id'}
+    return {'@context': linked['@context'], '@type':'@id','@id':name}
 #  lets make all linked items an array, this makes it easier to handle later
 # "@container":"@id" 
 
@@ -50,7 +50,7 @@ def data():
                 ctx = ctx[-1]  # Assume last item is the dict we want
             
             # Clean dict items without @id (fixes unhashable error)
-            ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
+            ctx = {k.replace('-', '_').lower(): ld(k,v) for k,v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
             ctx['@base'] = f"{base2}{folder}/"
@@ -102,7 +102,7 @@ def project():
                 if isinstance(ctx, list):
                     ctx = ctx[-1]  # Assume last item is the dict we want
 
-            ctx = {k.replace('-', '_').lower(): ld(v) for k, v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
+            ctx = {k.replace('-', '_').lower(): ld(k,v) for k,v in ctx.items() if isinstance(v, dict) and '@id' in str(v)}
 
             # Set base/vocab
             # ctx['@base'] = f"{base}project/"

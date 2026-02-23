@@ -13,7 +13,7 @@ for k,v in mapping.items():
 
 # Add mipcvs.dev domain mappings (e.g., https://universal.mipcvs.dev/* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
 for k,v in mapping.items():
-    _redirect_mapping[f'https://{k}.mipcvs.dev/*'] = v+'${rest}'
+    _redirect_mapping[f'{v}*'] = mapping[k]+'${rest}'
 
 print("Initializing LDR client...", flush=True)
 

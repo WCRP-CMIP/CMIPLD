@@ -38,6 +38,7 @@ def _generate_mapping(url_template):
     return dict(sorted(result.items(), key=lambda item: len(item[0])))
 
 
+
 # Load prefix data at module import
 _prefix_data = _load_prefix_mappings()
 
@@ -53,6 +54,25 @@ matches = None  # Initialized after mapping is created
 
 mapping = _generate_mapping('https://{prefix}.mipcvs.dev/')
 reverse_mapping = {v: k for k, v in mapping.items()}
+
+# redundant, already covered. 
+# def _io_mapping(client):
+#     mapping2 = _generate_mapping('https://{owner}.github.io/{repo}/')
+    
+#     _redirect_mapping = {}
+    
+#     for k,v in mapping2.items():
+#         _redirect_mapping[f'{k}:*'] = v+'${rest}'
+
+#     # Add mipcvs.dev domain mappings (e.g., https://universal.mipcvs.dev/* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
+#     for k,v in mapping2.items():
+#         _redirect_mapping[f'{mapping[k]}*'] = v+'${rest}'
+#     client.clear_mappings()
+#     client.set_mappings(_redirect_mapping)
+
+
+
+
 
 # Initialize prefix matching regex now that mapping exists
 matches = re.compile(f"({'|'.join([i+':' for i in mapping.keys()])})")
