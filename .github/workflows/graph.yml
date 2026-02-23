@@ -255,6 +255,11 @@ jobs:
         run: |
           find . -type f -name "_context*"
 
+      - name: Ensure .nojekyll exists
+        # GitHub Pages (Jekyll) silently drops any file whose name starts with _
+        # (_graph.json, _context, _graph.jsonld etc. all need to be publicly served)
+        run: touch .nojekyll
+
       - name: Commit and Push Pages Updates
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
