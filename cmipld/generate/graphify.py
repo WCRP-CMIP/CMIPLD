@@ -200,6 +200,9 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
                 continue
 
         result["entity_count"] = len(ids)
+        
+        ctx['Collection'] = { "@container": "@list" }
+        
 
         # Create graph document
         graph = {

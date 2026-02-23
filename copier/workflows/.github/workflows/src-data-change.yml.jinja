@@ -153,7 +153,8 @@ jobs:
           if [ -f "$MKDOCS_DIR/requirements.txt" ]; then
             pip install -r "$MKDOCS_DIR/requirements.txt"
           else
-            pip install mkdocs mkdocs-material cmipld
+            echo "WARNING: requirements.txt not found, using fallback"
+            pip install mkdocs mkdocs-material mkdocs-shadcn mkdocs-gen-files mkdocs-literate-nav pymdown-extensions beautifulsoup4 cmipld
           fi
 
       - name: Pre-build diagnostics
