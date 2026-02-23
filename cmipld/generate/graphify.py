@@ -199,9 +199,9 @@ def generate_jsonld_graph(vocab_dir: Path, verbose: bool = True) -> Dict[str, An
             except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
                 continue
 
-        result["@context"]["entity_count"] = len(ids)
+        result["entity_count"] = len(ids)
         
-        ctx['Collection'] = { "@container": "@list" }
+        ctx.get("@context", ctx)['Collection'] = { "@container": "@list" }
         
 
         # Create graph document
