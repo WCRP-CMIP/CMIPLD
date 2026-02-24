@@ -11,10 +11,14 @@ on:
   push:
     branches:
       - "src-data"
+{% if has_docs_branch %}
+      - "docs"
+{% endif %}
   workflow_dispatch:
 
 jobs:
   check_contexts:
+    if: github.ref == 'refs/heads/src-data'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout src-data branch
@@ -27,10 +31,8 @@ jobs:
         uses: WCRP-CMIP/CMIPLD/.github/actions/check-contexts@main
 
   # ── Job 1: sync data to production and commit ────────────────────────────
-  # This job MUST complete and push before build_docs starts.
-  # map_current() and emd.mipcvs.dev both serve from production, so data
-  # must be committed there before the build can read it correctly.
   sync_data:
+    if: github.ref == 'refs/heads/src-data'
     runs-on: ubuntu-latest
     outputs:
       has_data_changes: {% raw %}${{ steps.commit_data.outputs.has_changes }}{% endraw %}
@@ -67,8 +69,6 @@ jobs:
           echo "Copying vocab files from src-data..."
           git checkout origin/src-data -- . 2>/dev/null || true
           git checkout {{ pages_branch }} -- .gitignore 2>/dev/null || true
-          # .nojekyll tells GitHub Pages not to suppress _-prefixed files
-          # (_graph.json, _context, _graph.jsonld must be publicly served)
           touch "$GITHUB_WORKSPACE/.nojekyll"
           echo "Files now at GITHUB_WORKSPACE:"
           ls "$GITHUB_WORKSPACE"
@@ -82,7 +82,6 @@ jobs:
 {% if enable_prepublish_scripts %}
 
       - name: Run prepublish scripts
-        # Creates extensionless copies and _context.json copies
         run: |
           cd "$GITHUB_WORKSPACE"
           if [ ! -d ".github/prepublish" ]; then
@@ -110,15 +109,14 @@ jobs:
             git push origin {{ pages_branch }}
             echo "Data committed and pushed to production"
             echo "## Data sync" >> $GITHUB_STEP_SUMMARY
-            echo "Vocab data committed to {{ pages_branch }} and live at emd.mipcvs.dev" >> $GITHUB_STEP_SUMMARY
+            echo "Vocab data committed to {{ pages_branch }}" >> $GITHUB_STEP_SUMMARY
           fi
 
-  # ── Job 2: build docs using the now-committed production data ────────────
-  # map_current() maps emd: → GITHUB_WORKSPACE which now has the clean
-  # committed files from sync_data. Remote emd.mipcvs.dev serves the same.
+  # ── Job 2: build docs ────────────────────────────────────────────────────
 {% if has_docs_branch %}
   build_docs:
     needs: sync_data
+    if: {% raw %}${{ !failure() && !cancelled() }}{% endraw %}
     runs-on: ubuntu-latest
     outputs:
       has_changes: {% raw %}${{ steps.check_changes.outputs.has_changes }}{% endraw %}
@@ -133,6 +131,16 @@ jobs:
       - name: Fetch docs branch
         run: git fetch origin docs:docs
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Configure Git
         run: |
           git config user.name "cmip-ipo"
@@ -143,12 +151,9 @@ jobs:
           git checkout origin/docs -- src 2>/dev/null && echo "Copied src/" || echo "No src/ on docs branch"
           git checkout origin/docs -- docs 2>/dev/null && echo "Copied docs/" || true
 
-      - name: Install Node LDR server
-        run: npm i -g jsonld-recursive
-
-      - name: Install Python doc dependencies
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          npm install -g jsonld-recursive
           MKDOCS_DIR="$GITHUB_WORKSPACE/src/mkdocs"
           if [ -f "$MKDOCS_DIR/requirements.txt" ]; then
             pip install -r "$MKDOCS_DIR/requirements.txt"
@@ -161,59 +166,29 @@ jobs:
         run: |
           echo "## Pre-build diagnostics" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** $(git -C $GITHUB_WORKSPACE rev-parse --abbrev-ref HEAD)" >> $GITHUB_STEP_SUMMARY
-          echo "**CWD:** $(pwd)" >> $GITHUB_STEP_SUMMARY
-          echo "**GITHUB_WORKSPACE:** $GITHUB_WORKSPACE" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Root files:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          ls -la "$GITHUB_WORKSPACE" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "### Vocabulary directories:" >> $GITHUB_STEP_SUMMARY
-          for dir in "$GITHUB_WORKSPACE"/*/; do
-            if [ -f "${dir}_context" ] || [ -f "${dir}_context.json" ]; then
-              n=$(find "$dir" -maxdepth 1 -name "*.json" ! -name "_*" | wc -l)
-              echo "- \`$(basename $dir)/\` ($n entries)" >> $GITHUB_STEP_SUMMARY
-              echo "  $(basename $dir)/: $n entries"
-            fi
-          done
-          echo "Branch: $(git -C $GITHUB_WORKSPACE rev-parse --abbrev-ref HEAD)"
-          echo "CWD: $(pwd)"
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
 
-      - name: Start LDR server
+      - name: Build MkDocs site
         run: |
           ldr server stop 2>/dev/null || true
           ldr server start
           echo "LDR server started"
 
-      - name: Build MkDocs site
-        run: |
-          cd "$GITHUB_WORKSPACE"
           mkdocs build -f "$GITHUB_WORKSPACE/src/mkdocs/mkdocs.yml"
 
-          BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/site"
+          BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/build"
+          if [ ! -d "$BUILD_DIR" ]; then BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/site"; fi
           if [ ! -d "$BUILD_DIR" ]; then BUILD_DIR="$GITHUB_WORKSPACE/site"; fi
-          if [ ! -d "$BUILD_DIR" ]; then echo "Error: no built site dir"; exit 1; fi
+          if [ ! -d "$BUILD_DIR" ]; then echo "Error: no build dir"; exit 1; fi
 
-          echo "Built site at: $BUILD_DIR"
           rm -rf "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/mkdocs"
           [ -d "$GITHUB_WORKSPACE/docs" ] && rm -rf "$GITHUB_WORKSPACE/docs"
           mv "$BUILD_DIR" "$GITHUB_WORKSPACE/docs"
-          echo "Built MkDocs site to docs/"
 
       - name: Generate root redirect
         run: |
           cd "$GITHUB_WORKSPACE"
-          if [ -f "$GITHUB_WORKSPACE/docs/scripts/create_redirect.py" ]; then
-            python "$GITHUB_WORKSPACE/docs/scripts/create_redirect.py"
-          elif [ ! -f "$GITHUB_WORKSPACE/index.html" ]; then
-            python3 -c "
-          open('index.html','w').write(
-            '<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">'
-            '<meta http-equiv=\"refresh\" content=\"3; url=docs/\">'
-            '<title>Redirecting...</title></head>'
-            '<body><p>Redirecting to <a href=\"docs/\">documentation</a>...</p></body></html>'
-          )"
+          if [ ! -f "$GITHUB_WORKSPACE/index.html" ]; then
+            echo '<meta http-equiv="refresh" content="3; url=docs/">' > index.html
           fi
 
       - name: Check for changes
@@ -224,15 +199,6 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "## Documentation Changes" >> $GITHUB_STEP_SUMMARY
-            ADDED=$(git diff --cached --name-only --diff-filter=A | wc -l)
-            MODIFIED=$(git diff --cached --name-only --diff-filter=M | wc -l)
-            DELETED=$(git diff --cached --name-only --diff-filter=D | wc -l)
-            echo "| Type | Count |" >> $GITHUB_STEP_SUMMARY
-            echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Added | $ADDED |" >> $GITHUB_STEP_SUMMARY
-            echo "| Modified | $MODIFIED |" >> $GITHUB_STEP_SUMMARY
-            echo "| Deleted | $DELETED |" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Commit docs

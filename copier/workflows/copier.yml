@@ -155,10 +155,8 @@ needs_src_data_workflow:
   default: "{{ repo_type in ['vocabulary', 'mixed'] and has_src_data_branch }}"
   when: false
 
-needs_docs_workflow:
-  type: bool
-  default: "{{ has_docs_branch }}"
-  when: false
+# docs-change workflow has been merged into src-data-change
+# no separate docs workflow needed
 
 # ============================================
 # WORKFLOW CONFIGURATION

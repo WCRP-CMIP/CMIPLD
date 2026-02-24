@@ -61,6 +61,7 @@ cmipcopier = "cmipld.copier:main"  # Install/update copier templates
 graphify = "cmipld.generate.graphify:main"  # Generate JSON-LD graphs for vocabulary directories
 cmipworkflow = "cmipld.cli.workflow:main"  # Run GitHub Actions workflows
 cmip-contributor = "cmipld.cli.contributor:main"  # Get/assign file contributors by GitHub handle
+clear-workflow-runs = "cmipld.utils.git.gh_utils:clear_runs_cli"  # Delete all GitHub Actions workflow runs
 
 [tool.setuptools]
 packages = ["cmipld"]

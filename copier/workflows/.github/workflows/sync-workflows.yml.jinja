@@ -40,6 +40,12 @@ jobs:
       - name: Fetch main branch
         run: git fetch origin main --depth=1
 
+      - name: Clean .github folder on target branch
+        run: |
+          echo "Cleaning .github/ on {% raw %}${{ matrix.branch }}{% endraw %}..."
+          rm -rf .github/*
+          echo "Cleaned all contents of .github/"
+
       - name: Sync folders from main
         run: |
           for folder in $SYNC_FOLDERS; do
