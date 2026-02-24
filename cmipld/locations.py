@@ -53,6 +53,7 @@ matches = None  # Initialized after mapping is created
 # Example: 'wcrp' -> 'https://wcrp.mipcvs.dev/'
 
 mapping = _generate_mapping('https://{prefix}.mipcvs.dev/')
+io_map = _generate_mapping('https://{owner}.github.io/{repo}/')
 reverse_mapping = {v: k for k, v in mapping.items()}
 
 # redundant, already covered. 
