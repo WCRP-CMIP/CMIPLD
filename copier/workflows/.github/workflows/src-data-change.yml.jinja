@@ -175,21 +175,12 @@ jobs:
 
           mkdocs build -f "$GITHUB_WORKSPACE/src/mkdocs/mkdocs.yml"
 
-          BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/build"
-          if [ ! -d "$BUILD_DIR" ]; then BUILD_DIR="$GITHUB_WORKSPACE/src/mkdocs/site"; fi
-          if [ ! -d "$BUILD_DIR" ]; then BUILD_DIR="$GITHUB_WORKSPACE/site"; fi
+          BUILD_DIR="$GITHUB_WORKSPACE/build"
           if [ ! -d "$BUILD_DIR" ]; then echo "Error: no build dir"; exit 1; fi
 
           rm -rf "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/mkdocs"
           [ -d "$GITHUB_WORKSPACE/docs" ] && rm -rf "$GITHUB_WORKSPACE/docs"
           mv "$BUILD_DIR" "$GITHUB_WORKSPACE/docs"
-
-      - name: Generate root redirect
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          if [ ! -f "$GITHUB_WORKSPACE/index.html" ]; then
-            echo '<meta http-equiv="refresh" content="3; url=docs/">' > index.html
-          fi
 
       - name: Check for changes
         id: check_changes
@@ -210,8 +201,8 @@ jobs:
 
 {% if enable_github_pages %}
   deploy:
-    needs: {% if has_docs_branch %}build_docs{% else %}sync_data{% endif %}
-    if: {% raw %}${{ needs.{% endraw %}{% if has_docs_branch %}build_docs{% else %}sync_data{% endif %}{% raw %}.outputs.has_changes == 'true' }}{% endraw %}
+    needs: [sync_data{% if has_docs_branch %}, build_docs{% endif %}]
+    if: {% raw %}${{ !failure() && !cancelled() && ({% endraw %}{% if has_docs_branch %}{% raw %}needs.build_docs.outputs.has_changes == 'true' || {% endraw %}{% endif %}{% raw %}needs.sync_data.outputs.has_data_changes == 'true') }}{% endraw %}
     runs-on: ubuntu-latest
     permissions:
       contents: read

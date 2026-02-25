@@ -7,7 +7,7 @@ site_description: {{ description }}
 site_author: {{ author_name }}
 
 docs_dir: ../../docs
-site_dir: site
+site_dir: ../../build
 use_directory_urls: true  # Creates clean URLs like /page/ instead of /page.html
 
 # Theme configuration
@@ -27,21 +27,24 @@ theme:
 
 # Plugins
 plugins:
-  - search:
-      lang: en
-      separator: '[\s\-\.]+'
 {% if enable_scripts %}
   - gen-files:
       scripts:
         - hooks/run_scripts.py
 {% endif %}
+
   - literate-nav:
       nav_file: SUMMARY.md
       implicit_index: true
       tab_length: 2
 
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+
 # Hooks
 hooks:
+  - hooks/pre_build.py
   - hooks/generate_nav.py
   - hooks/post_build.py
 
