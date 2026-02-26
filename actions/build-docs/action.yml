@@ -34,15 +34,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install dependencies
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f "src/mkdocs/requirements.txt" ]; then
-          pip install -r src/mkdocs/requirements.txt
-        else
-          pip install mkdocs mkdocs-shadcn mkdocs-gen-files mkdocs-literate-nav pymdown-extensions
-        fi
+
 
     - name: Fetch docs source
       shell: bash
@@ -57,6 +49,17 @@ runs:
         # Now copy fresh from docs branch
         git checkout origin/${{ inputs.docs-branch }} -- docs/ src/
         echo "✅ Docs source ready"
+
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f "src/mkdocs/requirements.txt" ]; then
+          pip install -r src/mkdocs/requirements.txt
+        else
+          pip install mkdocs mkdocs-shadcn mkdocs-gen-files mkdocs-literate-nav pymdown-extensions
+        fi
 
     - name: Build documentation
       shell: bash
