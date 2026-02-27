@@ -14,6 +14,14 @@ from .jsontools import *
 
 from . import texttools
 
+# ID generation utilities
+from .id_generation import (
+    timestamp_to_epoch,
+    generate_id_from_issue,
+    clean_id,
+    parse_commiters
+)
+
 # Styling utilities for visualization and output
 from .styling import (
     get_colors_from_css,

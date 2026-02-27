@@ -37,7 +37,7 @@ def get_issue_from_gh(issue_number):
     """Get issue data from GitHub using gh CLI"""
     try:
         result = subprocess.run(
-            ['gh', 'issue', 'view', str(issue_number), '--json', 'title,body,author,labels,number'],
+            ['gh', 'issue', 'view', str(issue_number), '--json', 'title,body,author,labels,number,createdAt'],
             capture_output=True,
             text=True,
             check=True
@@ -51,7 +51,8 @@ def get_issue_from_gh(issue_number):
             'labels_full': json.dumps(labels),
             'number': str(data.get('number', issue_number)),
             'title': data.get('title', ''),
-            'author': data.get('author', {}).get('login', '')
+            'author': data.get('author', {}).get('login', ''),
+            'created_at': data.get('createdAt', '')
         }
         
     except subprocess.CalledProcessError as e:
@@ -101,6 +102,12 @@ def parse_issue_body(issue_body):
         issue_data[key] = issue_data[key].strip()
         if issue_data[key] == "\"none\"":
             issue_data[key] = issue_data[key].replace("\"none\"", "none")
+    
+    # Replace placeholder values with empty strings
+    placeholder_values = {'not specified', '_no response_', 'none', ''}
+    for key in issue_data:
+        if issue_data[key].lower() in placeholder_values:
+            issue_data[key] = ''
 
     return issue_data
 
@@ -122,11 +129,27 @@ def parse_labels(labels_str):
 
 
 def get_issue_type_from_labels(labels):
-    """Determine the primary issue type from labels"""
+    """
+    Determine issue type by cycling through labels to find matching handler script.
+    
+    Returns the first label that has a corresponding handler script.
+    If no handler found, returns first label anyway (for generic handler).
+    """
     relevant_labels = parse_labels(labels)
-    if relevant_labels:
-        return relevant_labels[0]
-    return None
+    
+    if not relevant_labels:
+        return None
+    
+    # Cycle through labels in order and check for handler scripts
+    for label in relevant_labels:
+        script_path = f"{HANDLER_PATH}{label}.py"
+        if os.path.exists(script_path):
+            print(f"  ✓ Found handler: {script_path}")
+            return label
+    
+    # No handler found, but still use first label (generic handler will be used)
+    print(f"  ℹ No specific handler for labels {relevant_labels}, will use generic handler")
+    return relevant_labels[0]
 
 
 def clean_id(value):
@@ -203,44 +226,6 @@ def build_data_from_issue(parsed_issue, issue_type, labels):
     return data, None
 
 
-def write_summary(title, output_path, data, branch_name, author_info, issue_number, dry_run=False):
-    """Write summary to GitHub Actions job summary if available"""
-    summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
-    if not summary_file:
-        return
-    
-    prefix = "[DRY RUN] " if dry_run else ""
-    
-    summary = f"""## {prefix}Issue Processing Summary
-
-| Field | Value |
-|-------|-------|
-| **Title** | {title} |
-| **Output File** | `{output_path}` |
-| **Branch** | `{branch_name}` |
-| **Author** | @{author_info['primary']['login']} |
-| **Issue** | #{issue_number} |
-
-"""
-    
-    if author_info['coauthors']:
-        coauthors_str = ', '.join(f"@{c['login']}" for c in author_info['coauthors'])
-        summary += f"**Co-authors:** {coauthors_str}\n\n"
-    
-    summary += f"""### Data to be written
-
-```json
-{json.dumps(data, indent=2, ensure_ascii=False)}
-```
-"""
-    
-    try:
-        with open(summary_file, 'a') as f:
-            f.write(summary)
-    except Exception as e:
-        print(f"Warning: Could not write to summary: {e}")
-
-
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
@@ -265,6 +250,7 @@ Examples:
 def main():
     from cmipld.utils import git
     from cmipld.utils.git import coauthors
+    from cmipld.utils.id_generation import parse_commiters
     
     args = parse_args()
     dry_run = args.dry_run
@@ -298,7 +284,7 @@ def main():
 
     # Check for specific handler script
     script_path = f"{HANDLER_PATH}{issue_type}.py"
-    data = None
+    files_to_write = {}  # {'path/to/file.json': data}
     
     if os.path.exists(script_path):
         # Use specific handler
@@ -311,46 +297,102 @@ def main():
             result = module.run(parsed_issue, issue, dry_run=dry_run)
             
             if result is None:
-                print(f"\n{prefix}Handler returned None - no file will be written")
-                return
-            elif isinstance(result, tuple):
-                data, _ = result  # Ignore handler's output_path, we set it here
+                print(f"\n{prefix}Handler returned None, will use generic handler")
+                # Fall through to generic handler
+            elif isinstance(result, dict):
+                # Handler returned file dict: {'path/file.json': data, ...}
+                files_to_write = result
+                print(f"\n{prefix}Handler returned {len(files_to_write)} file(s)")
             else:
-                data = result
-    else:
-        # Build data directly from parsed issue
-        print(f"\n{prefix}No specific handler for '{issue_type}', building data from issue")
+                # Old format: single data object (legacy support)
+                # Create default path
+                default_path = os.path.join(issue_type, f"{issue_type}.json")
+                files_to_write = {default_path: result}
+                print(f"\n{prefix}Handler returned single file")
+    
+    # If no files from handler, use generic handler
+    if not files_to_write:
+        print(f"\n{prefix}Using generic handler to build data from issue")
         data, error = build_data_from_issue(parsed_issue, issue_type, labels)
         
         if error:
             print(f"\n{prefix}❌ Error: {error}")
             return
+        
+        if data is not None:
+            # Create default path for generic handler
+            data_id = data.get('@id', clean_id(parsed_issue.get('validation_key', 'unknown')))
+            default_path = os.path.join(issue_type, f"{data_id}.json")
+            files_to_write = {default_path: data}
     
-    if data is None:
+    if not files_to_write:
         print(f"\n{prefix}No data returned - nothing to write")
         return
     
-    # Ensure basic JSON-LD fields are present before validation
-    if '@context' not in data:
-        data['@context'] = '_context'
-    if '@id' not in data and 'id' in data:
-        data['@id'] = data.pop('id')
-    if '@type' not in data and 'type' in data:
-        data['@type'] = data.pop('type')
+    print(f"\n{prefix}Processing {len(files_to_write)} file(s)...")
     
-    # Determine output path first (needed for validation)
-    output_folder = get_output_folder(issue_type)
-    data_id = data.get('@id', clean_id(parsed_issue.get('validation_key', 
-                      parsed_issue.get('acronym', 'unknown'))))
-    output_path = os.path.join(output_folder, f"{data_id}.json")
+    # ========== STEP 1: RUN ALL VALIDATIONS (NO FILE I/O) ==========
+    print(f"\n{prefix}Running validation checks...")
+    
+    script_path = f"{HANDLER_PATH}{issue_type}.py"
+    if os.path.exists(script_path):
+        spec = importlib.util.spec_from_file_location(issue_type, script_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        
+        if hasattr(module, 'update'):
+            # Call update() ONCE with all files - it validates and adds reports
+            module.update(files_to_write, parsed_issue, issue, dry_run=dry_run)
+    
+    # ========== STEP 2: PRINT VALIDATION REPORTS ==========
+    print(f"\n{prefix}Validation Reports:\n")
+    all_validation_reports = {}
+    for file_path, data in files_to_write.items():
+        if '_validation_report' in data:
+            report = data['_validation_report']
+            all_validation_reports[file_path] = report
+            print(report)  # Print to console
+    
+    # ========== STEP 3: DRY RUN - EXIT HERE (NO FILE WRITING) ==========
+    if dry_run:
+        print(f"\n{'='*60}")
+        print(f"[DRY RUN] Validation Summary")
+        print(f"{'='*60}")
+        print(f"Files that WOULD be written (not actually written):")
+        for file_path in files_to_write.keys():
+            output_path = os.path.join(DATA_PATH, file_path)
+            print(f"  - {output_path}")
+        print(f"\n[DRY RUN] No files written, no git operations performed.")
+        print(f"{'='*60}\n")
+        return
+    
+    # ========== STEP 4: WRITE FILES TO DISK (ONLY IF NOT DRY_RUN) ==========
+    print(f"\n{prefix}Writing files to disk...")
     
     # Check if file already exists for "new" issues
     issue_kind = parsed_issue.get('issue_kind', 'new').lower()
     if issue_kind not in ['new', 'modify']:
         issue_kind = 'new'
     
-    if issue_kind == 'new' and os.path.exists(output_path):
-        warning_msg = f"""## ⚠️ File Already Exists
+    all_output_paths = []
+    processed_data = {}  # Track for summary
+    
+    for file_path, data in files_to_write.items():
+        # Ensure basic JSON-LD fields are present
+        if '@context' not in data:
+            data['@context'] = '_context'
+        if '@id' not in data and 'id' in data:
+            data['@id'] = data.pop('id')
+        if '@type' not in data and 'type' in data:
+            data['@type'] = data.pop('type')
+        
+        # Full path
+        output_path = os.path.join(DATA_PATH, file_path)
+        all_output_paths.append(output_path)
+        processed_data[file_path] = data
+        
+        if issue_kind == 'new' and os.path.exists(output_path):
+            warning_msg = f"""## ⚠️ File Already Exists
 
 The file `{output_path}` already exists in the repository.
 
@@ -362,76 +404,56 @@ For a **new** submission, this file should not exist. Please either:
 
 No changes have been made.
 """
-        print(f"\n{prefix}⚠️ File already exists: {output_path}")
-        print(f"{prefix}Cannot create new entry - file exists")
-        
-        if not dry_run:
-            # Post warning to issue
+            print(f"\n{prefix}⚠️ File already exists: {output_path}")
+            
             if 'ISSUE_NUMBER' in os.environ:
                 issue_number = os.environ['ISSUE_NUMBER']
                 escaped = warning_msg.replace("'", "'\"'\"'")
                 os.popen(f"gh issue comment {issue_number} --body '{escaped}'").read()
-                # Add needs-review label
                 os.popen(f'gh issue edit {issue_number} --add-label "needs-review"').read()
                 print(f"{prefix}Posted warning to issue #{issue_number}")
-        else:
-            print(f"\n[DRY RUN] Would post warning to issue")
-            print(warning_msg)
-        
-        return
-    
-    # Write initial data to temp file for validation
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-    
-    # Run JSONValidator to fix and sort the file (always run, not dry_run)
-    validator = JSONValidator(output_folder, dry_run=False)
-    validator.validate_and_fix_json(output_path)
-    
-    # Read back the validated/sorted data
-    with open(output_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    # If there's a handler with an update() function, call it to enrich the data
-    script_path = f"{HANDLER_PATH}{issue_type}.py"
-    if os.path.exists(script_path):
-        spec = importlib.util.spec_from_file_location(issue_type, script_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        
-        if hasattr(module, 'update'):
-            print(f"{prefix}Running handler update: {script_path}")
-            data = module.update(data, parsed_issue, issue, dry_run=dry_run)
             
-            # Write updated data back to file
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-                f.write('\n')
+            return
+        
+        # Write initial data to disk
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        
+        # Run JSONValidator to fix and sort the file
+        output_folder = os.path.dirname(output_path)
+        validator = JSONValidator(output_folder, dry_run=False)
+        validator.validate_and_fix_json(output_path)
+        
+        # Read back the validated/sorted data
+        with open(output_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        processed_data[file_path] = data
+        print(f"{prefix}✓ Written: {output_path}")
     
-    # Clean up file if dry run (we created it just to validate)
-    if dry_run:
-        os.remove(output_path)
-        # Remove empty directory if we created it
-        try:
-            os.rmdir(output_folder)
-        except OSError:
-            pass  # Directory not empty or doesn't exist
-    
-    # Build title
+    # Build title (use first file's @id)
+    first_data = list(processed_data.values())[0]
     relevant_labels = parse_labels(labels)
     issue_kind_cap = issue_kind.capitalize()
     types_joined = ' | '.join([t.capitalize() for t in relevant_labels]) if relevant_labels else issue_type.capitalize()
-    validation_key = data.get('validation_key', data.get('@id', 'unknown'))
+    validation_key = first_data.get('validation_key', first_data.get('@id', 'unknown'))
     title = f"{issue_kind_cap} {types_joined} : {validation_key}"
     
+    data_id = first_data.get('@id', 'unknown')
     branch_name = f"{issue_kind}_{issue_type}_{data_id}".replace(' ', '_').lower()
     
-    # Parse author and coauthors
+    # Parse author and coauthors from issue
     author_login = issue.get('author') or os.environ.get('ISSUE_SUBMITTER', 'unknown')
-    collab_string = parsed_issue.get('additional_collaborators', 
-                    parsed_issue.get('collaborators', ''))
+    additional_collaborators = parsed_issue.get('additional_collaborators', 
+                              parsed_issue.get('collaborators', ''))
     
+    # Use parse_commiters to get [author, ...additional_commiters]
+    commiters = parse_commiters(author_login, additional_collaborators)
+    print(f"{prefix}Commiters: {', '.join(commiters)}")
+    
+    # Convert back to collab_string for parse_issue_authors (author is first)
+    collab_string = ', '.join(commiters[1:]) if len(commiters) > 1 else ''
     author_info = coauthors.parse_issue_authors(author_login, collab_string)
     
     # Build commit message
@@ -444,47 +466,30 @@ No changes have been made.
     print(f"{'='*60}")
     print(f"{prefix}Title: {title}")
     print(f"{prefix}Branch: {branch_name}")
-    print(f"{prefix}Output file: {output_path}")
+    print(f"{prefix}Files written: {len(all_output_paths)}")
+    for fpath in all_output_paths:
+        print(f"  - {fpath}")
     print(f"{prefix}Author: {author_info['primary']['login']}")
     if author_info['coauthors']:
         print(f"{prefix}Co-authors: {', '.join(c['login'] for c in author_info['coauthors'])}")
-    print(f"\n{prefix}Data to write:")
-    print(json.dumps(data, indent=4, ensure_ascii=False))
     print(f"\n{prefix}Commit message:")
     print(commit_msg)
     print(f"{'='*60}")
     
-    # Write to GitHub Actions summary
-    write_summary(title, output_path, data, branch_name, author_info, 
-                  issue.get('number', 'N/A'), dry_run=dry_run)
-    
-    if dry_run:
-        print(f"\n[DRY RUN] Would perform:")
-        print(f"  1. Update issue title to: {title}")
-        print(f"  2. Create branch: {branch_name}")
-        print(f"  3. Write file: {output_path}")
-        print(f"  4. Commit as: {author_info['primary']['login']}")
-        if author_info['coauthors']:
-            print(f"     With co-authors: {', '.join(c['login'] for c in author_info['coauthors'])}")
-        print(f"  5. Create PR targeting src-data, linked to issue #{issue.get('number', 'N/A')}")
-        print(f"\n[DRY RUN] No changes made.")
-        return
-    
-    # Perform the actual operations
+    # Perform the git operations
     print(f"\nUpdating issue title...")
     git.update_issue_title(title)
     
     print(f"Creating branch: {branch_name}")
     git.newbranch(branch_name)
     
-    # File already written and validated by JSONValidator above
-    print(f"File ready: {output_path}")
-    
-    print(f"Committing...")
-    git.commit_one(output_path, author_info['primary'], comment=commit_msg, branch=branch_name)
+    print(f"Committing files...")
+    for output_path in all_output_paths:
+        git.commit_one(output_path, author_info['primary'], comment=commit_msg, branch=branch_name)
     
     print(f"Creating pull request targeting src-data...")
-    git.newpull(branch_name, author_info['primary'], json.dumps(data, indent=4, ensure_ascii=False), title, 
+    # Use first file data for PR body
+    git.newpull(branch_name, author_info['primary'], json.dumps(first_data, indent=4, ensure_ascii=False), title, 
                 os.environ.get('ISSUE_NUMBER', ''), base_branch='src-data')
     
     print(f"\n✅ Successfully processed: {title}")
