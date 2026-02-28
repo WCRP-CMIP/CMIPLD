@@ -147,3 +147,76 @@ def cvjson_validation_key(e):
             result.append(str(k) if k is not None else None)
     
     return result
+
+
+# Default fields to strip
+DEFAULT_STRIP_FIELDS = {
+    '@id', '@type', '@context',  # JSON-LD metadata
+    'id', '_id', 'uuid',  # ID fields
+    'created', 'modified', 'updated', 'timestamp',  # Timestamps
+    'url', 'uri', 'link', 'href',  # URLs
+    'hash', 'checksum', 'md5', 'sha256',  # Checksums
+    '_rev', '_version', 'version',  # Version fields
+    'db_id', 'database_id', 'ref_id',  # Database references
+    'last_modified_by', 'created_by', 'modified_by',  # User tracking
+}
+
+
+def strip_fields(data, fields_to_remove=None, keep_only=None):
+    """
+    Strip pre-defined noisy fields from data before similarity analysis.
+    
+    This removes metadata, IDs, timestamps, URLs, checksums, etc. that would
+    add noise to similarity comparisons.
+    
+    Args:
+        data: Dict or list of dicts to clean
+        fields_to_remove: Set of field names to remove
+                         - None: use DEFAULT_STRIP_FIELDS
+                         - set: custom fields to remove
+        keep_only: If provided, ONLY keep these fields (overrides fields_to_remove)
+                  - set: only these fields are kept
+    
+    Returns:
+        Cleaned data with specified fields removed
+        
+    Examples:
+        # Use defaults (removes @id, @type, timestamp, etc)
+        clean_data = strip_fields(data)
+        
+        # Custom fields to remove
+        clean_data = strip_fields(data, fields_to_remove={'@id', '@type', 'url'})
+        
+        # Keep only specific fields
+        clean_data = strip_fields(data, keep_only={'type', 'resolution', 'description'})
+        
+        # Use with name_extract
+        clean_data = strip_fields(data)
+        data_dict = name_extract(clean_data)
+    """
+    if keep_only is not None:
+        # If keep_only specified, use inverse logic
+        fields_to_remove = None
+        def strip_recursive(obj):
+            """Keep only specified fields"""
+            if isinstance(obj, dict):
+                return {k: strip_recursive(v) for k, v in obj.items() if k in keep_only}
+            elif isinstance(obj, list):
+                return [strip_recursive(item) for item in obj]
+            else:
+                return obj
+    else:
+        # Normal removal logic
+        if fields_to_remove is None:
+            fields_to_remove = DEFAULT_STRIP_FIELDS
+        
+        def strip_recursive(obj):
+            """Recursively strip fields from nested structures"""
+            if isinstance(obj, dict):
+                return {k: strip_recursive(v) for k, v in obj.items() if k not in fields_to_remove}
+            elif isinstance(obj, list):
+                return [strip_recursive(item) for item in obj]
+            else:
+                return obj
+    
+    return strip_recursive(data)
