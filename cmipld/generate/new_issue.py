@@ -540,7 +540,11 @@ def main():
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         _saved_report = data.get('_validation_report', '')
-        clean_data = {k: v for k, v in data.items() if not k.startswith('_')}
+        # Strip internal metadata keys and workflow control fields before writing
+        _STRIP = {'issue_kind', 'issue_type', 'issue_category',
+                  'additional_collaborators', 'collaborators'}
+        clean_data = {k: v for k, v in data.items()
+                      if not k.startswith('_') and k not in _STRIP}
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(clean_data, f, indent=4, ensure_ascii=False)
 
