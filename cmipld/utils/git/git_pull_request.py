@@ -15,13 +15,13 @@ def prepare_pull(feature_branch):
 
 def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None):
     """Create or update a pull request"""
-    
+
     prs = branch_pull_requests(head=feature_branch,)
-    
+
     if prs:
         update = prs[0]['number']
         update_summary(f"++ Found existing PR: {update}. Will be updating this. ")
-    
+
     # Get current branch name
     current_branch = shell("git rev-parse --abbrev-ref HEAD").strip()
 
@@ -33,43 +33,21 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     if not commits:
         raise ValueError(f"No commits between {base_branch} and {current_branch}. Cannot create pull request.")
 
-    # If updating an existing PR, use the comment command
     if update is not None:
-        where = f"gh pr comment {update}"
+        # PR already exists — nothing to do here, caller handles body via update_pr_body
+        print(f"++ PR #{update} already exists, skipping re-create")
+        output = str(update)
     else:
-        where = f"gh pr create --base '{base_branch}' --head '{current_branch}' --title '{title}'"
-
-    # Escape backticks in the content for safety
-    content = content.replace('`', r'\`')
-
-    # Construct PR body (same body for both new and existing PR)
-    pr_body = f"""
-This pull request was automatically created by a GitHub Actions workflow.
-
-Adding the following new data:
-
-```js
-{content}
-```
-
-Resolves #{issue}
-    """
-
-    # If updating, just comment on the existing PR
-    if update:
-        print(f"++ Updating PR {update} with new comment")
-        cmds = f"gh pr comment {update} --body '{pr_body}' ;"
-    else:
+        # Create new PR with a minimal placeholder body (caller will update it)
         print(f"++ Creating a new PR")
+        placeholder = f"Resolves #{issue}"
+        placeholder = placeholder.replace("'", r"'\''")
         cmds = f"""
         nohup git pull -v > /dev/null 2>&1 ;
-        {where} --body '{pr_body}' ;
+        gh pr create --base '{base_branch}' --head '{current_branch}' --title '{title}' --body '{placeholder}' ;
         """
+        output = shell(cmds).strip()
 
-    # Execute the command
-    output = shell(cmds).strip()
-
-    # Update issue with PR info
     update_issue(f"Updating Pull Request: {output}", False)
 
     # Ensure pull_req label exists then add it to the issue (if new PR)
