@@ -426,7 +426,15 @@ def _ensure_numpy():
 
 
 def _ensure_sentence_transformers():
-    """Import sentence_transformers — raise ImportError if unavailable."""
+    """Import sentence_transformers, installing if missing."""
+    try:
+        from sentence_transformers import SentenceTransformer  # noqa: F401
+        return True
+    except (ImportError, Exception):
+        pass
+    import subprocess, sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install",
+                           "sentence-transformers", "-q"])
     from sentence_transformers import SentenceTransformer  # noqa: F401
     return True
 
