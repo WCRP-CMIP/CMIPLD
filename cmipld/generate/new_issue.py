@@ -361,12 +361,8 @@ def main():
     validate_only = args.validate_only
     prefix        = "[DRY RUN] " if dry_run else ("[VALIDATE] " if validate_only else "")
 
-    # Branch guard — warn if not on src-data but don't abort;
-    # in CI the workflow already guarantees the correct checkout.
-    if not dry_run and not validate_only:
-        current_branch = git.getbranch()
-        if current_branch not in ('src-data', 'HEAD'):
-            print(f"  ⚠ Warning: expected src-data branch, on '{current_branch}'", flush=True)
+    # Validation runs on whatever branch we're on (main in CI).
+    # Before writing files we switch to src-data.
 
     issue        = get_issue(args.issue)
     parsed_issue = parse_issue_body(issue['body'])
@@ -462,7 +458,14 @@ def main():
 
     print(f"\n{prefix}All validations passed.", flush=True)
 
-    # ── STEP 4: exit if validate-only or dry-run ──────────────────────
+    # ── STEP 4: switch to src-data before writing ────────────────────
+    if not dry_run and not validate_only:
+        from cmipld.utils.io import shell
+        shell("git fetch origin src-data")
+        shell("git checkout src-data")
+        shell("git pull origin src-data")
+        print("  ✓ Switched to src-data branch", flush=True)
+
     if validate_only:
         # Validation passed — post success note and exit cleanly
         success_note = (
