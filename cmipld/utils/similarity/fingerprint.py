@@ -119,30 +119,27 @@ class JSONSimilarityFingerprint:
         """Embed all files using transformer."""
         if not self.file_paths:
             raise ValueError("No files loaded. Call load_from_dict() or load_jsons_from_glob() first")
-        
-        if show_progress:
-            pass  # progress suppressed — called from report pipeline
+
+        # Suppress transformer/huggingface logging noise
+        import logging
+        logging.getLogger("transformers").setLevel(logging.ERROR)
+        logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+
         self.texts = []
         for fp in self.file_paths:
             data = self.data_dict[fp]
             text = self.json_to_text(data)
             self.texts.append(text)
-        
+
         st = _ensure_sentence_transformers()
-        if show_progress:
-            pass  # model load quiet in report pipeline
         self.model = st(self.model_name)
-        
-        print(f"Encoding {len(self.texts)} texts to embeddings...")
+
         self.embeddings = self.model.encode(
             self.texts,
             batch_size=batch_size,
-            show_progress_bar=show_progress,
+            show_progress_bar=False,
             convert_to_numpy=True
         )
-        
-        if show_progress:
-            pass
         return self.embeddings
     
     def compute_similarity(self):

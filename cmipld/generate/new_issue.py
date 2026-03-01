@@ -86,7 +86,9 @@ def upsert_comment(number: int, body: str, marker: str, on: str = "issue") -> No
             existing_id = c["id"]
             break
 
-    full_body = body + f"\n\n{marker}"
+    import datetime
+    ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    full_body = body + f"\n\n_Last updated: {ts}_\n\n{marker}"
 
     if existing_id:
         _gh_api(f"repos/{repo}/issues/comments/{existing_id}", "PATCH",
