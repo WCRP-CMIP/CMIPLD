@@ -444,7 +444,7 @@ class ReportBuilder:
             if fname in submitted_short:
                 display = _compact_val(submitted_short[fname])
                 badge_str = " (**required**)" if info["required"] else ""
-                schema_rows.append(f"- [x] `{fname}`{badge_str}: **{display}**")
+                schema_rows.append(f"- [ ] `{fname}`{badge_str}: **{display}**")
             else:
                 # Required not submitted → [x] (must be addressed)
                 # Optional not submitted → [-] (known gap, not critical)

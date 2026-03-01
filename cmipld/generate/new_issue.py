@@ -539,7 +539,7 @@ def main():
             return
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        # Strip internal metadata keys (e.g. _validation_report) before writing
+        _saved_report = data.get('_validation_report', '')
         clean_data = {k: v for k, v in data.items() if not k.startswith('_')}
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(clean_data, f, indent=4, ensure_ascii=False)
@@ -553,6 +553,8 @@ def main():
         # Set validation_key to @id if not already present
         if 'validation_key' not in data and '@id' in data:
             data['validation_key'] = data['@id']
+        if _saved_report:
+            data['_validation_report'] = _saved_report
         processed_data[file_path] = data
         all_output_paths.append(output_path)
         print(f"  ✓ Written: {output_path}", flush=True)
@@ -584,25 +586,14 @@ def main():
         git.commit_one(output_path, author_info['primary'],
                        comment=commit_msg, branch=branch_name)
 
-    # ── STEP 7: Build review report ────────────────────────────────────
-    print("\nBuilding review report …", flush=True)
-    report_md = ""
-    rb        = None
-    try:
-        from cmipld.utils.similarity import ReportBuilder
-        folder_url = f"emd:{issue_type}s"
-        rb         = ReportBuilder(
-            folder_url     = folder_url,
-            kind           = issue_type,
-            item           = first_data,
-            use_embeddings = True,
-        )
-        report_md  = rb.build()
-    except Exception as e:
-        report_md = f"_Review report unavailable: {e}_"
+    # ── STEP 7: Use saved review report (no regeneration) ──────────────
+    report_md = first_data.pop('_validation_report', '') or "_Review report unavailable._"
 
     # ── STEP 8: Create / update PR with data JSON + report ─────────────
-    data_json = json.dumps(first_data, indent=4, ensure_ascii=False)
+    data_json = json.dumps(
+        {k: v for k, v in first_data.items() if not k.startswith('_')},
+        indent=4, ensure_ascii=False
+    )
     pr_body   = build_pr_body(data_json, report_md, issue_number)
 
     print("Creating / updating pull request …", flush=True)
@@ -630,11 +621,16 @@ def main():
         if prs:
             pr_number = prs[0]['number']
             pr_url    = prs[0].get('url', '')
-            # Update the PR body (main description) with the submitted data JSON
+            import datetime as _dt
+            pr_ts   = _dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
             pr_desc = (
                 f"Resolves #{issue_number}\n\n"
+                f"> View submitted files in the **Files changed** tab above.\n\n"
                 f"### Submitted data\n\n"
-                f"```json\n{data_json}\n```"
+                f"```json\n{data_json}\n```\n\n"
+                f"---\n\n"
+                f"A full review report is posted as a comment below.  \n"
+                f"_Last updated: {pr_ts}_"
             )
             update_pr_body(pr_number, pr_desc)
             # Post the full review report as an updatable comment below
