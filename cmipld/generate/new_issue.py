@@ -354,11 +354,12 @@ def main():
     validate_only = args.validate_only
     prefix        = "[DRY RUN] " if dry_run else ("[VALIDATE] " if validate_only else "")
 
-    # Branch guard — only enforce when we are actually going to write files
+    # Branch guard — warn if not on src-data but don't abort;
+    # in CI the workflow already guarantees the correct checkout.
     if not dry_run and not validate_only:
         current_branch = git.getbranch()
-        if current_branch != 'src-data':
-            sys.exit(f"Must be on 'src-data' branch (currently: {current_branch})")
+        if current_branch not in ('src-data', 'HEAD'):
+            print(f"  ⚠ Warning: expected src-data branch, on '{current_branch}'", flush=True)
 
     issue        = get_issue(args.issue)
     parsed_issue = parse_issue_body(issue['body'])
