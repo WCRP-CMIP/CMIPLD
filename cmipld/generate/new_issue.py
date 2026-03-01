@@ -9,6 +9,11 @@ from pathlib import Path
 
 from cmipld.utils.validate_json import JSONValidator
 
+# Resolve paths relative to GITHUB_WORKSPACE (CI) or cwd (local)
+def _repo_root() -> str:
+    import os
+    return os.environ.get('GITHUB_WORKSPACE', os.getcwd())
+
 HANDLER_PATH = '.github/ISSUE_SCRIPT/'
 DATA_PATH    = './'
 
@@ -271,11 +276,13 @@ def get_issue_type_from_labels(labels):
     relevant = parse_labels(labels)
     if not relevant:
         return None
+    root = _repo_root()
     for label in relevant:
-        if os.path.exists(f"{HANDLER_PATH}{label}.py"):
-            print(f"  ✓ Found handler: {HANDLER_PATH}{label}.py", flush=True)
+        abs_path = os.path.join(root, HANDLER_PATH, f"{label}.py")
+        if os.path.exists(abs_path):
+            print(f"  ✓ Found handler: {abs_path}", flush=True)
             return label
-    print(f"  ℹ No specific handler for {relevant}", flush=True)
+    print(f"  ℹ No specific handler for {relevant} in {root}", flush=True)
     return relevant[0]
 
 
@@ -381,7 +388,7 @@ def main():
         sys.exit(0)
 
     # ── Build files_to_write via handler / generic ─────────────────────
-    script_path   = f"{HANDLER_PATH}{issue_type}.py"
+    script_path   = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
     files_to_write: dict = {}
 
     if os.path.exists(script_path):
@@ -424,6 +431,7 @@ def main():
             validation_errors[file_path] = errors_md
 
     # ── STEP 2: handler update() for custom checks ─────────────────────
+    script_path = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
     if os.path.exists(script_path):
         spec = importlib.util.spec_from_file_location(issue_type, script_path)
         mod  = importlib.util.module_from_spec(spec)
@@ -489,7 +497,7 @@ def main():
         if '@type' not in data and 'type' in data:
             data['@type'] = data.pop('type')
 
-        output_path = os.path.join(DATA_PATH, file_path)
+        output_path = os.path.join(_repo_root(), DATA_PATH, file_path)
 
         if issue_kind == 'new' and os.path.exists(output_path):
             msg = (
