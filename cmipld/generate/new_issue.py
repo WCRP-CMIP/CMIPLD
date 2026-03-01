@@ -148,31 +148,31 @@ def run_pycmipld_validation(data: dict, issue_type: str) -> tuple[bool, str | No
 
 def build_warning_comment(errors_md: str, failed_fields: list[str],
                            guidance: dict, issue_type: str) -> str:
-    """
-    Build the issue comment body posted when validation fails.
-    Includes the error table and guidance for every failed field.
-    """
     lines = [
         "## Submission validation failed\n",
-        "The following errors were found. Please edit the issue to correct them.\n",
+        "The following errors were found. Please edit the issue to correct them. "
+        "[How to edit an issue.](https://scribehow.com/embed-preview/Edit_an_Issues_Description_Field_on_GitHub__BFQ9OA50Q9-RbQvQ3r_GEQ?as=slides&size=flexible)\n",
         "> [!WARNING]",
         "> **Validation errors**\n",
     ]
-    # Error table
     lines += [f"> {line}" for line in errors_md.strip().splitlines()]
     lines.append("")
 
-    # Guidance per failed field
-    if failed_fields and guidance:
+    # Only show field guidance section if at least one field has guidance text
+    guidance_blocks = []
+    for fname in sorted(set(failed_fields)):
+        tip = guidance.get(fname, "")
+        if tip:
+            guidance_blocks.append(
+                f"\n<details open><summary><strong>{fname}</strong></summary>\n\n"
+                + tip.strip()
+                + "\n\n</details>"
+            )
+
+    if guidance_blocks:
         lines.append("### Field guidance\n")
-        for fname in sorted(set(failed_fields)):
-            tip = guidance.get(fname, "")
-            if tip:
-                lines.append(
-                    f"\n<details open><summary><strong>{fname}</strong></summary>\n\n"
-                    + tip.strip()
-                    + "\n\n</details>"
-                )
+        lines.extend(guidance_blocks)
+
     return "\n".join(lines)
 
 
