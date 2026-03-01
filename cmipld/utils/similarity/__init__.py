@@ -42,6 +42,7 @@ from .pydantic_validator import (
 )
 from .text_similarity import TextSimilarityAnalyzer, SimilarityResult, strip_text_fields
 from .report_builder import ReportBuilder
+from .folder_similarity import FolderSimilarity
 
 # Legacy / lower-level utilities
 from .fingerprint import JSONSimilarityFingerprint, diff_jsons
@@ -61,6 +62,7 @@ __all__ = [
     "PydanticValidator","ValidationResult",
     "TextSimilarityAnalyzer", "SimilarityResult",
     "ReportBuilder",
+    "FolderSimilarity",
     # Helpers
     "short", "is_default_skip", "strip_text_fields", "extract_links",
     "DEFAULT_SKIP_PREFIXES", "CMIPLD_KEY_TRANSLATION",
