@@ -522,8 +522,10 @@ def main():
             return
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Strip internal metadata keys (e.g. _validation_report) before writing
+        clean_data = {k: v for k, v in data.items() if not k.startswith('_')}
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+            json.dump(clean_data, f, indent=4, ensure_ascii=False)
 
         validator = JSONValidator(os.path.dirname(output_path), dry_run=False)
         validator.validate_and_fix_json(output_path)
@@ -568,15 +570,17 @@ def main():
     # ── STEP 7: Build review report ────────────────────────────────────
     print("\nBuilding review report …", flush=True)
     report_md = ""
+    rb        = None
     try:
         from cmipld.utils.similarity import ReportBuilder
         folder_url = f"emd:{issue_type}s"
-        report_md  = ReportBuilder(
+        rb         = ReportBuilder(
             folder_url     = folder_url,
             kind           = issue_type,
             item           = first_data,
             use_embeddings = True,
-        ).build()
+        )
+        report_md  = rb.build()
     except Exception as e:
         report_md = f"_Review report unavailable: {e}_"
 
@@ -602,22 +606,65 @@ def main():
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
 
     # Find the PR number just created/updated so we can post the full report
+    pr_number = None
+    pr_url    = ""
     try:
         prs = git.branch_pull_requests(head=branch_name)
         if prs:
             pr_number = prs[0]['number']
+            pr_url    = prs[0].get('url', '')
             upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
     except Exception as e:
         print(f"  ⚠ Could not post report to PR: {e}", flush=True)
 
-    # Also update the issue comment to show success
-    success_msg = (
-        f"## Submission queued for review\n\n"
-        f"A pull request has been created: **{title}**\n\n"
-        f"Branch: `{branch_name}`\n\n"
-        f"The review report has been posted on the PR."
-    )
-    upsert_comment(int(issue_number), success_msg, _BOT_MARKER_ISSUE)
+    # Build issue success comment
+    pr_ref = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
+
+    auto_fields = []
+    try:
+        from cmipld.utils.similarity.report_builder import _validator_covered_fields
+        from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
+        auto_fields = sorted(_validator_covered_fields(
+            DATA_DESCRIPTOR_CLASS_MAPPING.get(issue_type)))
+    except Exception:
+        pass
+    field_list = ", ".join(f"`{f}`" for f in auto_fields) if auto_fields else "all submitted fields"
+
+    success_lines = [
+        "## Automatic checks passed\n",
+        f"Automatic checks ({field_list}) all passed. "
+        f"{pr_ref} created for review.\n",
+    ]
+
+    # Similarity warning table for any >80% matches
+    try:
+        folder_ids = {
+            _short_id(fi.get("@id", "")): fi.get("@id", "")
+            for fi in rb.loader.items
+        } if rb else {}
+        link_high = [(oid, pct) for oid, pct in rb.link_result.pairs
+                     if pct >= 80.0] if rb and rb.link_result else []
+        sim_high  = [(oid, s * 100) for oid, s in rb.sim_result.pairs
+                     if s * 100 >= 80.0] if rb and rb.sim_result else []
+        similar   = dict(link_high + sim_high)
+        if similar:
+            success_lines += [
+                "> [!WARNING]",
+                "> **Similar existing entries found** — please check these are not "
+                "duplicates before merging.\n",
+                "| Entry | Similarity |",
+                "|-------|------------|",
+            ]
+            for oid, pct in sorted(similar.items(), key=lambda x: -x[1]):
+                full_id = folder_ids.get(oid, '')
+                url     = (full_id + '.json') if 'mipcvs.dev' in full_id else full_id
+                link    = f"[`{oid}`]({url})" if url else f"`{oid}`"
+                success_lines.append(f"| {link} | {pct:.0f}% |")
+            success_lines.append("")
+    except Exception:
+        pass
+
+    upsert_comment(int(issue_number), "\n".join(success_lines), _BOT_MARKER_ISSUE)
 
     print(f"\n✅ Done: {title}", flush=True)
 
