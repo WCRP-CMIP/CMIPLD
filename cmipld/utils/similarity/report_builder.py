@@ -435,7 +435,7 @@ class ReportBuilder:
                 if info["required"]:
                     schema_rows.append(f"- [x] `{fname}` ({badge}): null")
                 else:
-                    schema_rows.append(f"- [-] `{fname}` ({badge})")
+                    schema_rows.append(f"- [ ] `{fname}` ({badge})")
 
         if schema_rows:
             lines.append("### Schema fields\n")
