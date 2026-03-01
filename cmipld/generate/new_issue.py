@@ -575,7 +575,7 @@ def main():
             folder_url     = folder_url,
             kind           = issue_type,
             item           = first_data,
-            use_embeddings = False,   # fast in CI; embeddings optional
+            use_embeddings = True,
         ).build()
     except Exception as e:
         report_md = f"_Review report unavailable: {e}_"
