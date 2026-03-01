@@ -68,13 +68,13 @@ Resolves #{issue}
 
     # Execute the command
     output = shell(cmds).strip()
-    # output = os.popen(cmds).read().strip()
 
     # Update issue with PR info
     update_issue(f"Updating Pull Request: {output}", False)
-    
-    # Add "pull_req" label to the issue (if it's a new PR)
+
+    # Ensure pull_req label exists then add it to the issue (if new PR)
     if update is None:
+        shell('gh label create "pull_req" --color "0075ca" --description "Has an open pull request" 2>/dev/null || true')
         shell(f'gh issue edit "{issue}" --add-label "pull_req"')
 
 
