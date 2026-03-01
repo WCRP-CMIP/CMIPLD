@@ -5,6 +5,7 @@ import re
 import argparse
 import importlib.util
 import subprocess
+from pathlib import Path
 
 from cmipld.utils.validate_json import JSONValidator
 
@@ -103,7 +104,6 @@ def load_field_guidance(kind: str) -> dict:
     ws = os.environ.get("GITHUB_WORKSPACE")
     if ws:
         candidates.append(Path(ws))
-    from pathlib import Path
     cur = Path.cwd()
     for _ in range(8):
         if (cur / ".github").is_dir():
@@ -344,7 +344,6 @@ def parse_args():
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    from pathlib import Path
     from cmipld.utils import git
     from cmipld.utils.git import coauthors
     from cmipld.utils.id_generation import parse_commiters
@@ -553,14 +552,21 @@ def main():
     pr_body   = build_pr_body(data_json, report_md, issue_number)
 
     print("Creating / updating pull request …", flush=True)
-    git.newpull(
-        branch_name,
-        author_info['primary'],
-        data_json,
-        title,
-        issue_number,
-        base_branch='src-data',
-    )
+    # Temporarily clear ISSUE_NUMBER so git.newpull doesn't post its own
+    # generic comment — we post a richer one via upsert_comment below.
+    _saved_issue_num = os.environ.pop('ISSUE_NUMBER', '')
+    try:
+        git.newpull(
+            branch_name,
+            author_info['primary'],
+            data_json,
+            title,
+            issue_number,
+            base_branch='src-data',
+        )
+    finally:
+        if _saved_issue_num:
+            os.environ['ISSUE_NUMBER'] = _saved_issue_num
 
     # Find the PR number just created/updated so we can post the full report
     try:
