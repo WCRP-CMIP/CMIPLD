@@ -424,10 +424,11 @@ class ReportBuilder:
                 orig_keys = [k for k in submitted if short(k) == fname]
                 orig_key  = orig_keys[0] if orig_keys else fname
                 icon      = "❌" if orig_key in failed else "✅"
-                auto_rows.append(f"- [x] {icon} `{fname}` ({badge}): {display}")
+                badge_str = " (**required**)" if info["required"] else ""
+                auto_rows.append(f"- [x] {icon} `{fname}`{badge_str}: **{display}**")
             else:
                 # Not submitted but explicitly validated — mark complete (ran, nothing to do)
-                auto_rows.append(f"- [x] `{fname}` ({badge}): _not submitted_")
+                auto_rows.append(f"- [x] `{fname}`")
 
         if auto_rows:
             lines.append("### Automatically validated\n")
@@ -442,14 +443,15 @@ class ReportBuilder:
             badge = "**required**" if info["required"] else "_optional_"
             if fname in submitted_short:
                 display = _compact_val(submitted_short[fname])
-                schema_rows.append(f"- [x] `{fname}` ({badge}): {display}")
+                badge_str = " (**required**)" if info["required"] else ""
+                schema_rows.append(f"- [x] `{fname}`{badge_str}: **{display}**")
             else:
                 # Required not submitted → [x] (must be addressed)
                 # Optional not submitted → [-] (known gap, not critical)
                 if info["required"]:
-                    schema_rows.append(f"- [x] `{fname}` ({badge}): null")
+                    schema_rows.append(f"- [x] `{fname}` (**required**): null")
                 else:
-                    schema_rows.append(f"- [ ] `{fname}` ({badge})")
+                    schema_rows.append(f"- [ ] `{fname}`")
 
         if schema_rows:
             lines.append("### Schema fields\n")
@@ -465,7 +467,7 @@ class ReportBuilder:
             lines.append("### Not in schema — manual review\n")
             for k in extra:
                 display = _compact_val(submitted.get(k, ""))
-                lines.append(f"- [ ] ⚠️ `{short(k)}`: {display}")
+                lines.append(f"- [ ] ⚠️ `{short(k)}`: **{display}**")
             lines.append("")
 
         return "\n".join(lines)
@@ -612,28 +614,41 @@ class ReportBuilder:
         lines.append("")
 
         if sim_result.pairs:
-            # Warning box if any item exceeds threshold
-            high_sim = [(oid, s) for oid, s in sim_result.pairs if s * 100 >= self.link_threshold]
+            high_sim = [(oid, s) for oid, s in sim_result.pairs
+                        if s * 100 >= self.link_threshold]
             if high_sim:
                 lines += [
                     "> [!WARNING]",
-                    f"> **High content similarity** — {len(high_sim)} item(s) are "
-                    f"≥{self.link_threshold:.0f}% similar in content fields. "
+                    f"> **High content similarity** — {len(high_sim)} item(s) share "
+                    f"≥{self.link_threshold:.0f}% content similarity. "
                     "Verify this is not a duplicate.\n",
+                    "| Item | Score | Bar |",
+                    "|------|-------|-----|",
                 ]
+                for oid, score in high_sim:
+                    pct  = score * 100
+                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    link = self._item_link(oid, folder_ids)
+                    lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                lines.append("")
+            else:
+                lines.append(
+                    f"_No existing items exceed {self.link_threshold:.0f}% "
+                    "content similarity._\n"
+                )
 
             lines += [
-                "### Content similarity to folder items\n",
+                "",
+                "<details><summary>All content comparisons</summary>\n",
                 "| Item | Score | Bar |",
                 "|------|-------|-----|",
             ]
             for oid, score in sim_result.pairs:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                flag = " ⚠️" if pct >= self.link_threshold else ""
                 link = self._item_link(oid, folder_ids)
-                lines.append(f"| {link} | {pct:.1f}% | {bar}{flag} |")
-            lines.append("")
+                lines.append(f"| {link} | {pct:.1f}% {bar} |")
+            lines += ["", "</details>", ""]
 
         return "\n".join(lines)
 
