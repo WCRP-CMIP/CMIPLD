@@ -228,7 +228,7 @@ def _load_field_guidance(kind: str, repo_root: Optional[Path] = None) -> Dict[st
         cur = cur.parent
 
     for root in candidates:
-        for name in [kind, kind + "s"]:   # try both singular and plural
+        for name in [kind, kind + "s"]:
             candidate = root / ".github" / "GEN_ISSUE_TEMPLATE" / f"{name}.json"
             if candidate.exists():
                 try:
@@ -236,6 +236,20 @@ def _load_field_guidance(kind: str, repo_root: Optional[Path] = None) -> Dict[st
                     return data.get("field_guidance", {})
                 except Exception:
                     pass
+
+    # Fallback: fetch from GitHub raw URL (works in CI after branch switch)
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if repo:
+        import urllib.request
+        for name in [kind, kind + "s"]:
+            url = (f"https://raw.githubusercontent.com/{repo}/refs/heads/main"
+                   f"/.github/GEN_ISSUE_TEMPLATE/{name}.json")
+            try:
+                with urllib.request.urlopen(url, timeout=5) as r:
+                    data = _json.loads(r.read().decode())
+                    return data.get("field_guidance", {})
+            except Exception:
+                pass
     return {}
 
 

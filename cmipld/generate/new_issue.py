@@ -104,6 +104,23 @@ def upsert_pr_comment(pr_number: int, body: str, marker: str) -> None:
     upsert_comment(pr_number, body, marker, on="pr")
 
 
+def update_pr_body(pr_number: int, body: str) -> None:
+    """Update the main PR description (not a comment) via gh pr edit."""
+    import tempfile, subprocess as _sp
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md',
+                                     delete=False, encoding='utf-8') as f:
+        f.write(body)
+        tmp = f.name
+    try:
+        _sp.run(["gh", "pr", "edit", str(pr_number), "--body-file", tmp],
+                check=True, capture_output=True)
+        print(f"  Updated PR #{pr_number} description", flush=True)
+    except Exception as e:
+        print(f"  ⚠ Could not update PR body: {e}", flush=True)
+    finally:
+        import os as _os; _os.unlink(tmp)
+
+
 # ── Guidance loader ───────────────────────────────────────────────────────────
 
 def load_field_guidance(kind: str) -> dict:
@@ -605,7 +622,7 @@ def main():
         if _saved_issue_num:
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
 
-    # Find the PR number just created/updated so we can post the full report
+    # Find the PR: update its description, post report as a separate comment
     pr_number = None
     pr_url    = ""
     try:
@@ -613,9 +630,17 @@ def main():
         if prs:
             pr_number = prs[0]['number']
             pr_url    = prs[0].get('url', '')
+            # Update the PR body (main description) with the submitted data JSON
+            pr_desc = (
+                f"Resolves #{issue_number}\n\n"
+                f"### Submitted data\n\n"
+                f"```json\n{data_json}\n```"
+            )
+            update_pr_body(pr_number, pr_desc)
+            # Post the full review report as an updatable comment below
             upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
     except Exception as e:
-        print(f"  ⚠ Could not post report to PR: {e}", flush=True)
+        print(f"  ⚠ Could not update PR: {e}", flush=True)
 
     # Build issue success comment
     pr_ref = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
