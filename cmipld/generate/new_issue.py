@@ -195,21 +195,24 @@ def get_issue_from_env():
 
 
 def get_issue_from_gh(issue_number):
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    cmd  = [
+        'gh', 'issue', 'view', str(issue_number),
+        '--json', 'title,body,author,labels,number,createdAt',
+    ]
+    if repo:
+        cmd += ['--repo', repo]
     try:
-        result = subprocess.run(
-            ['gh', 'issue', 'view', str(issue_number),
-             '--json', 'title,body,author,labels,number,createdAt'],
-            capture_output=True, text=True, check=True,
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         data   = json.loads(result.stdout)
         labels = [l.get('name', '') for l in data.get('labels', [])]
         return {
-            'body':       data.get('body', ''),
+            'body':        data.get('body', ''),
             'labels_full': json.dumps(labels),
-            'number':     str(data.get('number', issue_number)),
-            'title':      data.get('title', ''),
-            'author':     data.get('author', {}).get('login', ''),
-            'created_at': data.get('createdAt', ''),
+            'number':      str(data.get('number', issue_number)),
+            'title':       data.get('title', ''),
+            'author':      data.get('author', {}).get('login', ''),
+            'created_at':  data.get('createdAt', ''),
         }
     except subprocess.CalledProcessError as e:
         print(f"Error fetching issue {issue_number}: {e.stderr}")
