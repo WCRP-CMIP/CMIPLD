@@ -15,6 +15,7 @@ DATA_PATH    = './'
 IGNORE_LABELS = {
     'review', 'alpha', 'keep-open', 'delta', 'Review',
     'universal', 'universe', 'pull_req', 'Pull_req', 'critical',
+    'emd-submission',   # category marker, not a handler type
 }
 
 FOLDER_MAPPING = {
@@ -404,6 +405,13 @@ def main():
     # ── Load guidance for this issue type ──────────────────────────────
     guidance = load_field_guidance(issue_type)
 
+    # Ensure validation_key is set (= @id) on every file before validation
+    for file_path, data in files_to_write.items():
+        if not file_path.startswith('_') and 'validation_key' not in data:
+            _id = data.get('@id', '')
+            if _id:
+                data['validation_key'] = _id.split('/')[-1]
+
     # ── STEP 1: pycmipld validation on every file ──────────────────────
     print(f"\n{prefix}Running pycmipld validation …", flush=True)
     validation_errors: dict = {}   # file_path → errors_md
@@ -501,6 +509,9 @@ def main():
         with open(output_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
+        # Set validation_key to @id if not already present
+        if 'validation_key' not in data and '@id' in data:
+            data['validation_key'] = data['@id']
         processed_data[file_path] = data
         all_output_paths.append(output_path)
         print(f"  ✓ Written: {output_path}", flush=True)
