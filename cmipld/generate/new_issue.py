@@ -191,12 +191,20 @@ def build_pr_body(data_json: str, report_md: str, issue_number: str) -> str:
 # ── Existing helpers (unchanged) ──────────────────────────────────────────────
 
 def get_issue_from_env():
+    issue_number = os.environ.get('ISSUE_NUMBER')
+    # If we have a number and gh is available, fetch full data including created_at
+    if issue_number:
+        try:
+            return get_issue_from_gh(issue_number)
+        except Exception:
+            pass
     return {
         'body':        os.environ.get('ISSUE_BODY'),
         'labels_full': os.environ.get('ISSUE_LABELS'),
-        'number':      os.environ.get('ISSUE_NUMBER'),
+        'number':      issue_number,
         'title':       os.environ.get('ISSUE_TITLE'),
         'author':      os.environ.get('ISSUE_SUBMITTER'),
+        'created_at':  os.environ.get('ISSUE_CREATED_AT', ''),
     }
 
 
