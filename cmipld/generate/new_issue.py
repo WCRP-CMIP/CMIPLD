@@ -366,8 +366,15 @@ def main():
     print(f"Issue #{issue_number}: {issue['title']}", flush=True)
     print(f"Author: {issue.get('author')}  |  Type: {issue_type}", flush=True)
 
+    # Only process issues that carry an emd-* label
+    raw_labels = json.loads(labels) if isinstance(labels, str) else (labels or [])
+    if not any('emd' in str(l).lower() for l in raw_labels):
+        print("Issue has no emd-* label — not an EMD submission, skipping.", flush=True)
+        sys.exit(0)
+
     if not issue_type:
-        sys.exit('No issue type selected.')
+        print("No matching issue type found — not an EMD submission, skipping.", flush=True)
+        sys.exit(0)
 
     # ── Build files_to_write via handler / generic ─────────────────────
     script_path   = f"{HANDLER_PATH}{issue_type}.py"
