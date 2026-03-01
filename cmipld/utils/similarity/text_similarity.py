@@ -172,37 +172,24 @@ class TextSimilarityAnalyzer:
             if _short_id(fi.get("@id", "")) != target_id
         }
 
-        pairs_embed: List[Tuple[str, float]] = []
-        pairs_field: List[Tuple[str, float]] = []
+        pairs:  List[Tuple[str, float]] = []
+        method = "embedding"
 
-        # Field-level structural (always fast)
-        for fid, fdata in corpus.items():
-            score, _ = compute_field_similarity(text_fields, fdata)
-            pairs_field.append((fid, round(score, 3)))
-        pairs_field.sort(key=lambda x: x[1], reverse=True)
-
-        # Embedding semantic (optional — falls back silently)
         if text_fields and corpus:
-            try:
-                data_dict = {target_id: text_fields, **corpus}
-                fp = JSONSimilarityFingerprint(model_name=self.model_name, include_keys=False)
-                fp.load_from_dict(data_dict)
-                fp.embed(show_progress=False)
-                fp.compute_similarity()
-                idx = fp.file_paths.index(target_id)
-                pairs_embed = sorted(
-                    [
-                        (fid, round(float(fp.similarity_matrix[idx][i]), 3))
-                        for i, fid in enumerate(fp.file_paths)
-                        if fid != target_id
-                    ],
-                    key=lambda x: x[1],
-                    reverse=True,
-                )
-            except Exception:
-                pass  # Fall back to field-level silently
-
-        pairs  = pairs_embed if pairs_embed else pairs_field
-        method = "embedding" if pairs_embed else "field-level"
+            data_dict = {target_id: text_fields, **corpus}
+            fp = JSONSimilarityFingerprint(model_name=self.model_name, include_keys=False)
+            fp.load_from_dict(data_dict)
+            fp.embed(show_progress=False)
+            fp.compute_similarity()
+            idx = fp.file_paths.index(target_id)
+            pairs = sorted(
+                [
+                    (fid, round(float(fp.similarity_matrix[idx][i]), 3))
+                    for i, fid in enumerate(fp.file_paths)
+                    if fid != target_id
+                ],
+                key=lambda x: x[1],
+                reverse=True,
+            )
 
         return SimilarityResult(target_id, text_fields, pairs, method)

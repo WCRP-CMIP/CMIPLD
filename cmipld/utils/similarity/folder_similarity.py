@@ -426,46 +426,9 @@ def _ensure_numpy():
 
 
 def _ensure_sentence_transformers():
-    """
-    Try to import sentence_transformers; fix environment if needed.
-
-    The most common failure chain is:
-      sentence_transformers → transformers → huggingface_hub → httpx
-        → httpcore → trio → attrs.field(alias=...) → TypeError
-
-    Root cause: two attrs installations coexist — the 'attrs' package
-    (importlib.metadata version) is new but the 'attr' package (the one
-    Python actually imports) is old (<22.2.0) and lacks field(alias=...).
-    Fix: upgrade 'attrs' which overwrites the 'attr' namespace too.
-    """
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: F401
-        return True
-    except (ImportError, TypeError, Exception):
-        pass
-
-    # Step 1: install sentence-transformers if missing
-    print("  Installing sentence-transformers…", flush=True)
-    _pip_install("sentence-transformers")
-
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: F401
-        return True
-    except (ImportError, TypeError, Exception):
-        pass
-
-    # Step 2: the attrs version mismatch (TypeError: field() got an unexpected
-    # keyword argument 'alias') — upgrade attrs which fixes the trio dependency
-    print("  Upgrading attrs for sentence-transformers compatibility…", flush=True)
-    _pip_install("attrs>=23.2.0", upgrade=True)
-
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: F401
-        return True
-    except (ImportError, TypeError, Exception) as exc:
-        print(f"  ⚠ sentence-transformers unavailable ({exc}); "
-              "falling back to field-level similarity.", flush=True)
-        return False
+    """Import sentence_transformers — raise ImportError if unavailable."""
+    from sentence_transformers import SentenceTransformer  # noqa: F401
+    return True
 
 
 # ---------------------------------------------------------------------------
