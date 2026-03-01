@@ -199,8 +199,8 @@ class TextSimilarityAnalyzer:
                     key=lambda x: x[1],
                     reverse=True,
                 )
-            except Exception as exc:
-                print(f"[TextSimilarityAnalyzer] Embedding unavailable, using field similarity: {exc}")
+            except Exception:
+                pass  # Fall back to field-level silently
 
         pairs  = pairs_embed if pairs_embed else pairs_field
         method = "embedding" if pairs_embed else "field-level"

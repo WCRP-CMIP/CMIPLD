@@ -23,25 +23,19 @@ def _ensure_sentence_transformers():
             SentenceTransformer = ST
             return SentenceTransformer
         except ImportError:
-            print("⚠ sentence-transformers not found. Installing...")
-            import subprocess
             try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"], timeout=180)
+                import subprocess
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", "sentence-transformers"],
+                    timeout=180, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
                 from sentence_transformers import SentenceTransformer as ST
                 SentenceTransformer = ST
-                print("✓ sentence-transformers installed")
                 return SentenceTransformer
-            except Exception as install_err:
-                print(f"ERROR: Could not install sentence-transformers")
-                print(f"  {install_err}")
-                print("\nManual install: pip install sentence-transformers")
-                raise
+            except Exception:
+                raise ImportError("sentence-transformers unavailable")
         except Exception as e:
-            error_msg = str(e)
-            print(f"ERROR: Could not load sentence-transformers")
-            print(f"  {type(e).__name__}: {error_msg}")
-            print("\nManual install: pip install sentence-transformers")
-            raise
+            raise ImportError(f"sentence-transformers could not be loaded: {e}")
     return SentenceTransformer
 
 
@@ -82,7 +76,7 @@ class JSONSimilarityFingerprint:
         """Load JSON data from dictionary."""
         self.data_dict = data_dict
         self.file_paths = list(data_dict.keys())
-        print(f"✓ Loaded {len(self.file_paths)} files from dict")
+        pass  # quiet
         return len(self.file_paths)
     
     def load_jsons_from_glob(self, pattern: str) -> int:
@@ -96,7 +90,7 @@ class JSONSimilarityFingerprint:
             with open(fp) as f:
                 self.data_dict[fp] = json.load(f)
         
-        print(f"✓ Loaded {len(self.file_paths)} files from glob")
+        pass  # quiet
         return len(self.file_paths)
     
     def json_to_text(self, data: dict) -> str:
@@ -126,7 +120,8 @@ class JSONSimilarityFingerprint:
         if not self.file_paths:
             raise ValueError("No files loaded. Call load_from_dict() or load_jsons_from_glob() first")
         
-        print("Converting JSONs to semantic text...")
+        if show_progress:
+            pass  # progress suppressed — called from report pipeline
         self.texts = []
         for fp in self.file_paths:
             data = self.data_dict[fp]
@@ -134,7 +129,8 @@ class JSONSimilarityFingerprint:
             self.texts.append(text)
         
         st = _ensure_sentence_transformers()
-        print(f"Loading transformer model: {self.model_name}")
+        if show_progress:
+            pass  # model load quiet in report pipeline
         self.model = st(self.model_name)
         
         print(f"Encoding {len(self.texts)} texts to embeddings...")
@@ -145,7 +141,8 @@ class JSONSimilarityFingerprint:
             convert_to_numpy=True
         )
         
-        print(f"✓ Embeddings: {self.embeddings.shape} (files × dimensions)")
+        if show_progress:
+            pass
         return self.embeddings
     
     def compute_similarity(self):
