@@ -617,7 +617,7 @@ def main():
     finally:
         if _saved_issue_num:
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
-            os.popen(f'gh pr edit {_saved_issue_num} --add-label "pull_req"').read()
+            
 
     # Find the PR: update its description, post report as a separate comment
     pr_number = None
@@ -646,6 +646,7 @@ def main():
 
     # Build issue success comment
     pr_ref = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
+    os.popen(f'gh pr edit {pr_number} --add-label "pull_req"')
 
     auto_fields = []
     try:
