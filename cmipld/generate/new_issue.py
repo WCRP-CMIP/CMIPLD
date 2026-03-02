@@ -611,12 +611,13 @@ def main():
             data_json,
             title,
             issue_number,
-            base_branch='src-data',
-            labels = ['emd-submission']
+            base_branch='src-data'
+            # labels = ['emd-submission']
         )
     finally:
         if _saved_issue_num:
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
+            os.popen(f'gh pr edit {pr_number} --add-label pull_req')
 
     # Find the PR: update its description, post report as a separate comment
     pr_number = None
