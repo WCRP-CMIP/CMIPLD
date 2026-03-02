@@ -617,7 +617,7 @@ def main():
     finally:
         if _saved_issue_num:
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
-            os.popen(f'gh pr edit {_saved_issue_num} --add-label pull_req')
+            os.popen(f'gh pr edit {_saved_issue_num} --add-label "pull_req"').read()
 
     # Find the PR: update its description, post report as a separate comment
     pr_number = None
