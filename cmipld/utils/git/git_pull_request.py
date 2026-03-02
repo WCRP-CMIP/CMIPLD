@@ -13,7 +13,7 @@ def prepare_pull(feature_branch):
         return feature_branch
     return False
 
-def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None):
+def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None, labels = []):
     """Create or update a pull request"""
 
     prs = branch_pull_requests(head=feature_branch,)
@@ -44,7 +44,7 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
         placeholder = placeholder.replace("'", r"'\''")
         cmds = f"""
         nohup git pull -v > /dev/null 2>&1 ;
-        gh pr create --base '{base_branch}' --head '{current_branch}' --title '{title}' --body '{placeholder}' ;
+        gh pr create --base '{base_branch}' --head '{current_branch}' --title '{title}' --body '{placeholder}' {' '.join(f'--label "{label}"' for label in labels)} 2>&1;
         """
         output = shell(cmds).strip()
 
