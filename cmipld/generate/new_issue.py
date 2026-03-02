@@ -612,6 +612,7 @@ def main():
             title,
             issue_number,
             base_branch='src-data',
+            labels = ['emd-submission']
         )
     finally:
         if _saved_issue_num:
