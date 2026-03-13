@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .graph_loader import GraphLoader, _short_id
-from .fingerprint import JSONSimilarityFingerprint
+from .fingerprint import JSONSimilarityFingerprint, MODEL_NAME
 from .analysis import compute_field_similarity
 from .pydantic_validator import DEFAULT_SKIP_PREFIXES, short
 
@@ -151,11 +151,11 @@ class TextSimilarityAnalyzer:
         self,
         loader: GraphLoader,
         exclude: Optional[Set[str]] = None,
-        model_name: str = "all-MiniLM-L6-v2",
+        model_name: str = None,
     ):
         self._folder_items = loader.items
         self.exclude       = set(exclude or [])
-        self.model_name    = model_name
+        self.model_name    = model_name or MODEL_NAME
 
     def analyze(self, item: dict, item_id: Optional[str] = None) -> SimilarityResult:
         """
