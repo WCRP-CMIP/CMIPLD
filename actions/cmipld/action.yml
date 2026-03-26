@@ -15,6 +15,7 @@ runs:
       with:
         repository: WCRP-CMIP/CMIPLD
         ref: ${{ inputs.branch }}
+        path: /tmp/cmipld-src
 
     - name: Install library
       shell: bash
