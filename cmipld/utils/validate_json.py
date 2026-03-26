@@ -113,13 +113,31 @@ class JSONValidator:
                 return False, "JSON root is not an object"
 
             modified = False
-            current_filename = file_path.stem
+            current_filename = file_path.stem.lower().replace('_','-')
+            
+            if current_filename != file_path.stem:
+                # move file
+                new_file_path = file_path.parent / (current_filename + file_path.suffix)
+                
+                # Check if target file already exists
+                if new_file_path.exists():
+                    assert False, f"Target file already exists: {new_file_path}"
+                
+                file_path.rename(new_file_path)
+                file_path = new_file_path  # Update file_path for any subsequent operations
+                modified = True
+                print(f"Renamed file: {file_path.name} -> {new_file_path.name}")
+                        
+                
 
             # Check required keys
             for key in REQUIRED_KEYS:
                 if key not in data:
                     data[key] = DEFAULT_VALUES[key]
                     modified = True
+
+
+
 
             # Check ID
             if data.get('id') != current_filename:

@@ -25,6 +25,14 @@ def name_entry(data, value='description', key='validation-key'):
 def key_extract(data, keep_list):
     return sortd({k: data[k] for k in keep_list if k in data})
 
+def multikey_extract(data, keep_list):
+    return [dict(key_extract(d, keep_list)) for d in data]
+
+
+def name_multikey_extract(data, keep_list,name_key='validation-key'):
+    return {d[name_key]: dict(key_extract(d, keep_list)) for d in data 
+            # if name_key in d
+            }
 
 def keypathstrip(data):
     return sortd({k.split('/')[-1]: v for k, v in data.items()})
