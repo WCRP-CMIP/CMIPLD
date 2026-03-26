@@ -143,6 +143,68 @@ def commit_with_coauthors(file_paths: List[Union[str, Path]], message: str) -> b
         return False
 
 
+def parse_issue_authors(author_login: str, collaborators_str: str = '') -> dict:
+    """
+    Resolve a GitHub username (and optional collaborators) into author metadata
+    suitable for building a commit.
+
+    Returns a dict with:
+      - 'primary'       : "Name <email>" string for the main committer
+      - 'coauthor_lines': list of "Co-authored-by: Name <email>" strings
+    """
+    def _login_to_author(login: str) -> str:
+        """Try to resolve a GitHub login to a real name+email via git log,
+        falling back to a noreply GitHub email."""
+        login = login.strip()
+        if not login:
+            return None
+        # Check git log for a matching author
+        try:
+            result = subprocess.run(
+                ['git', 'log', '--format=%an <%ae>', '--all'],
+                capture_output=True, text=True
+            )
+            for line in result.stdout.splitlines():
+                if login.lower() in line.lower():
+                    return line.strip()
+        except Exception:
+            pass
+        # Fallback to GitHub noreply address
+        return f"{login} <{login}@users.noreply.github.com>"
+
+    primary = _login_to_author(author_login) or \
+              f"{author_login} <{author_login}@users.noreply.github.com>"
+
+    coauthor_lines = []
+    if collaborators_str:
+        for login in collaborators_str.split(','):
+            login = login.strip()
+            if login and login != author_login:
+                author_str = _login_to_author(login)
+                if author_str:
+                    coauthor_lines.append(f"Co-authored-by: {author_str}")
+
+    return {
+        'primary':        primary,
+        'coauthor_lines': coauthor_lines,
+    }
+
+
+def build_commit_message(title: str, coauthor_lines: List[str]) -> str:
+    """
+    Build a full commit message from a title and a list of co-author lines.
+
+    Format:
+        <title>
+
+        Co-authored-by: Name <email>
+        Co-authored-by: Name <email>
+    """
+    if coauthor_lines:
+        return title + '\n\n' + '\n'.join(coauthor_lines)
+    return title
+
+
 def is_git_repo(path: Union[str, Path] = '.') -> bool:
     """Check if the path is inside a git repository."""
     try:
