@@ -24,6 +24,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
       
+      - name: Start LDR server
+        run: |
+          ldr server stop 2>/dev/null || true
+          ldr server start
+          echo "LDR server started"
+
       - name: Validate JSON files
         run: |
           for d in */; do
