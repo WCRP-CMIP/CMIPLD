@@ -449,7 +449,12 @@ def main():
     for file_path, data in files_to_write.items():
         if file_path.startswith('_'):
             continue
-        passed, errors_md = run_pycmipld_validation(data, issue_type)
+        # Derive the type from the file path (first path component) so
+        # multi-file submissions validate each file against the correct schema
+        file_type = file_path.split(os.sep)[0] if os.sep in file_path else issue_type
+        # Strip list/link fields — esgvoc doesn't know them and will reject the data
+        validation_data = {k: v for k, v in data.items() if not isinstance(v, list)}
+        passed, errors_md = run_pycmipld_validation(validation_data, file_type)
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 
