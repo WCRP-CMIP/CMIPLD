@@ -8,13 +8,16 @@ ESGVOC-compatible pydantic models with built-in validation and error reporting.
 from typing import TypeVar, Generic, Type
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-# esgvoc is a declared dependency — import directly
+# esgvoc is installed on first use with --no-deps to avoid pulling in sqlalchemy etc.
 try:
     from esgvoc.api.data_descriptors import *
-except ImportError as e:
-    raise ImportError(
-        "esgvoc is not installed. Run: pip install esgvoc"
-    ) from e
+except ImportError:
+    import subprocess, sys
+    print("Installing esgvoc (no-deps)...")
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "esgvoc", "--no-deps", "--quiet"
+    ])
+    from esgvoc.api.data_descriptors import *
 
 T = TypeVar("T", bound=BaseModel)
 

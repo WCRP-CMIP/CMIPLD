@@ -21,7 +21,6 @@ dependencies = [
     "tqdm",
     "pyyaml",
     "rdflib>=6.0.0",
-    "esgvoc",
     "jsonld-recursive @ git+https://github.com/wolfiex/jsonld-recursive"
 ]
 
