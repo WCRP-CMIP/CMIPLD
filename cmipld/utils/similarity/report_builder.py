@@ -353,13 +353,19 @@ class ReportBuilder:
     def _load_graph(self) -> GraphLoader:
         if self._graph_data is not None:
             return GraphLoader(self.folder_url, graph_data=self._graph_data)
+        # Try _graph.json first, then _graph.jsonld, then give up gracefully
         try:
             import cmipld
             url  = f"{self.folder_url.rstrip('/')}/_graph.json"
             data = cmipld.expand(url, depth=4)
             return GraphLoader(self.folder_url, graph_data=data)
         except Exception:
-            return GraphLoader(self.folder_url)
+            pass
+        try:
+            return GraphLoader(self.folder_url)  # tries _graph.jsonld via _fetch()
+        except Exception:
+            print(f"  ⚠ Could not load graph for {self.folder_url} — similarity sections will be empty", flush=True)
+            return GraphLoader(self.folder_url, graph_data=None, _empty=True)
 
     def write(self, path: str) -> str:
         if self._report is None:

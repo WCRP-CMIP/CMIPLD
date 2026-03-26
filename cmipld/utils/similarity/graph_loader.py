@@ -49,6 +49,7 @@ class GraphLoader:
         graph_data: Optional[dict] = None,
         graph_suffix: str = "_graph.jsonld",
         depth: int = 2,
+        _empty: bool = False,
     ):
         self.folder_url   = folder_url.rstrip("/")
         self.graph_suffix = graph_suffix
@@ -57,7 +58,9 @@ class GraphLoader:
         self.raw: dict = {}
         self.items: List[dict] = []
 
-        if graph_data is not None:
+        if _empty:
+            pass  # leave items empty — graph unavailable
+        elif graph_data is not None:
             self._ingest(graph_data)
         else:
             self._fetch()
@@ -73,6 +76,9 @@ class GraphLoader:
 
     def _ingest(self, data: dict):
         self.raw = data
+        if not data:
+            self.items = []  # empty dict means no items available
+            return
         key = _find_contents_key(data)
         if key is None:
             self.items = [data]

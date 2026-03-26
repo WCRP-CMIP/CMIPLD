@@ -508,6 +508,17 @@ def main():
 
     if dry_run:
         print(f"\n[DRY RUN] Would write: {list(files_to_write.keys())}")
+        for file_path, data in files_to_write.items():
+            if file_path.startswith('_'):
+                continue
+            report = data.get('_validation_report', '')
+            if report:
+                print(f"\n{'='*60}")
+                print(f"[DRY RUN] Review report for: {file_path}")
+                print(f"{'='*60}")
+                print(report)
+            else:
+                print(f"\n[DRY RUN] No review report generated for: {file_path}")
         return
 
     # ── STEP 5: Write files ────────────────────────────────────────────
@@ -557,8 +568,7 @@ def main():
         # Set validation_key to @id if not already present
         if 'validation_key' not in data and '@id' in data:
             data['validation_key'] = data['@id']
-        if _saved_report:
-            data['_validation_report'] = _saved_report
+        data['_validation_report'] = _saved_report  # preserve even if empty
         processed_data[file_path] = data
         all_output_paths.append(output_path)
         print(f"  ✓ Written: {output_path}", flush=True)
@@ -591,7 +601,7 @@ def main():
                        comment=commit_msg, branch=branch_name)
 
     # ── STEP 7: Use saved review report (no regeneration) ──────────────
-    report_md = first_data.pop('_validation_report', '') or "_Review report unavailable._"
+    report_md = first_data.pop('_validation_report', '') or ''
 
     # ── STEP 8: Create / update PR with data JSON + report ─────────────
     data_json = json.dumps(
