@@ -150,6 +150,7 @@ class LinkAnalyzer:
         self._folder_links: Dict[str, Set[str]] = {
             _short_id(item.get("@id", f"item_{i}")): extract_links(item)
             for i, item in enumerate(loader.items)
+            if not _short_id(item.get("@id", "")).startswith("_")
         }
 
     def analyze(self, item: dict) -> LinkResult:

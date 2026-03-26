@@ -149,15 +149,29 @@ def load_field_guidance(kind: str) -> dict:
 
 # ── Validation helpers ────────────────────────────────────────────────────────
 
+# Types that are EMD-specific and not yet in the esgvoc schema — skip validation
+_SKIP_VALIDATION = {
+    'horizontal_subgrid',
+    'horizontal_computational_grid',
+    'component_config',
+}
+
+
 def run_pycmipld_validation(data: dict, issue_type: str) -> tuple[bool, str | None]:
     """
     Validate *data* with pycmipld against the esgvoc model for *issue_type*.
     Returns (passed: bool, errors_md: str | None).
+    Skips silently (passes) if no esgvoc model exists for this type,
+    or if the type is in the explicit skip list.
     """
+    if issue_type in _SKIP_VALIDATION:
+        print(f"  ℹ Skipping esgvoc validation for '{issue_type}' (EMD-specific type)", flush=True)
+        return True, None
     try:
         from cmipld.utils.esgvoc import pycmipld, DATA_DESCRIPTOR_CLASS_MAPPING
         cls = DATA_DESCRIPTOR_CLASS_MAPPING.get(issue_type)
         if cls is None:
+            print(f"  ℹ No esgvoc schema for '{issue_type}' — skipping validation", flush=True)
             return True, None
         instance = pycmipld(cls, **data)
         return instance.data is not None, instance.validation_md
@@ -452,9 +466,7 @@ def main():
         # Derive the type from the file path (first path component) so
         # multi-file submissions validate each file against the correct schema
         file_type = file_path.split(os.sep)[0] if os.sep in file_path else issue_type
-        # Strip list/link fields — esgvoc doesn't know them and will reject the data
-        validation_data = {k: v for k, v in data.items() if not isinstance(v, list)}
-        passed, errors_md = run_pycmipld_validation(validation_data, file_type)
+        passed, errors_md = run_pycmipld_validation(data, file_type)
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 

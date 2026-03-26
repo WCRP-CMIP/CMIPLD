@@ -58,15 +58,17 @@ class pycmipld(BaseModel, Generic[T]):
   
     def _prepare_dict(self, values: dict) -> dict:
         """Translate JSON-LD to model dict; convert empty strings to None."""
-        # Always a list for @type
         raw_type = values.get("@type", [])
-        type_value = next((t.replace('esgvoc:', '') for t in raw_type if 'esgvoc:' in t), None)
-        # Build translated dict
+        # Prefer esgvoc: prefix, fall back to wcrp: prefix
+        type_value = (
+            next((t.replace('esgvoc:', '') for t in raw_type if 'esgvoc:' in t), None)
+            or next((t.replace('wcrp:', '')  for t in raw_type if 'wcrp:'   in t), None)
+        )
         translated = {
-            k: (v if v != '' else None)  # convert empty strings to None
+            k: (v if v != '' else None)
             for k, v in {
-                "id": values.get("@id"),
-                "type": type_value,
+                "id":      values.get("@id"),
+                "type":    type_value,
                 "context": values.get("@context"),
                 "drs_name": values.get("validation_key"),
                 **{k: v for k, v in values.items() if not k.startswith("@")}

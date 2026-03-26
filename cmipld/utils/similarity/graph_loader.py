@@ -81,10 +81,15 @@ class GraphLoader:
             return
         key = _find_contents_key(data)
         if key is None:
-            self.items = [data]
+            items = [data]
         else:
             contents = data[key]
-            self.items = contents if isinstance(contents, list) else [contents]
+            items = contents if isinstance(contents, list) else [contents]
+        # Skip internal/metadata entries whose @id starts with '_'
+        self.items = [
+            item for item in items
+            if not _short_id(item.get("@id", "")).startswith("_")
+        ]
 
     # ------------------------------------------------------------------
     # access
