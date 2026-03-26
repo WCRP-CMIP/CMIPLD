@@ -29,4 +29,5 @@ runs:
 
         ldr server start
 
-        echo "${ldr server status}" >> $GITHUB_STEP_SUMMARY"
+        echo "$(ldr server status)" >> $GITHUB_STEP_SUMMARY
+
