@@ -4,8 +4,14 @@ Works with dict input: {file_path: data_dict, ...}
 """
 
 import json
-import numpy as np
 from pathlib import Path
+
+try:
+    import numpy as np
+except ImportError:
+    import subprocess, sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy"])
+    import numpy as np
 from typing import List, Dict, Optional, Union
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
