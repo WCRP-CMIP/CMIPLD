@@ -21,6 +21,12 @@ runs:
       run: |
         pip install git+https://github.com/WCRP-CMIP/CMIPLD.git@${{ inputs.branch }}
 
+        npm i -g jsonld-recursive
+
         CMIPLD_VERSION=$(python -c "import cmipld; print(cmipld.__version__)")
+
         echo "- [x] Installed CMIPLD library from branch ${{ inputs.branch }} (version: ${CMIPLD_VERSION})" >> $GITHUB_STEP_SUMMARY
-        echo "cmipld version: ${CMIPLD_VERSION}"
+
+        ldr server start
+
+        echo "${ldr server status}" >> $GITHUB_STEP_SUMMARY"
