@@ -5,18 +5,16 @@ Provides a generic wrapper class to translate CMIP JSON-LD format to
 ESGVOC-compatible pydantic models with built-in validation and error reporting.
 """
 
-import subprocess
-import sys
 from typing import TypeVar, Generic, Type
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-# Ensure esgvoc is installed
+# esgvoc is a declared dependency — import directly
 try:
     from esgvoc.api.data_descriptors import *
-except ImportError:
-    print("Installing esgvoc...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "esgvoc"])
-    from esgvoc.api.data_descriptors import *
+except ImportError as e:
+    raise ImportError(
+        "esgvoc is not installed. Run: pip install esgvoc"
+    ) from e
 
 T = TypeVar("T", bound=BaseModel)
 

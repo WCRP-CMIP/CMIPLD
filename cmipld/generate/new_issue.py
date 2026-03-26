@@ -540,7 +540,9 @@ def main():
 
         output_path = os.path.join(_repo_root(), DATA_PATH, file_path)
 
-        if issue_kind == 'new' and os.path.exists(output_path):
+        force_modify_paths = files_to_write.get('_force_modify', set())
+        if issue_kind == 'new' and os.path.exists(output_path) \
+                and file_path not in force_modify_paths:
             msg = (
                 "## File already exists\n\n"
                 f"`{output_path}` already exists. Change **Issue Kind** to "
@@ -556,6 +558,12 @@ def main():
                   'additional_collaborators', 'collaborators'}
         clean_data = {k: v for k, v in data.items()
                       if not k.startswith('_') and k not in _STRIP}
+
+        # Save all list/link fields before JSONValidator runs — it strips anything
+        # esgvoc doesn't recognise (e.g. horizontal_subgrids, component_configs)
+        _saved_links = {k: v for k, v in clean_data.items()
+                        if isinstance(v, list) and not k.startswith('@')}
+
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(clean_data, f, indent=4, ensure_ascii=False)
 
@@ -564,6 +572,23 @@ def main():
 
         with open(output_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
+
+        # Restore any list fields the validator stripped, and remove
+        # the indexed keys it created (e.g. horizontal_subgrids.0, .1 …)
+        if _saved_links:
+            for k, v in _saved_links.items():
+                data[k] = v                       # restore original list
+                # remove validator-generated indexed variants
+                i = 0
+                while True:
+                    indexed = f"{k}.{i}"
+                    if indexed in data:
+                        del data[indexed]
+                        i += 1
+                    else:
+                        break
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
 
         # Set validation_key to @id if not already present
         if 'validation_key' not in data and '@id' in data:
@@ -633,6 +658,16 @@ def main():
     try:
         prs = git.branch_pull_requests(head=branch_name)
         if prs:
+            # PR created — now safe to add pull_req and needs-review to the issue
+            try:
+                _gh_api(
+                    f"repos/{_repo()}/issues/{issue_number}/labels",
+                    "POST",
+                    {"labels": json.dumps(["pull_req", "needs-review"])},
+                )
+                print(f"  ✓ Added labels: pull_req, needs-review to issue #{issue_number}", flush=True)
+            except Exception as e:
+                print(f"  ⚠ Could not add labels: {e}", flush=True)
             pr_number = prs[0]['number']
             pr_url    = prs[0].get('url', '')
             import datetime as _dt
