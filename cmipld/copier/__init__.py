@@ -14,6 +14,14 @@ Usage:
 import argparse
 import subprocess
 import sys
+
+# Lazy-install copier only when this module is actually used
+try:
+    import copier  # noqa: F401
+except ImportError:
+    print("Installing copier (optional dependency)...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "copier>=9.0.0"])
+    import copier  # noqa: F401
 import os
 import re
 import shutil
