@@ -8,18 +8,33 @@ ESGVOC-compatible pydantic models with built-in validation and error reporting.
 from typing import TypeVar, Generic, Type
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-# esgvoc is installed with --no-deps to avoid sqlalchemy/sqlmodel/typer etc.
-# toml is installed alongside it — esgvoc's config module imports it at load
-# time even though the pydantic models themselves don't use it.
+# esgvoc.api.__init__ imports esgvoc.api.service which chains to sqlalchemy,
+# sqlmodel, and toml — none of which are needed for the pydantic model classes
+# in data_descriptors. Block this by registering a blank esgvoc.api package
+# in sys.modules BEFORE importing data_descriptors, so Python never runs
+# api/__init__.py at all.
+import sys as _sys
+import types as _types
+
+def _load_esgvoc_descriptors():
+    import importlib.util as _ilu, pathlib as _pl
+    if 'esgvoc.api' not in _sys.modules:
+        _pkg = _pl.Path(_ilu.find_spec('esgvoc').submodule_search_locations[0])
+        _fake_api = _types.ModuleType('esgvoc.api')
+        _fake_api.__path__    = [str(_pkg / 'api')]  # real path so subpackages resolve
+        _fake_api.__package__ = 'esgvoc.api'
+        _sys.modules['esgvoc.api'] = _fake_api
+    from esgvoc.api.data_descriptors import DATA_DESCRIPTOR_CLASS_MAPPING  # noqa: F401
+    import esgvoc.api.data_descriptors as _dd
+    globals().update({k: v for k, v in vars(_dd).items() if not k.startswith('_')})
+
 try:
-    from esgvoc.api.data_descriptors import *
+    _load_esgvoc_descriptors()
 except ImportError:
-    import subprocess, sys
-    print("Installing esgvoc (no-deps) + toml...")
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "esgvoc", "toml", "--no-deps", "--quiet"
-    ])
-    from esgvoc.api.data_descriptors import *
+    import subprocess
+    print('Installing esgvoc (no-deps)...')
+    subprocess.check_call([_sys.executable, '-m', 'pip', 'install', 'esgvoc', '--no-deps', '-q'])
+    _load_esgvoc_descriptors()
 
 T = TypeVar("T", bound=BaseModel)
 
