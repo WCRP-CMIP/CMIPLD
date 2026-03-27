@@ -8,14 +8,16 @@ ESGVOC-compatible pydantic models with built-in validation and error reporting.
 from typing import TypeVar, Generic, Type
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-# esgvoc is installed on first use with --no-deps to avoid pulling in sqlalchemy etc.
+# esgvoc is installed with --no-deps to avoid sqlalchemy/sqlmodel/typer etc.
+# toml is installed alongside it — esgvoc's config module imports it at load
+# time even though the pydantic models themselves don't use it.
 try:
     from esgvoc.api.data_descriptors import *
 except ImportError:
     import subprocess, sys
-    print("Installing esgvoc (no-deps)...")
+    print("Installing esgvoc (no-deps) + toml...")
     subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "esgvoc", "--no-deps", "--quiet"
+        sys.executable, "-m", "pip", "install", "esgvoc", "toml", "--no-deps", "--quiet"
     ])
     from esgvoc.api.data_descriptors import *
 

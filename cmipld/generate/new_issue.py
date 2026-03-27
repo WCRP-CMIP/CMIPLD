@@ -642,8 +642,13 @@ def main():
         git.commit_one(output_path, author_info['primary'],
                        comment=commit_msg, branch=branch_name)
 
-    # ── STEP 7: Use saved review report (no regeneration) ──────────────
-    report_md = first_data.pop('_validation_report', '') or ''
+    # ── STEP 7: Combine all validation reports across files ─────────────
+    report_parts = []
+    for fp, d in processed_data.items():
+        r = d.pop('_validation_report', '') or ''
+        if r:
+            report_parts.append(f"### `{fp}`\n\n{r}")
+    report_md = '\n\n---\n\n'.join(report_parts)
 
     # ── STEP 8: Create / update PR with data JSON + report ─────────────
     data_json = json.dumps(

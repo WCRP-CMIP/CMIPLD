@@ -24,20 +24,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
       
-      - name: Start LDR server
+      - name: Validate JSON files
         run: |
           ldr server stop 2>/dev/null || true
           ldr server start
           echo "LDR server started"
-
-      - name: Validate JSON files
-        run: |
           for d in */; do
             d="${d%/}"
-
             echo "#### Validating JSON in directory: $d" >> $GITHUB_STEP_SUMMARY
-            [[ ! -f "$d/_context" && "$d" != "production" ]] && continue 
-            validate_json "$d" --add-coauthors --use-last-author --auto-commit --quiet  >> $GITHUB_STEP_SUMMARY
+            [[ ! -f "$d/_context" && "$d" != "production" ]] && continue
+            validate_json "$d" --add-coauthors --use-last-author --auto-commit --quiet >> $GITHUB_STEP_SUMMARY
           done
 
       - name: update-ctx
