@@ -18,8 +18,13 @@ import types as _types
 
 def _load_esgvoc_descriptors():
     import importlib.util as _ilu, pathlib as _pl
+    # find_spec returns None if esgvoc is not installed — raise so the
+    # except block below can install it
+    _spec = _ilu.find_spec('esgvoc')
+    if _spec is None:
+        raise ImportError('esgvoc is not installed')
     if 'esgvoc.api' not in _sys.modules:
-        _pkg = _pl.Path(_ilu.find_spec('esgvoc').submodule_search_locations[0])
+        _pkg = _pl.Path(_spec.submodule_search_locations[0])
         _fake_api = _types.ModuleType('esgvoc.api')
         _fake_api.__path__    = [str(_pkg / 'api')]  # real path so subpackages resolve
         _fake_api.__package__ = 'esgvoc.api'
@@ -30,7 +35,7 @@ def _load_esgvoc_descriptors():
 
 try:
     _load_esgvoc_descriptors()
-except ImportError:
+except (ImportError, Exception):
     import subprocess
     print('Installing esgvoc (no-deps)...')
     subprocess.check_call([_sys.executable, '-m', 'pip', 'install', 'esgvoc', '--no-deps', '-q'])
