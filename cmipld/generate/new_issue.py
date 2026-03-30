@@ -629,8 +629,12 @@ def main():
     validation_key  = first_data.get('validation_key', first_data.get('@id', 'unknown'))
     ids_str = ', '.join(all_ids) if all_ids else validation_key
     title   = f"{issue_kind_cap} {types_joined} : {ids_str}"
-    data_id         = first_data.get('@id', 'unknown')
-    branch_name     = re.sub(r'[^a-z0-9_-]', '_', f"{issue_kind}_{issue_type}_{data_id}".lower())
+    data_id     = first_data.get('@id', 'unknown')
+    # Build branch name from the issue title so it stays readable and in sync
+    branch_name = re.sub(r'[^a-z0-9_-]', '_',
+                         f"issue_{issue_number}_{title}".lower()).strip('_')
+    # Truncate to 200 chars to stay within git's branch name limit
+    branch_name = branch_name[:200]
 
     author_login  = issue.get('author') or os.environ.get('ISSUE_SUBMITTER', 'unknown')
     extra_collabs = parsed_issue.get('additional_collaborators',
@@ -699,6 +703,18 @@ def main():
                 print(f"  ⚠ Could not add labels: {e}", flush=True)
             pr_number = prs[0]['number']
             pr_url    = prs[0].get('url', '')
+
+            # Keep PR title in sync with the issue title
+            try:
+                import subprocess as _sp
+                _sp.run(
+                    ["gh", "pr", "edit", str(pr_number), "--title", title],
+                    check=True, capture_output=True,
+                )
+                print(f"  ✓ Updated PR #{pr_number} title: {title}", flush=True)
+            except Exception as e:
+                print(f"  ⚠ Could not update PR title: {e}", flush=True)
+
             import datetime as _dt
             pr_ts   = _dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
             pr_desc = (
@@ -710,8 +726,9 @@ def main():
                 f"A full review report is posted as a comment below.  \n"
                 f"_Last updated: {pr_ts}_"
             )
+            # Always replace the PR description (upsert via edit, not append)
             update_pr_body(pr_number, pr_desc)
-            # Post the full review report as an updatable comment below
+            # Post the full review report as a single updatable comment below
             upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
     except Exception as e:
         print(f"  ⚠ Could not update PR: {e}", flush=True)
