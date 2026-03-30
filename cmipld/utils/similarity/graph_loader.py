@@ -72,7 +72,8 @@ class GraphLoader:
     def _fetch(self):
         import cmipld
         url = f"{self.folder_url}/{self.graph_suffix}"
-        self._ingest(cmipld.get(url, depth=self.depth))
+        with cmipld.ensure_remote():
+            self._ingest(cmipld.get(url, depth=self.depth))
 
     def _ingest(self, data: dict):
         self.raw = data

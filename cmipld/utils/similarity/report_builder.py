@@ -353,11 +353,13 @@ class ReportBuilder:
     def _load_graph(self) -> GraphLoader:
         if self._graph_data is not None:
             return GraphLoader(self.folder_url, graph_data=self._graph_data)
-        # Try _graph.json first, then _graph.jsonld, then give up gracefully
+        # Try _graph.json first, then _graph.jsonld, then give up gracefully.
+        # Always strip local mappings so emd: resolves to the remote URL.
         try:
             import cmipld
             url  = f"{self.folder_url.rstrip('/')}/_graph.json"
-            data = cmipld.expand(url, depth=4)
+            with cmipld.ensure_remote():
+                data = cmipld.expand(url, depth=4)
             return GraphLoader(self.folder_url, graph_data=data)
         except Exception:
             pass

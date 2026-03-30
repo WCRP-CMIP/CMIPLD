@@ -115,3 +115,58 @@ def map_current(prefix_name, path=None):
 def prefix():
     """Get the prefix for the current repository."""
     return utils.git.get_prefix()
+
+
+class ensure_remote:
+    """
+    Context manager that temporarily removes any local-path URL mappings
+    from the LDR server for the duration of the block, ensuring all prefix
+    resolution uses the canonical remote URLs.
+
+    Use whenever fetching data that must come from the remote (e.g. in
+    similarity/report_builder, graph_loader) to avoid stale mappings left
+    behind by graphify or map_current.
+
+    Usage::
+
+        with cmipld.ensure_remote():
+            data = cmipld.get("emd:horizontal_grid_cell/_graph.json")
+    """
+
+    def __init__(self):
+        self._suspended = {}   # key -> original_value for restored mappings
+
+    def __enter__(self):
+        try:
+            all_mappings = client.get_mappings()
+        except Exception:
+            return self
+        suspended = {}
+        filtered = {}
+        for k, v in all_mappings.items():
+            # Local mappings point to filesystem paths (start with / or file://)
+            is_local = (
+                isinstance(v, str) and (
+                    v.startswith('/') or
+                    v.startswith('file://') or
+                    (len(v) > 1 and v[1] == ':')  # Windows C:\...
+                )
+            )
+            if is_local:
+                suspended[k] = v   # remember it
+            else:
+                filtered[k] = v
+        if suspended:
+            client.set_mappings(filtered)
+            self._suspended = suspended
+        return self
+
+    def __exit__(self, *_):
+        if self._suspended:
+            try:
+                current = client.get_mappings()
+                current.update(self._suspended)
+                client.set_mappings(current)
+            except Exception:
+                pass
+        self._suspended = {}

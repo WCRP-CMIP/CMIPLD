@@ -613,7 +613,8 @@ class FolderSimilarity:
     def _fetch(self) -> List[Dict[str, Any]]:
         import cmipld
         url  = f"emd:{self.endpoint}/_graph.json"
-        data = cmipld.expand(url, depth=2)
+        with cmipld.ensure_remote():
+            data = cmipld.expand(url, depth=2)
         ck   = next((k for k in data if "contents" in k.lower()), None)
         if not ck:
             return []
