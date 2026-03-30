@@ -73,7 +73,11 @@ def map_current(prefix_name, path=None):
         path = os.getcwd() + '/'
 
     mappings = client.get_mappings()
-    url = mappings[f'{prefix_name}:*'].replace('${rest}', '')
+    prefix_key = f'{prefix_name}:*'
+    if prefix_key not in mappings:
+        raise KeyError(f"map_current: prefix '{prefix_name}' not found in server mappings. "
+                       f"Known prefixes: {list(mappings.keys())[:10]}")
+    url = mappings[prefix_key].replace('${rest}', '')
     local_key = f'{url}*'
 
     # Remember what was there before (usually nothing)

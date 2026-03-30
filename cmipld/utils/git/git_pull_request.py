@@ -38,7 +38,6 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
         output = str(update)
     else:
         # Create a minimal PR body; new_issue.py will overwrite it via update_pr_body()
-        content_safe = content.replace("'", "'\"'\"'")
         pr_body = (
             f"Resolves #{issue}\n\n"
             f"_This pull request was automatically created by a GitHub Actions workflow._"
