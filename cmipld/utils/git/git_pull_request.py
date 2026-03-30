@@ -15,13 +15,12 @@ def prepare_pull(feature_branch):
 
 def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None):
     """Create or update a pull request"""
-    
-    prs = branch_pull_requests(head=feature_branch,)
-    
+
+    prs = branch_pull_requests(head=feature_branch)
     if prs:
         update = prs[0]['number']
-        update_summary(f"++ Found existing PR: {update}. Will be updating this. ")
-    
+        update_summary(f"++ Found existing PR: {update}. Will be updating this.")
+
     # Get current branch name
     current_branch = shell("git rev-parse --abbrev-ref HEAD").strip()
 
@@ -33,47 +32,43 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     if not commits:
         raise ValueError(f"No commits between {base_branch} and {current_branch}. Cannot create pull request.")
 
-    # If updating an existing PR, use the comment command
-    if update is not None:
-        where = f"gh pr comment {update}"
-    else:
-        where = f"gh pr create --base '{base_branch}' --head '{current_branch}' --title '{title}'"
-
-    # Escape backticks in the content for safety
-    content = content.replace('`', r'\`')
-
-    # Construct PR body (same body for both new and existing PR)
-    pr_body = f"""
-This pull request was automatically created by a GitHub Actions workflow.
-
-Adding the following new data:
-
-```js
-{content}
-```
-
-Resolves #{issue}
-    """
-
-    # If updating, just comment on the existing PR
     if update:
-        print(f"++ Updating PR {update} with new comment")
-        cmds = f"gh pr comment {update} --body '{pr_body}' ;"
+        # PR already exists — new_issue.py handles body + comment upserts separately
+        print(f"++ PR #{update} already exists — skipping body write (handled by caller)", flush=True)
+        output = str(update)
     else:
-        print(f"++ Creating a new PR")
-        cmds = f"""
-        nohup git pull -v > /dev/null 2>&1 ;
-        {where} --body '{pr_body}' ;
-        """
-
-    # Execute the command
-    output = shell(cmds).strip()
-    # output = os.popen(cmds).read().strip()
+        # Create a minimal PR body; new_issue.py will overwrite it via update_pr_body()
+        content_safe = content.replace("'", "'\"'\"'")
+        pr_body = (
+            f"Resolves #{issue}\n\n"
+            f"_This pull request was automatically created by a GitHub Actions workflow._"
+        )
+        print(f"++ Creating a new PR", flush=True)
+        cmds = (
+            f"nohup git pull -v > /dev/null 2>&1 ; "
+            f"gh pr create --base '{base_branch}' --head '{current_branch}' "
+            f"--title '{title}' --body '{pr_body}'"
+        )
+        output = shell(cmds).strip()
 
     # Update issue with PR info
     update_issue(f"Updating Pull Request: {output}", False)
-    
-    # Add "pull_req" label to the issue (if it's a new PR)
+
+    # Assign issue author to the PR and request their review
+    if author:
+        pr_num = update or output.strip('/').split('/')[-1]
+        try:
+            shell(f"gh pr edit '{pr_num}' --add-assignee '{author}'")
+            print(f"  ✓ Assigned @{author} to PR #{pr_num}", flush=True)
+        except Exception:
+            pass
+        try:
+            shell(f"gh pr edit '{pr_num}' --add-reviewer '{author}'")
+            print(f"  ✓ Requested review from @{author} on PR #{pr_num}", flush=True)
+        except Exception:
+            pass  # reviewer request can fail if author doesn't have repo access
+
+    # Add "pull_req" label to the issue (only when creating a new PR)
     if update is None:
         shell(f'gh issue edit "{issue}" --add-label "pull_req"')
 
