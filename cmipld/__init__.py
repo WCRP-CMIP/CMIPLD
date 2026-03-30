@@ -60,17 +60,52 @@ def debug(url):
     return client.debug_url(url)
     
 def map_current(prefix_name, path=None):
-    '''Local mapping for current repo using given prefix'''
+    '''Temporarily map prefix to local path on the LDR server.
+
+    Returns a cleanup callable that removes the local mapping and restores
+    the original so subsequent callers (e.g. new_issue) use the remote URL.
+    Also usable as a context manager:
+
+        with cmipld.map_current("emd"):
+            ...
+    '''
     if path is None:
-        path = os.getcwd()+'/'
-    # get all mappings
+        path = os.getcwd() + '/'
+
     mappings = client.get_mappings()
-    # use the existing mapping for the prefix to create a new mapping
     url = mappings[f'{prefix_name}:*'].replace('${rest}', '')
-    mappings[f'{url}*'] = path + '${rest}'
-    # update mappings
+    local_key = f'{url}*'
+
+    # Remember what was there before (usually nothing)
+    original_value = mappings.get(local_key)
+
+    mappings[local_key] = path + '${rest}'
     client.set_mappings(mappings)
     print(f"Added mapping: {url} -> {path}")
+
+    class _Cleanup:
+        """Returned by map_current — call or use as context manager to restore."""
+        def remove(self):
+            m = client.get_mappings()
+            if original_value is not None:
+                m[local_key] = original_value
+            elif local_key in m:
+                del m[local_key]
+            client.set_mappings(m)
+            print(f"Removed local mapping: {url}")
+
+        # context manager support
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.remove()
+
+        # callable support: cleanup()
+        def __call__(self):
+            self.remove()
+
+    return _Cleanup()
     
     
 def prefix():

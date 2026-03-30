@@ -545,11 +545,12 @@ def process_all(
     prefix = 'emd'
     mappings = {}
     
+    _local_map_cleanup = None
     try:
         import cmipld
         cmipld_module = cmipld
         prefix = cmipld.prefix()
-        cmipld.map_current(prefix)
+        _local_map_cleanup = cmipld.map_current(prefix)  # returns cleanup — call when done
         mappings = cmipld.mapping
         if verbose:
             print(f"Project prefix: {prefix}")
@@ -561,17 +562,19 @@ def process_all(
         if verbose:
             print(f"cmipld error: {e}")
             print(f"Project prefix: {prefix}")
-    
+
     colors = get_project_colors(base_path)
     if verbose:
         print(f"Colors: primary={colors.get('primary', 'default')}\n")
-    
+
     # Find directories
     if vocab_dirs is None:
         vocab_dirs = find_vocab_directories(base_path)
     
     if not vocab_dirs:
         print("No vocabulary directories found")
+        if _local_map_cleanup:
+            _local_map_cleanup.remove()
         return results
     
     if verbose:
@@ -648,7 +651,11 @@ def process_all(
         "rdf_success": rdf_success,
         "relationships_extracted": len(relationships) if generate_viz else 0
     }
-    
+
+    # Remove the local path mapping so subsequent tools use the remote URL
+    if _local_map_cleanup:
+        _local_map_cleanup.remove()
+
     return results
 
 

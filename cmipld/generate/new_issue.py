@@ -620,8 +620,15 @@ def main():
     relevant_labels = parse_labels(labels)
     issue_kind_cap  = issue_kind.capitalize()
     types_joined    = ' | '.join(t.capitalize() for t in relevant_labels) or issue_type.capitalize()
+    # Collect @id from every written file — list them all in the title
+    all_ids = []
+    for fp, d in processed_data.items():
+        fid = d.get('validation_key') or d.get('@id', '')
+        if fid and fid not in all_ids:
+            all_ids.append(fid)
     validation_key  = first_data.get('validation_key', first_data.get('@id', 'unknown'))
-    title           = f"{issue_kind_cap} {types_joined} : {validation_key}"
+    ids_str = ', '.join(all_ids) if all_ids else validation_key
+    title   = f"{issue_kind_cap} {types_joined} : {ids_str}"
     data_id         = first_data.get('@id', 'unknown')
     branch_name     = re.sub(r'[^a-z0-9_-]', '_', f"{issue_kind}_{issue_type}_{data_id}".lower())
 
