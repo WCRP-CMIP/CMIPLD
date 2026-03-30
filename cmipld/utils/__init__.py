@@ -13,6 +13,7 @@ from .jsontools import *
 # to avoid circular imports. Use: from cmipld.utils import validate_json
 
 from . import texttools
+from . import crs
 
 # Styling utilities for visualization and output
 from .styling import (
