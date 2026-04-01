@@ -681,10 +681,12 @@ def main():
         if prs:
             # PR created — now safe to add pull_req and needs-review to the issue
             try:
-                _gh_api(
-                    f"repos/{_repo()}/issues/{issue_number}/labels",
-                    "POST",
-                    {"labels": json.dumps(["pull_req", "needs-review"])},
+                subprocess.run(
+                    ["gh", "issue", "edit", str(issue_number),
+                     "--add-label", "pull_req",
+                     "--add-label", "needs-review",
+                     "--repo", _repo()],
+                    check=True, capture_output=True,
                 )
                 print(f"  ✓ Added labels: pull_req, needs-review to issue #{issue_number}", flush=True)
             except Exception as e:

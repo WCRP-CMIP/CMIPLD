@@ -33,12 +33,19 @@ def _load_esgvoc_descriptors():
     import esgvoc.api.data_descriptors as _dd
     globals().update({k: v for k, v in vars(_dd).items() if not k.startswith('_')})
 
+import os as _os
+_ESGVOC_BRANCH = _os.environ.get('ESGVOC_BRANCH', 'integration')  # TODO: change to 'main' when models are stable
+
 try:
     _load_esgvoc_descriptors()
 except (ImportError, Exception):
     import subprocess
-    print('Installing esgvoc (no-deps)...')
-    subprocess.check_call([_sys.executable, '-m', 'pip', 'install', 'esgvoc', '--no-deps', '-q'])
+    print(f'Installing esgvoc (branch: {_ESGVOC_BRANCH}, no-deps)...')
+    subprocess.check_call([
+        _sys.executable, '-m', 'pip', 'install',
+        f'git+https://github.com/ESGF/esgf-vocab.git@{_ESGVOC_BRANCH}',
+        '--no-deps', '-q',
+    ])
     _load_esgvoc_descriptors()
 
 T = TypeVar("T", bound=BaseModel)
