@@ -591,23 +591,25 @@ def process_all(
         results["jsonld"].append(result)
     
     # Generate RDF/Turtle
+    # NOTE: Commented out — cmipld.expand() can crash the LDR server mid-run,
+    # leaving _local_map_cleanup.remove() with nothing to connect to.
     rdf_graphs = {}
-    if generate_rdf and cmipld_module is not None:
-        if verbose:
-            print("\n" + "=" * 60)
-            print("Generating RDF/Turtle...")
-            print("=" * 60)
-        
-        for vocab_dir in vocab_dirs:
-            if verbose:
-                print(f"\nProcessing: {vocab_dir.name}")
-            result = generate_rdf_turtle(vocab_dir, prefix, cmipld_module, verbose=verbose)
-            results["rdf"].append(result)
-            if result.get("graph") is not None:
-                rdf_graphs[vocab_dir.name] = result["graph"]
-    elif generate_rdf:
-        if verbose:
-            print("\n⚠ Skipping RDF generation (cmipld not available)")
+    # if generate_rdf and cmipld_module is not None:
+    #     if verbose:
+    #         print("\n" + "=" * 60)
+    #         print("Generating RDF/Turtle...")
+    #         print("=" * 60)
+    #
+    #     for vocab_dir in vocab_dirs:
+    #         if verbose:
+    #             print(f"\nProcessing: {vocab_dir.name}")
+    #         result = generate_rdf_turtle(vocab_dir, prefix, cmipld_module, verbose=verbose)
+    #         results["rdf"].append(result)
+    #         if result.get("graph") is not None:
+    #             rdf_graphs[vocab_dir.name] = result["graph"]
+    # elif generate_rdf:
+    #     if verbose:
+    #         print("\n⚠ Skipping RDF generation (cmipld not available)")
     
     # Generate visualization JSON
     relationships = []
@@ -654,7 +656,11 @@ def process_all(
 
     # Remove the local path mapping so subsequent tools use the remote URL
     if _local_map_cleanup:
-        _local_map_cleanup.remove()
+        try:
+            _local_map_cleanup.remove()
+        except Exception as e:
+            if verbose:
+                print(f"⚠ Could not remove local mapping (server may have stopped): {e}")
 
     return results
 
