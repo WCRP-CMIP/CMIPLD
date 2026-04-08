@@ -13,7 +13,6 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "requests",
-    "pyld",
     "jmespath",
     "pydantic",
     "p_tqdm",
@@ -42,7 +41,6 @@ Notebooks = "https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/mai
 [project.scripts]
 # Python entry points only
 cmipld = "cmipld.browse.__main__:main"                    # Main CMIP-LD browser interface
-pyld = "cmipld.cli.pyld:main"                             # pyld wrapper for testing.
 
 update_ctx = "cmipld.generate.update_ctx:main"           # Update JSON-LD context files
 update_project = "cmipld.generate.update_ctx:project"           # Update JSON-LD context files
