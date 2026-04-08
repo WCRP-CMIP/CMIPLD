@@ -68,6 +68,13 @@ cmip-contributor = "cmipld.cli.contributor:main"  # Get/assign file contributors
 [tool.setuptools]
 packages = ["cmipld"]
 include-package-data = true
+
+[tool.setuptools.exclude-package-data]
+cmipld = [
+    "utils/similarity/models/*",
+    "utils/similarity/models/**/*",
+]
+
 script-files = [
     "static/bin/ld2graph",
     "static/bin/validjsonld",
