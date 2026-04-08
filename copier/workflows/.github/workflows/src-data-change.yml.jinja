@@ -50,6 +50,20 @@ jobs:
           npm i -g jsonld-recursive
           pip install git+https://github.com/WCRP-CMIP/CMIPLD.git
 
+      - name: Start LDR server
+        run: |
+          ldr server start &
+          echo "Waiting for LDR server on localhost:3333..."
+          for i in {1..30}; do
+            curl -fsS http://localhost:3333/mappings >/dev/null 2>&1 && echo "LDR server ready" && break
+            sleep 1
+          done
+          if ! curl -fsS http://localhost:3333/mappings >/dev/null 2>&1; then
+            echo "::error::LDR server did not start after 30s"
+            ps aux | grep -i ldr || true
+            exit 1
+          fi
+
       - name: Configure Git
         run: |
           git config user.name "cmip-ipo"

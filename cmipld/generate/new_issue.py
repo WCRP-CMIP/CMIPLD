@@ -21,6 +21,7 @@ IGNORE_LABELS = {
     'review', 'alpha', 'keep-open', 'delta', 'Review',
     'universal', 'universe', 'pull_req', 'Pull_req', 'critical',
     'emd-submission',   # category marker, not a handler type
+    'needs-review',     # workflow label, not a type
 }
 
 FOLDER_MAPPING = {
