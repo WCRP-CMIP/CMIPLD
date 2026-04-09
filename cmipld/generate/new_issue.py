@@ -65,10 +65,6 @@ def _repo() -> str:
 def upsert_comment(number: int, body: str, marker: str, on: str = "issue") -> None:
     """
     Create or update a comment containing *marker* on issue or PR *number*.
-
-    Uses the GitHub REST API via `gh api` so the same comment is updated on
-    every re-run rather than creating a new one each time.
-
     on: "issue" or "pr"
     """
     repo = _repo()
@@ -76,11 +72,9 @@ def upsert_comment(number: int, body: str, marker: str, on: str = "issue") -> No
         print("  ⚠ Cannot upsert comment: repo unknown", flush=True)
         return
 
-    # List existing comments
-    path = f"repos/{repo}/issues/{number}/comments"   # works for both issues and PRs
+    path = f"repos/{repo}/issues/{number}/comments"
     comments = _gh_api(path) or []
 
-    # Find our marker
     existing_id = None
     for c in comments:
         if marker in c.get("body", ""):
@@ -150,7 +144,6 @@ def load_field_guidance(kind: str) -> dict:
 
 # ── Validation helpers ────────────────────────────────────────────────────────
 
-# Types that are EMD-specific and not yet in the esgvoc schema — skip validation
 _SKIP_VALIDATION = {
     'horizontal_subgrid',
     'horizontal_computational_grid',
@@ -159,12 +152,6 @@ _SKIP_VALIDATION = {
 
 
 def run_pycmipld_validation(data: dict, issue_type: str) -> tuple[bool, str | None]:
-    """
-    Validate *data* with pycmipld against the esgvoc model for *issue_type*.
-    Returns (passed: bool, errors_md: str | None).
-    Skips silently (passes) if no esgvoc model exists for this type,
-    or if the type is in the explicit skip list.
-    """
     if issue_type in _SKIP_VALIDATION:
         print(f"  ℹ Skipping esgvoc validation for '{issue_type}' (EMD-specific type)", flush=True)
         return True, None
@@ -192,7 +179,6 @@ def build_warning_comment(errors_md: str, failed_fields: list[str],
     lines += [f"> {line}" for line in errors_md.strip().splitlines()]
     lines.append("")
 
-    # Only show field guidance section if at least one field has guidance text
     guidance_blocks = []
     for fname in sorted(set(failed_fields)):
         tip = guidance.get(fname, "")
@@ -210,12 +196,10 @@ def build_warning_comment(errors_md: str, failed_fields: list[str],
     return "\n".join(lines)
 
 
-
-# ── Existing helpers (unchanged) ──────────────────────────────────────────────
+# ── Issue fetching ────────────────────────────────────────────────────────────
 
 def get_issue_from_env():
     issue_number = os.environ.get('ISSUE_NUMBER')
-    # If we have a number and gh is available, fetch full data including created_at
     if issue_number:
         try:
             return get_issue_from_gh(issue_number)
@@ -402,8 +386,8 @@ def find_existing_pr_for_issue(issue_number: str) -> dict | None:
 
     issue_str = str(issue_number)
     patterns = [
-        re.compile(rf'(?:^|_|-){re.escape(issue_str)}(?:_|-|$)'),  # issue number in branch name
-        re.compile(rf'Resolves\s+#{re.escape(issue_str)}\b', re.IGNORECASE),  # in PR body
+        re.compile(rf'(?:^|_|-){re.escape(issue_str)}(?:_|-|$)'),
+        re.compile(rf'Resolves\s+#{re.escape(issue_str)}\b', re.IGNORECASE),
     ]
     for pr in prs:
         branch = pr.get('headRefName', '')
@@ -427,9 +411,6 @@ def main():
     validate_only = args.validate_only
     prefix        = "[DRY RUN] " if dry_run else ("[VALIDATE] " if validate_only else "")
 
-    # Validation runs on whatever branch we're on (main in CI).
-    # Before writing files we switch to src-data.
-
     issue        = get_issue(args.issue)
     parsed_issue = parse_issue_body(issue['body'])
     labels       = issue.get('labels_full') or os.environ.get('ISSUE_LABELS', '')
@@ -439,7 +420,6 @@ def main():
     print(f"Issue #{issue_number}: {issue['title']}", flush=True)
     print(f"Author: {issue.get('author')}  |  Type: {issue_type}", flush=True)
 
-    # Only process issues that carry an emd-* label
     raw_labels = json.loads(labels) if isinstance(labels, str) else (labels or [])
     if not any('emd' in str(l).lower() for l in raw_labels):
         print("Issue has no emd-* label — not an EMD submission, skipping.", flush=True)
@@ -472,24 +452,20 @@ def main():
         data_id = data.get('@id', 'unknown')
         files_to_write = {os.path.join(issue_type, f"{data_id}.json"): data}
 
-    # ── Load guidance for this issue type ──────────────────────────────
     guidance = load_field_guidance(issue_type)
 
-    # Ensure validation_key is set (= @id) on every file before validation
     for file_path, data in files_to_write.items():
         if not file_path.startswith('_') and 'validation_key' not in data:
             _id = data.get('@id', '')
             if _id:
                 data['validation_key'] = _id.split('/')[-1]
 
-    # ── STEP 1: pycmipld validation on every file ──────────────────────
+    # ── STEP 1: pycmipld validation ────────────────────────────────────
     print(f"\n{prefix}Running pycmipld validation …", flush=True)
-    validation_errors: dict = {}   # file_path → errors_md
+    validation_errors: dict = {}
     for file_path, data in files_to_write.items():
         if file_path.startswith('_'):
             continue
-        # Derive the type from the file path (first path component) so
-        # multi-file submissions validate each file against the correct schema
         file_type = file_path.split(os.sep)[0] if os.sep in file_path else issue_type
         passed, errors_md = run_pycmipld_validation(data, file_type)
         if not passed and errors_md:
@@ -508,7 +484,6 @@ def main():
     # ── STEP 3: If validation failed → post warning, stop ─────────────
     if validation_errors:
         print(f"\n{prefix}Validation failed — posting warnings to issue #{issue_number}", flush=True)
-        # Collect all errors; last one wins for the comment (usually one file)
         comment_body = ""
         for file_path, errors_md in validation_errors.items():
             failed_fields = []
@@ -523,7 +498,7 @@ def main():
             upsert_comment(int(issue_number), comment_body, _BOT_MARKER_ISSUE)
         else:
             print(comment_body, flush=True)
-        sys.exit(1)   # non-zero → workflow can gate the write job
+        sys.exit(1)
 
     print(f"\n{prefix}All validations passed.", flush=True)
 
@@ -536,7 +511,6 @@ def main():
         print("  ✓ Switched to src-data branch", flush=True)
 
     if validate_only:
-        # Validation passed — post success note and exit cleanly
         success_note = (
             "## Validation passed\n\n"
             "All checks passed. The write job will now create the branch and PR."
@@ -555,9 +529,7 @@ def main():
                 continue
             report = data.get('_validation_report', '')
             if report:
-                print(f"\n{'='*60}")
-                print(f"[DRY RUN] Review report for: {file_path}")
-                print(f"{'='*60}")
+                print(f"\n{'='*60}\n[DRY RUN] Review report for: {file_path}\n{'='*60}")
                 print(report)
             else:
                 print(f"\n[DRY RUN] No review report generated for: {file_path}")
@@ -595,14 +567,11 @@ def main():
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         _saved_report = data.get('_validation_report', '')
-        # Strip internal metadata keys and workflow control fields before writing
         _STRIP = {'issue_kind', 'issue_type', 'issue_category',
                   'additional_collaborators', 'collaborators'}
         clean_data = {k: v for k, v in data.items()
                       if not k.startswith('_') and k not in _STRIP}
 
-        # Save all list/link fields before JSONValidator runs — it strips anything
-        # esgvoc doesn't recognise (e.g. horizontal_subgrids, component_configs)
         _saved_links = {k: v for k, v in clean_data.items()
                         if isinstance(v, list) and not k.startswith('@')}
 
@@ -615,12 +584,9 @@ def main():
         with open(output_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        # Restore any list fields the validator stripped, and remove
-        # the indexed keys it created (e.g. horizontal_subgrids.0, .1 …)
         if _saved_links:
             for k, v in _saved_links.items():
-                data[k] = v                       # restore original list
-                # remove validator-generated indexed variants
+                data[k] = v
                 i = 0
                 while True:
                     indexed = f"{k}.{i}"
@@ -632,29 +598,26 @@ def main():
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
 
-        # Set validation_key to @id if not already present
         if 'validation_key' not in data and '@id' in data:
             data['validation_key'] = data['@id']
-        data['_validation_report'] = _saved_report  # preserve even if empty
+        data['_validation_report'] = _saved_report
         processed_data[file_path] = data
         all_output_paths.append(output_path)
         print(f"  ✓ Written: {output_path}", flush=True)
 
     # ── STEP 6: git — branch + commit + PR ────────────────────────────
-    first_data      = list(processed_data.values())[0]
-    relevant_labels = parse_labels(labels)  # IGNORE_LABELS already strips needs-review
-    issue_kind_cap  = issue_kind.capitalize()
-    types_joined    = ' | '.join(t.capitalize() for t in relevant_labels) or issue_type.capitalize()
-    # Collect @id from every written file — list them all in the title
+    first_data     = list(processed_data.values())[0]
+    issue_kind_cap = issue_kind.capitalize()
+
     all_ids = []
     for fp, d in processed_data.items():
         fid = d.get('validation_key') or d.get('@id', '')
         if fid and fid not in all_ids:
             all_ids.append(fid)
-    validation_key  = first_data.get('validation_key', first_data.get('@id', 'unknown'))
-    ids_str = ', '.join(all_ids) if all_ids else validation_key
-    title   = f"{issue_kind_cap} {types_joined} : {ids_str}"
-    data_id = first_data.get('@id', 'unknown')
+    validation_key = first_data.get('validation_key', first_data.get('@id', 'unknown'))
+    ids_str        = ', '.join(all_ids) if all_ids else validation_key
+    title          = f"{issue_kind_cap} {issue_type.capitalize()} : {ids_str}"
+    data_id        = first_data.get('@id', 'unknown')
 
     # ── Check for an existing PR for this issue before creating a new branch ──
     existing_pr = find_existing_pr_for_issue(issue_number)
@@ -662,16 +625,8 @@ def main():
         branch_name = existing_pr['headRefName']
         print(f"  ↩ Reusing existing branch: {branch_name}", flush=True)
     else:
-        # Build a clean branch name — title already has needs-review stripped via
-        # parse_labels/IGNORE_LABELS, but also strip it explicitly from the slug
-        # in case it crept in via the issue title text.
-        slug_title = re.sub(
-            r'(?:^|[-_])needs[-_]?review(?:[-_]|$)', '_',
-            title, flags=re.IGNORECASE
-        )
         branch_name = re.sub(r'[^a-z0-9_-]', '_',
-                             f"issue_{issue_number}_{slug_title}".lower()).strip('_')
-        # Collapse runs of underscores and truncate to 200 chars
+                             f"issue_{issue_number}_{issue_type}_{ids_str}".lower()).strip('_')
         branch_name = re.sub(r'_+', '_', branch_name)[:200]
 
     author_login  = issue.get('author') or os.environ.get('ISSUE_SUBMITTER', 'unknown')
@@ -691,7 +646,7 @@ def main():
         git.commit_one(output_path, author_info['primary'],
                        comment=commit_msg, branch=branch_name)
 
-    # ── STEP 7: Combine all validation reports across files ─────────────
+    # ── STEP 7: Combine all validation reports ──────────────────────────
     report_parts = []
     for fp, d in processed_data.items():
         r = d.pop('_validation_report', '') or ''
@@ -699,20 +654,18 @@ def main():
             report_parts.append(f"### `{fp}`\n\n{r}")
     report_md = '\n\n---\n\n'.join(report_parts)
 
-    # ── STEP 8: Create / update PR with data JSON + report ─────────────
+    # ── STEP 8: Create / update PR ─────────────────────────────────────
     data_json = json.dumps(
         {k: v for k, v in first_data.items() if not k.startswith('_')},
         indent=4, ensure_ascii=False
     )
 
     print("Creating / updating pull request …", flush=True)
-    # Temporarily clear ISSUE_NUMBER so git.newpull doesn't post its own
-    # generic comment — we post a richer one via upsert_comment below.
     _saved_issue_num = os.environ.pop('ISSUE_NUMBER', '')
     try:
         git.newpull(
             branch_name,
-            author_login,          # GitHub username — needed for assignee/reviewer
+            author_login,
             data_json,
             title,
             issue_number,
@@ -722,13 +675,11 @@ def main():
         if _saved_issue_num:
             os.environ['ISSUE_NUMBER'] = _saved_issue_num
 
-    # Find the PR: update its description, post report as a separate comment
     pr_number = None
     pr_url    = ""
     try:
         prs = git.branch_pull_requests(head=branch_name)
         if prs:
-            # PR created — now safe to add pull_req and needs-review to the issue
             try:
                 subprocess.run(
                     ["gh", "issue", "edit", str(issue_number),
@@ -743,7 +694,6 @@ def main():
             pr_number = prs[0]['number']
             pr_url    = prs[0].get('url', '')
 
-            # Keep PR title in sync with the issue title
             try:
                 import subprocess as _sp
                 _sp.run(
@@ -765,14 +715,11 @@ def main():
                 f"A full review report is posted as a comment below.  \n"
                 f"_Last updated: {pr_ts}_"
             )
-            # Always replace the PR description (upsert via edit, not append)
             update_pr_body(pr_number, pr_desc)
-            # Post the full review report as a single updatable comment below
             upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
     except Exception as e:
         print(f"  ⚠ Could not update PR: {e}", flush=True)
 
-    # Build issue success comment
     pr_ref = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
 
     auto_fields = []
@@ -790,9 +737,6 @@ def main():
         f"Automatic checks ({field_list}) all passed. "
         f"{pr_ref} created for review.\n",
     ]
-
-    # Similarity warnings are generated by the ReportBuilder in update()
-    # and included in the review report posted as a PR comment above.
 
     upsert_comment(int(issue_number), "\n".join(success_lines), _BOT_MARKER_ISSUE)
 

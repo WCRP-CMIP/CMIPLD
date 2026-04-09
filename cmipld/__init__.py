@@ -44,6 +44,21 @@ from . import utils
 def get(url, depth=3):
     return client.compact(url, depth=depth)
 
+def getall(url, depth=3):
+    ''' 
+    Get the full contents of a URL, including all nested contents up to the specified depth.
+    If the URL ends with a slash, append '_graph' to get the graph representation.
+    '''
+    if url[-1]=='/':
+        url += '_graph'
+        
+    data = client.compact(url, depth=depth)
+    
+    if 'contents' in data:
+        return data['contents']
+    else:
+        return data
+
 def expand(url, depth=1):   
     return client.expand(url, depth=depth)
 
