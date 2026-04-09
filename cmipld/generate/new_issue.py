@@ -380,6 +380,41 @@ def parse_args():
     return p.parse_args()
 
 
+def find_existing_pr_for_issue(issue_number: str) -> dict | None:
+    """
+    Search open PRs for one linked to this issue number.
+    Matches on branch name containing the issue number, or PR body containing 'Resolves #<n>'.
+    Returns the first matching PR dict, or None.
+    """
+    repo = _repo()
+    if not repo:
+        return None
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "list", "--repo", repo, "--state", "open",
+             "--json", "number,url,headRefName,title,body"],
+            capture_output=True, text=True, check=True,
+        )
+        prs = json.loads(result.stdout)
+    except Exception as e:
+        print(f"  ⚠ Could not list PRs: {e}", flush=True)
+        return None
+
+    issue_str = str(issue_number)
+    patterns = [
+        re.compile(rf'(?:^|_|-){re.escape(issue_str)}(?:_|-|$)'),  # issue number in branch name
+        re.compile(rf'Resolves\s+#{re.escape(issue_str)}\b', re.IGNORECASE),  # in PR body
+    ]
+    for pr in prs:
+        branch = pr.get('headRefName', '')
+        body   = pr.get('body', '') or ''
+        if patterns[0].search(branch) or patterns[1].search(body):
+            print(f"  ✓ Found existing PR #{pr['number']} for issue #{issue_number} "
+                  f"(branch: {branch})", flush=True)
+            return pr
+    return None
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -607,7 +642,7 @@ def main():
 
     # ── STEP 6: git — branch + commit + PR ────────────────────────────
     first_data      = list(processed_data.values())[0]
-    relevant_labels = parse_labels(labels)
+    relevant_labels = parse_labels(labels)  # IGNORE_LABELS already strips needs-review
     issue_kind_cap  = issue_kind.capitalize()
     types_joined    = ' | '.join(t.capitalize() for t in relevant_labels) or issue_type.capitalize()
     # Collect @id from every written file — list them all in the title
@@ -619,12 +654,25 @@ def main():
     validation_key  = first_data.get('validation_key', first_data.get('@id', 'unknown'))
     ids_str = ', '.join(all_ids) if all_ids else validation_key
     title   = f"{issue_kind_cap} {types_joined} : {ids_str}"
-    data_id     = first_data.get('@id', 'unknown')
-    # Build branch name from the issue title so it stays readable and in sync
-    branch_name = re.sub(r'[^a-z0-9_-]', '_',
-                         f"issue_{issue_number}_{title}".lower()).strip('_')
-    # Truncate to 200 chars to stay within git's branch name limit
-    branch_name = branch_name[:200]
+    data_id = first_data.get('@id', 'unknown')
+
+    # ── Check for an existing PR for this issue before creating a new branch ──
+    existing_pr = find_existing_pr_for_issue(issue_number)
+    if existing_pr:
+        branch_name = existing_pr['headRefName']
+        print(f"  ↩ Reusing existing branch: {branch_name}", flush=True)
+    else:
+        # Build a clean branch name — title already has needs-review stripped via
+        # parse_labels/IGNORE_LABELS, but also strip it explicitly from the slug
+        # in case it crept in via the issue title text.
+        slug_title = re.sub(
+            r'(?:^|[-_])needs[-_]?review(?:[-_]|$)', '_',
+            title, flags=re.IGNORECASE
+        )
+        branch_name = re.sub(r'[^a-z0-9_-]', '_',
+                             f"issue_{issue_number}_{slug_title}".lower()).strip('_')
+        # Collapse runs of underscores and truncate to 200 chars
+        branch_name = re.sub(r'_+', '_', branch_name)[:200]
 
     author_login  = issue.get('author') or os.environ.get('ISSUE_SUBMITTER', 'unknown')
     extra_collabs = parsed_issue.get('additional_collaborators',
