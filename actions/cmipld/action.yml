@@ -21,7 +21,7 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: 18
-        cache: npm
+        # No cache: npm — avoids requiring package-lock.json in calling repos
 
     - name: Install JSONLD-Recursive (npm)
       shell: bash

@@ -1,0 +1,39 @@
+name: 'Install CMIPLD'
+description: 'Install Node.js and the CMIPLD Python package with jsonld-recursive'
+
+inputs:
+  node-version:
+    description: 'Node.js version to install'
+    required: false
+    default: '18'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  cmipld-ref:
+    description: 'Git ref to install cmipld from (branch, tag, or commit)'
+    required: false
+    default: 'main'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        # No cache: 'npm' — avoids lockfile requirement in calling repos
+
+    - name: Install jsonld-recursive (npm)
+      shell: bash
+      run: npm install -g jsonld-recursive
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install CMIPLD (pip)
+      shell: bash
+      run: |
+        pip install git+https://github.com/WCRP-CMIP/CMIPLD.git@${{ inputs.cmipld-ref }}
