@@ -706,6 +706,19 @@ def main():
 
             import datetime as _dt
             pr_ts   = _dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+            # Build submitter / collaborators footer
+            submitter_line = f"**Submitter:** @{author_login}"
+            if collab_str:
+                collab_handles = ' '.join(f'@{c.strip()}' for c in collab_str.split(',') if c.strip())
+                collab_line = f"**Additional collaborators:** {collab_handles}"
+            else:
+                collab_line = None
+
+            people_section = submitter_line
+            if collab_line:
+                people_section += f"\n{collab_line}"
+
             pr_desc = (
                 f"Resolves #{issue_number}\n\n"
                 f"> View submitted files in the **Files changed** tab above.\n\n"
@@ -713,7 +726,9 @@ def main():
                 f"```json\n{data_json}\n```\n\n"
                 f"---\n\n"
                 f"A full review report is posted as a comment below.  \n"
-                f"_Last updated: {pr_ts}_"
+                f"_Last updated: {pr_ts}_\n\n"
+                f"---\n\n"
+                f"{people_section}"
             )
             update_pr_body(pr_number, pr_desc)
             upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
