@@ -8,35 +8,41 @@ import time
 
 _redirect_mapping = {}
 
-# Add prefix mappings (e.g., universal:* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
+# Add prefix mappings
 for k,v in mapping.items():
     _redirect_mapping[f'{k}:*'] = v+'${rest}'
 
-# Add mipcvs.dev domain mappings (e.g., https://universal.mipcvs.dev/* -> https://wcrp-cmip.github.io/WCRP-universe/${rest})
+# Add mipcvs.dev domain mappings (redirect to github.io)
 for k,v in mapping.items():
     _redirect_mapping[f'https://{k}.mipcvs.dev/*'] = v+'${rest}'
 
-print("Initializing LDR client...", flush=True)
+_client = None
 
-# print(f"Mappings to set: {_redirect_mapping}", flush=True)
+def _get_client():
+    """Lazily initialise the LDR client on first use."""
+    global _client
+    if _client is None:
+        print("Initializing LDR client...", flush=True)
+        _client = LdrClient(
+            auto_start_server=True,
+            timeout=10, max_retries=3,
+            mappings=_redirect_mapping
+        )
+        try:
+            _client.get_mappings()
+        except Exception as e:
+            print(f"Warning: Could not verify mappings: {e}", flush=True)
+        if not _client._is_server_running():
+            raise RuntimeError("There was a problem starting the JSON-LD Recursive server.")
+        print("LDR client initialized.", flush=True)
+    return _client
 
-client = LdrClient(
-                auto_start_server=True,
-                timeout=10, max_retries=3,
-                mappings=_redirect_mapping
-                )
+# Keep `client` as a property-like accessor for backwards compat
+class _ClientProxy:
+    def __getattr__(self, name):
+        return getattr(_get_client(), name)
 
-# Verify mappings were set
-try:
-    current_mappings = client.get_mappings()
-    # print(f"Current server mappings: {current_mappings}", flush=True)
-except Exception as e:
-    print(f"Warning: Could not verify mappings: {e}", flush=True)
-
-print("LDR client initialized.", flush=True)
-
-if not client._is_server_running():
-    raise RuntimeError("There was a problem starting the JSON-LD Recursive server.")
+client = _ClientProxy()
 
 # Import utils AFTER client is initialized to avoid circular import
 from . import utils
