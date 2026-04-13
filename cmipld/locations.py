@@ -46,12 +46,12 @@ _prefix_data = _load_prefix_mappings()
 matches = None  # Initialized after mapping is created
 
 # =============================================================================
-# GITHUB PAGES MAPPINGS (mipcvs.dev)
+# GITHUB PAGES MAPPINGS (github.io — avoids Cloudflare bot blocks on CI runners)
 # =============================================================================
 # Maps prefixes to GitHub Pages URLs
-# Example: 'wcrp' -> 'https://wcrp.mipcvs.dev/'
+# Example: 'constants' -> 'https://wcrp-cmip.github.io/WCRP-constants/'
 
-mapping = _generate_mapping('https://{prefix}.mipcvs.dev/')
+mapping = _generate_mapping('https://wcrp-cmip.github.io/{repo}/')
 reverse_mapping = {v: k for k, v in mapping.items()}
 
 # Initialize prefix matching regex now that mapping exists
