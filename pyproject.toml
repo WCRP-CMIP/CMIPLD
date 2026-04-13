@@ -64,6 +64,13 @@ cmipcopier = "cmipld.copier:main"  # Install/update copier templates
 graphify = "cmipld.generate.graphify:main"  # Generate JSON-LD graphs for vocabulary directories
 cmipworkflow = "cmipld.cli.workflow:main"  # Run GitHub Actions workflows
 cmip-contributor = "cmipld.cli.contributor:main"  # Get/assign file contributors by GitHub handle
+dev = "cmipld.cli.dev:main"  # Quick git development workflow: pull, add -A, commit 'development', push
+ld2graph = "cmipld.cli.shell:ld2graph"
+validjsonld = "cmipld.cli.shell:validjsonld"
+rmbak = "cmipld.cli.shell:rmbak"
+rmgraph = "cmipld.cli.shell:rmgraph"
+coauthor_file = "cmipld.cli.shell:coauthor_file"
+cmipld-help = "cmipld.cli.shell:cmipld_help"
 
 [tool.setuptools]
 packages = ["cmipld"]
@@ -75,19 +82,10 @@ cmipld = [
     "utils/similarity/models/**/*",
 ]
 
-script-files = [
-    "static/bin/ld2graph",
-    "static/bin/validjsonld",
-    "static/bin/dev",
-    "static/bin/rmbak",
-    "static/bin/rmgraph",
-    "static/bin/coauthor_file",
-    "static/bin/cmipld-help"
-]
-
 [tool.setuptools.package-data]
 cmipld = [
-    "prefix_mappings.json"
+    "prefix_mappings.json",
+    "bin/*",
 ]
 
 [tool.setuptools_scm]
