@@ -20,9 +20,9 @@ def main():
     message = ' '.join(args) if args else 'development'
 
     steps = [
-        ("Pulling latest changes...",      ["git", "pull"]),
         ("Adding all changes...",          ["git", "add", "-A"]),
         (f"Committing: '{message}'",        ["git", "commit", "-m", message]),
+        ("Pulling latest changes...",      ["git", "pull", "--rebase"]),
         ("Pushing to remote...",           ["git", "push"]),
     ]
 
