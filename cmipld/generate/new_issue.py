@@ -655,10 +655,18 @@ def main():
     report_md = '\n\n---\n\n'.join(report_parts)
 
     # ── STEP 8: Create / update PR ─────────────────────────────────────
-    data_json = json.dumps(
-        {k: v for k, v in first_data.items() if not k.startswith('_')},
-        indent=4, ensure_ascii=False
-    )
+    # Build a combined JSON block covering all written files, not just the first.
+    if len(processed_data) == 1:
+        data_json = json.dumps(
+            {k: v for k, v in first_data.items() if not k.startswith('_')},
+            indent=4, ensure_ascii=False,
+        )
+    else:
+        combined = {
+            fp: {k: v for k, v in d.items() if not k.startswith('_')}
+            for fp, d in processed_data.items()
+        }
+        data_json = json.dumps(combined, indent=4, ensure_ascii=False)
 
     print("Creating / updating pull request …", flush=True)
     _saved_issue_num = os.environ.pop('ISSUE_NUMBER', '')
@@ -719,11 +727,23 @@ def main():
             if collab_line:
                 people_section += f"\n{collab_line}"
 
+            # For multi-file submissions, show each file as its own fenced block
+            # so reviewers can see every artefact without reading the diff.
+            if len(processed_data) > 1:
+                file_blocks = []
+                for fp, d in processed_data.items():
+                    clean = {k: v for k, v in d.items() if not k.startswith('_')}
+                    file_blocks.append(
+                        f"**`{fp}`**\n```json\n{json.dumps(clean, indent=4, ensure_ascii=False)}\n```"
+                    )
+                submitted_section = "### Submitted data\n\n" + "\n\n".join(file_blocks)
+            else:
+                submitted_section = f"### Submitted data\n\n```json\n{data_json}\n```"
+
             pr_desc = (
                 f"Resolves #{issue_number}\n\n"
                 f"> View submitted files in the **Files changed** tab above.\n\n"
-                f"### Submitted data\n\n"
-                f"```json\n{data_json}\n```\n\n"
+                f"{submitted_section}\n\n"
                 f"---\n\n"
                 f"A full review report is posted as a comment below.  \n"
                 f"_Last updated: {pr_ts}_\n\n"
