@@ -704,11 +704,18 @@ def main():
 
             try:
                 import subprocess as _sp
-                _sp.run(
-                    ["gh", "pr", "edit", str(pr_number), "--title", title],
-                    check=True, capture_output=True,
-                )
-                print(f"  ✓ Updated PR #{pr_number} title: {title}", flush=True)
+                current_pr_title = _sp.run(
+                    ["gh", "pr", "view", str(pr_number), "--json", "title", "--jq", ".title"],
+                    capture_output=True, text=True, check=True,
+                ).stdout.strip()
+                if current_pr_title == title:
+                    print(f"  ℹ PR #{pr_number} title already up to date, skipping.", flush=True)
+                else:
+                    _sp.run(
+                        ["gh", "pr", "edit", str(pr_number), "--title", title],
+                        check=True, capture_output=True,
+                    )
+                    print(f"  ✓ Updated PR #{pr_number} title: {title}", flush=True)
             except Exception as e:
                 print(f"  ⚠ Could not update PR title: {e}", flush=True)
 

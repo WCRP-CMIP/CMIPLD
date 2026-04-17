@@ -5,9 +5,19 @@ from .git_actions_management import update_summary
 from ..io import shell
 
 def update_issue_title(what):
-    """Update the title of a GitHub issue"""
+    """Update the title of a GitHub issue, skipping if already matches."""
     if 'ISSUE_NUMBER' in os.environ:
         issue_number = os.environ['ISSUE_NUMBER']
+        try:
+            current = json.loads(shell(
+                f'gh issue view {issue_number} --json title',
+                print_result=False,
+            )).get('title', '')
+        except Exception:
+            current = ''
+        if current == what:
+            print(f"  ℹ Issue #{issue_number} title already up to date, skipping.", flush=True)
+            return
         shell(f'gh issue edit {issue_number} --title "{what}"')
     update_summary(f"#### Title Updated:\n `{what}`")
 
