@@ -25,17 +25,18 @@ def graph_entry(url, entry='validation_key', depth=2, pretty=False):
 
 def ui_label_to_key(url, depth=2):
     """
-    Build a reverse mapping from ui_label to validation_key for a CV graph.
+    Build a lookup mapping both ui_label and validation_key to validation_key.
 
-    Used by issue processing scripts to convert user-facing display labels
-    back to the canonical validation_key value before writing to file.
+    Accepts values submitted as either the human-readable ui_label (from the
+    issue template dropdown) or as the canonical validation_key (id), and
+    always returns the validation_key.
 
     Args:
         url: The graph URL (e.g., 'constants:grid_type/_graph.json')
         depth: Fetch depth (default: 2)
 
     Returns:
-        dict mapping ui_label -> validation_key
+        dict mapping ui_label -> validation_key  AND  validation_key -> validation_key
     """
     import cmipld
     data = cmipld.get(url, depth=depth)
@@ -44,8 +45,10 @@ def ui_label_to_key(url, depth=2):
         if isinstance(item, dict):
             key = item.get('validation_key') or item.get('@id', '')
             label = item.get('ui_label', '')
+            if key:
+                result[key] = key          # validation_key matches itself
             if label and key:
-                result[label] = key
+                result[label] = key        # ui_label maps to validation_key
     return result
 
 
