@@ -394,7 +394,7 @@ class ReportBuilder:
         sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance))
         sections.append(self._footer())
 
-        self._report = "\n\n---\n\n".join(s for s in sections if s.strip())
+        self._report = "\n\n".join(s for s in sections if s.strip())
         return self._report
 
     def _load_graph(self) -> GraphLoader:
@@ -425,13 +425,16 @@ class ReportBuilder:
     # ── sections ──────────────────────────────────────────────────────────────
 
     def _header(self) -> str:
-        types = ", ".join(self.item.get("@type", []))
+        types = ", ".join(
+            t.split(":")[-1] for t in self.item.get("@type", [])
+            if not _TYPE_RE.search(t)
+        ) or ", ".join(self.item.get("@type", []))
         return (
-            f"# Review Report: `{self.item_id}`\n\n"
-            f"| | |\n|---|---|\n"
-            f"| **Kind** | `{self.kind}` |\n"
-            f"| **Folder** | `{self.folder_url}` |\n"
-            f"| **Type** | `{types}` |\n"
+            f"## Submission Review — `{self.item_id}`\n\n"
+            f"| Property | Value |\n"
+            f"|----------|-------|\n"
+            f"| **Type** | `{self.kind}` |\n"
+            f"| **Submitted ID** | `{self.item_id}` |\n"
             f"| **Generated** | {_now()} |\n"
         )
 
@@ -442,7 +445,7 @@ class ReportBuilder:
           Schema fields            — submitted or not, in model, no validator
           Not in schema            — submitted, unknown to model, ⚠️
         """
-        lines = ["## Field Checklist\n"]
+        lines = ["### 1. Field Status\n"]
 
         # Treat empty strings as null — display as 'null' but still include
         def _display(v):
@@ -454,14 +457,13 @@ class ReportBuilder:
             k: _display(v) for k, v in self.item.items()
             if not _is_report_skip(k)
         }
-        # Exclude genuine nulls from schema matching (don't count as submitted)
         submitted_nonnull = {k: v for k, v in submitted.items() if v != "null"}
         submitted_short   = {short(k): v for k, v in submitted.items()}
 
         if val_result is None:
-            lines.append("_No pydantic model — all fields need manual review._\n")
+            lines.append("_No pydantic model available — all fields require manual review._\n")
             for k, v in sorted(submitted.items(), key=lambda x: short(x[0])):
-                lines.append(f"- [x] ⚠️ `{short(k)}`: {_compact_val(v)}")
+                lines.append(f"- [ ] ⚠️ `{short(k)}`: {_compact_val(v)}")
             lines.append("")
             return "\n".join(lines)
 
@@ -473,20 +475,18 @@ class ReportBuilder:
         for fname, info in sorted(model_meta.items()):
             if fname in REPORT_SKIP_EXACT or fname not in covered:
                 continue
-            badge = "**required**" if info["required"] else "_optional_"
             if fname in submitted_short:
                 display   = _compact_val(submitted_short[fname])
                 orig_keys = [k for k in submitted if short(k) == fname]
                 orig_key  = orig_keys[0] if orig_keys else fname
                 icon      = "❌" if orig_key in failed else "✅"
-                badge_str = " (**required**)" if info["required"] else ""
-                auto_rows.append(f"- [x] {icon} `{fname}`{badge_str}: **{display}**")
+                req       = " (**required**)" if info["required"] else ""
+                auto_rows.append(f"- [x] {icon} `{fname}`{req}: {display}")
             else:
-                # Not submitted but explicitly validated — mark complete (ran, nothing to do)
                 auto_rows.append(f"- [x] `{fname}`")
 
         if auto_rows:
-            lines.append("### Automatically validated\n")
+            lines.append("**Automatically validated**\n")
             lines.extend(auto_rows)
             lines.append("")
 
@@ -495,21 +495,18 @@ class ReportBuilder:
         for fname, info in sorted(model_meta.items()):
             if fname in REPORT_SKIP_EXACT or fname in covered:
                 continue
-            badge = "**required**" if info["required"] else "_optional_"
             if fname in submitted_short:
-                display = _compact_val(submitted_short[fname])
-                badge_str = " (**required**)" if info["required"] else ""
-                schema_rows.append(f"- [ ] `{fname}`{badge_str}: **{display}**")
+                display   = _compact_val(submitted_short[fname])
+                req       = " (**required**)" if info["required"] else ""
+                schema_rows.append(f"- [ ] `{fname}`{req}: {display}")
             else:
-                # Required not submitted → [x] (must be addressed)
-                # Optional not submitted → [-] (known gap, not critical)
                 if info["required"]:
-                    schema_rows.append(f"- [x] `{fname}` (**required**): null")
+                    schema_rows.append(f"- [x] `{fname}` (**required**): _not submitted_")
                 else:
                     schema_rows.append(f"- [ ] `{fname}`")
 
         if schema_rows:
-            lines.append("### Schema fields\n")
+            lines.append("**Schema fields**\n")
             lines.extend(schema_rows)
             lines.append("")
 
@@ -519,27 +516,23 @@ class ReportBuilder:
             if not _is_report_skip(k)
         ]
         if extra:
-            lines.append("### Not in schema — manual review\n")
+            lines.append("**Fields not in schema — manual review required**\n")
             for k in extra:
                 display = _compact_val(submitted.get(k, ""))
-                lines.append(f"- [ ] ⚠️ `{short(k)}`: **{display}**")
+                lines.append(f"- [ ] ⚠️ `{short(k)}`: {display}")
             lines.append("")
 
         return "\n".join(lines)
 
     def _errors_admonition(self, errors_md: str) -> str:
-        # Strip rows that are only about skipped fields (drs_name, id, type)
-        # to avoid showing an empty warning block
         kept_rows = []
         for line in errors_md.strip().splitlines():
             if line.startswith("|") and "---" not in line and "Field" not in line:
-                # Check if this row is for a skipped field
                 parts = [p.strip() for p in line.split("|") if p.strip()]
                 if parts and short(parts[0].strip("`")) in REPORT_SKIP_EXACT:
                     continue
             kept_rows.append(line)
 
-        # Rebuild — if only headers remain, suppress the whole block
         data_rows = [r for r in kept_rows
                      if r.startswith("|") and "---" not in r and "Field" not in r]
         if not data_rows:
@@ -547,9 +540,8 @@ class ReportBuilder:
 
         filtered_md = "\n".join(kept_rows)
         return (
-            "> [!WARNING]\n"
-            "> **Validation errors** — these fields failed the esgvoc schema "
-            "check and must be corrected before merging.\n>\n"
+            "> [!CAUTION]\n"
+            "> **Schema validation failed** — the following errors must be resolved before this submission can be merged.\n>\n"
             + "\n".join(f"> {line}" for line in filtered_md.splitlines())
             + "\n"
         )
@@ -562,23 +554,21 @@ class ReportBuilder:
         folder_by_id: Dict[str, dict],
     ) -> str:
         if not field_links and link_result is None:
-            return "## Link Similarity (RDF)\n\n_Link analysis unavailable._\n"
+            return "### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
 
-        lines = [
-            "## Link Similarity (RDF)\n",
-            f"**{len(field_links)} semantic links** resolved from submitted values.\n",
-        ]
+        lines = [f"### 2. Controlled Vocabulary Links\n"]
 
-        # Mermaid — LR layout, group CV nodes by type using subgraphs
         if field_links:
-            # Group by CV type (second-to-last path segment)
+            lines.append(f"{len(field_links)} CV link(s) resolved from submitted values.\n")
+
+            # Mermaid diagram
             by_type: Dict[str, List[tuple]] = {}
             for fkey, uri in sorted(field_links.items()):
                 cv_type  = uri.split("/")[-2] if uri.count("/") >= 3 else "cv"
                 val_stem = uri.split("/")[-1]
                 by_type.setdefault(cv_type, []).append((fkey, val_stem, uri))
 
-            lines += ["### Link graph\n", "```mermaid", "graph TD"]
+            lines += ["<details><summary>CV link graph</summary>\n", "```mermaid", "graph TD"]
             node = _safe_node(self.item_id)
             lines.append(f'    {node}(["{self.item_id}"])')
             lines.append("")
@@ -587,7 +577,7 @@ class ReportBuilder:
                 sg = _safe_node(f"sg_{cv_type}")
                 lines.append(f'    subgraph {sg}["{cv_type}"]')
                 for fkey, val_stem, uri in entries:
-                    nid      = _safe_node(f"{cv_type}_{val_stem}")
+                    nid       = _safe_node(f"{cv_type}_{val_stem}")
                     click_url = uri + ".json" if "mipcvs.dev" in uri and not uri.endswith(".json") else uri
                     lines.append(f'        {nid}["{val_stem}"]')
                     lines.append(f'        click {nid} "{click_url}" _blank')
@@ -597,45 +587,42 @@ class ReportBuilder:
                     nid = _safe_node(f"{cv_type}_{val_stem}")
                     lines.append(f'    {node} --> {nid}')
 
-            lines += ["```", ""]
+            lines += ["```", "", "</details>", ""]
 
-        # Similarity table with hyperlinks
         if link_result is not None:
             high = [(oid, pct) for oid, pct in link_result.pairs
                     if pct >= self.link_threshold]
             if high:
                 lines += [
                     "> [!WARNING]",
-                    f"> **High link similarity** — {len(high)} existing item(s) share "
-                    f"≥{self.link_threshold:.0f}% of the same CV links. "
-                    "Check these are not duplicates before merging.\n",
-                    "| Item | Overlap |",
-                    "|------|---------|",
+                    f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% CV overlap.**"
+                    " Review field differences below before merging.\n",
+                    "| Item | CV Overlap | |",
+                    "|------|-----------|---|",
                 ]
                 for oid, pct in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                    lines.append(f"| {link} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     if diff:
                         lines.append(diff)
                 lines.append("")
             else:
                 lines.append(
-                    f"_No existing items exceed {self.link_threshold:.0f}% link overlap._\n"
+                    f"_No existing items exceed {self.link_threshold:.0f}% CV link overlap._\n"
                 )
 
             if link_result.pairs:
                 lines += [
-                    "",
-                    "<details><summary>All link comparisons</summary>\n",
-                    "| Item | Overlap |",
-                    "|------|---------|",
+                    "<details><summary>All CV comparisons</summary>\n",
+                    "| Item | CV Overlap |",
+                    "|------|-----------|",
                 ]
                 for oid, pct in link_result.pairs:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                    lines.append(f"| {link} | {pct:.1f}% `{bar}` |")
                 lines += ["", "</details>", ""]
 
         return "\n".join(lines)
@@ -648,30 +635,31 @@ class ReportBuilder:
         guidance: Dict[str, str] = {},
     ) -> str:
         if sim_result is None:
-            return "## Content Similarity\n\n_Text similarity analysis unavailable._\n"
+            return "### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
 
-        lines = [
-            "## Content Similarity\n",
-            f"**Method:** {sim_result.method}  \n"
-            f"**Fields compared:** {len(sim_result.text_fields)}\n",
-        ]
+        lines = [f"### 3. Content Similarity\n"]
 
         if not sim_result.text_fields:
-            lines.append("_No content fields remain after exclusions._\n")
+            lines.append("_No free-text fields remain after exclusions._\n")
             return "\n".join(lines)
 
-        # Per-field collapsible dropdowns
-        lines.append("### Fields used (click to view guidance)\n")
+        lines.append(
+            f"_{len(sim_result.text_fields)} field(s) compared using {sim_result.method}._\n"
+        )
+
+        # Fields used — compact table rather than per-field dropdowns
+        lines += [
+            "<details><summary>Fields included in comparison</summary>\n",
+            "| Field | Value |",
+            "|-------|-------|",
+        ]
         for k, v in sorted(sim_result.text_fields.items(), key=lambda x: short(x[0])):
             fname   = short(k)
             display = _compact_val(v, 60)
-            tip     = guidance.get(fname, "No notes given.")
-            lines.append(
-                f"\n<details><summary><code>{fname}</code>: {display}</summary>\n\n"
-                + tip.strip()
-                + "\n\n</details>"
-            )
-        lines.append("")
+            tip     = guidance.get(fname, "")
+            label   = f"`{fname}`" if not tip else f"[`{fname}`](# \"{tip[:80]}\")"
+            lines.append(f"| {label} | {display} |")
+        lines += ["", "</details>", ""]
 
         if sim_result.pairs:
             high_sim = [(oid, s) for oid, s in sim_result.pairs
@@ -679,38 +667,35 @@ class ReportBuilder:
             if high_sim:
                 lines += [
                     "> [!WARNING]",
-                    f"> **High content similarity** — {len(high_sim)} item(s) share "
-                    f"≥{self.link_threshold:.0f}% content similarity. "
-                    "Verify this is not a duplicate.\n",
-                    "| Item | Score | Bar |",
-                    "|------|-------|-----|",
+                    f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
+                    " Confirm this submission is not a duplicate.\n",
+                    "| Item | Similarity | |",
+                    "|------|-----------|---|",
                 ]
                 for oid, score in high_sim:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                    lines.append(f"| {link} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     if diff:
                         lines.append(diff)
                 lines.append("")
             else:
                 lines.append(
-                    f"_No existing items exceed {self.link_threshold:.0f}% "
-                    "content similarity._\n"
+                    f"_No existing items exceed {self.link_threshold:.0f}% content similarity._\n"
                 )
 
             lines += [
-                "",
                 "<details><summary>All content comparisons</summary>\n",
-                "| Item | Score | Bar |",
-                "|------|-------|-----|",
+                "| Item | Similarity |",
+                "|------|-----------|",
             ]
             for oid, score in sim_result.pairs:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 link = self._item_link(oid, folder_ids)
-                lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                lines.append(f"| {link} | {pct:.1f}% `{bar}` |")
             lines += ["", "</details>", ""]
 
         return "\n".join(lines)
@@ -731,9 +716,9 @@ class ReportBuilder:
 
     def _footer(self) -> str:
         return (
-            "_Report generated by "
-            "[cmipld](https://github.com/WCRP-CMIP/CMIP-LD) "
-            "`cmipld.utils.similarity.ReportBuilder`_\n"
+            "---\n"
+            "_Generated by [cmipld](https://github.com/WCRP-CMIP/CMIP-LD) · "
+            f"{_now()}_\n"
         )
 
     def __repr__(self):
