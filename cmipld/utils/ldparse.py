@@ -23,6 +23,32 @@ def graph_entry(url, entry='validation_key', depth=2, pretty=False):
     return result
 
 
+def ui_label_to_key(url, depth=2):
+    """
+    Build a reverse mapping from ui_label to validation_key for a CV graph.
+
+    Used by issue processing scripts to convert user-facing display labels
+    back to the canonical validation_key value before writing to file.
+
+    Args:
+        url: The graph URL (e.g., 'constants:grid_type/_graph.json')
+        depth: Fetch depth (default: 2)
+
+    Returns:
+        dict mapping ui_label -> validation_key
+    """
+    import cmipld
+    data = cmipld.get(url, depth=depth)
+    result = {}
+    for item in data.get('contents', []):
+        if isinstance(item, dict):
+            key = item.get('validation_key') or item.get('@id', '')
+            label = item.get('ui_label', '')
+            if label and key:
+                result[label] = key
+    return result
+
+
 def get_entry(data, entry='validation_key'):
     """Extract entry values from nested or flat structures"""
     if isinstance(data, dict):
