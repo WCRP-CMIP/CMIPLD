@@ -34,6 +34,8 @@ REPORT_SKIP_EXACT = frozenset({
     "issue_kind", "issue_type", "issue_category",
 })
 
+_DIFF_IGNORE = frozenset({"@id", "@type", "@context", "validation_key", "ui_label"})
+
 _TYPE_RE = re.compile(
     r"(wcrp:|esgvoc:)|/docs/contents/|/(universal|constants|emd)$"
 )
@@ -87,6 +89,46 @@ def _item_url(item_id: str) -> str:
             url = url + ".json"
         return url
     return ""
+
+
+def _diff_table(submitted: dict, existing: dict) -> str:
+    """
+    Build a collapsible Markdown diff table between a submitted item and an
+    existing item. Only shows fields that differ; ignores identity fields.
+
+    Format:
+        | Field | Existing | Submitted |
+        |-------|----------|-----------|
+        | n_cells | 55296 | 829440 |
+    """
+    rows = []
+    all_keys = sorted(
+        {k for k in {**submitted, **existing} if k not in _DIFF_IGNORE},
+        key=lambda k: short(k),
+    )
+    for k in all_keys:
+        s_val = submitted.get(k)
+        e_val = existing.get(k)
+        if s_val == e_val:
+            continue
+        # Normalise for display
+        s_str = _compact_val(s_val) if s_val not in (None, "", [], {}) else "_null_"
+        e_str = _compact_val(e_val) if e_val not in (None, "", [], {}) else "_null_"
+        rows.append(f"| `{short(k)}` | {e_str} | {s_str} |")
+
+    if not rows:
+        return ""
+
+    table = (
+        "| Field | Existing | Submitted |\n"
+        "|-------|----------|-----------|\n"
+        + "\n".join(rows)
+    )
+    return (
+        "\n<details><summary>Field differences</summary>\n\n"
+        + table
+        + "\n\n</details>\n"
+    )
 
 
 # ── validator coverage — source-file approach (like create_readme.py) ─────────
@@ -263,7 +305,7 @@ class ReportBuilder:
         item: dict,
         graph_data: Optional[dict] = None,
         use_embeddings: bool = True,
-        link_threshold: float = 80.0,
+        link_threshold: float = 85.0,
     ):
         self.folder_url     = folder_url
         self.kind           = kind
@@ -305,6 +347,11 @@ class ReportBuilder:
             _short_id(fi.get("@id", f"item_{i}")): fi.get("@id", "")
             for i, fi in enumerate(folder_items)
         }
+        # Build a lookup: short_id -> full item dict (for diff tables)
+        folder_by_id: Dict[str, dict] = {
+            _short_id(fi.get("@id", f"item_{i}")): fi
+            for i, fi in enumerate(folder_items)
+        }
         try:
             field_links = _build_links_from_folder(self.item, folder_items)
             enriched = dict(self.item)
@@ -343,8 +390,8 @@ class ReportBuilder:
         if val_result and val_result.errors_md:
             sections.append(self._errors_admonition(val_result.errors_md))
 
-        sections.append(self._link_section(link_result, field_links, folder_ids))
-        sections.append(self._text_section(sim_result, folder_ids, guidance))
+        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id))
+        sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance))
         sections.append(self._footer())
 
         self._report = "\n\n---\n\n".join(s for s in sections if s.strip())
@@ -512,6 +559,7 @@ class ReportBuilder:
         link_result,
         field_links: Dict[str, str],
         folder_ids: Dict[str, str],
+        folder_by_id: Dict[str, dict],
     ) -> str:
         if not field_links and link_result is None:
             return "## Link Similarity (RDF)\n\n_Link analysis unavailable._\n"
@@ -568,6 +616,9 @@ class ReportBuilder:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
                     lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    if diff:
+                        lines.append(diff)
                 lines.append("")
             else:
                 lines.append(
@@ -593,6 +644,7 @@ class ReportBuilder:
         self,
         sim_result,
         folder_ids: Dict[str, str],
+        folder_by_id: Dict[str, dict],
         guidance: Dict[str, str] = {},
     ) -> str:
         if sim_result is None:
@@ -638,6 +690,9 @@ class ReportBuilder:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
                     lines.append(f"| {link} | {pct:.1f}% {bar} |")
+                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    if diff:
+                        lines.append(diff)
                 lines.append("")
             else:
                 lines.append(
