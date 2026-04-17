@@ -463,11 +463,14 @@ def main():
     # ── STEP 1: pycmipld validation ────────────────────────────────────
     print(f"\n{prefix}Running pycmipld validation …", flush=True)
     validation_errors: dict = {}
+    pydantic_overrides = files_to_write.get('_pydantic_data', {})
     for file_path, data in files_to_write.items():
         if file_path.startswith('_'):
             continue
         file_type = file_path.split(os.sep)[0] if os.sep in file_path else issue_type
-        passed, errors_md = run_pycmipld_validation(data, file_type)
+        # Use handler-supplied pydantic-compatible copy if provided, else raw data
+        validation_data = pydantic_overrides.get(file_path, data)
+        passed, errors_md = run_pycmipld_validation(validation_data, file_type)
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 
