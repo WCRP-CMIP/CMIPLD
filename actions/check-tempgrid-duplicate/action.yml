@@ -1,0 +1,149 @@
+name: Check Tempgrid Duplicate
+description: >
+  For each tempgrid file in a PR, check whether its content (ignoring @id,
+  @type, validation_key, ui_label) already exists as a numbered file in the
+  same folder on src-data. If a duplicate is found, comment on the PR and
+  linked issues, close them, and delete the branch.
+
+inputs:
+  pr_number:
+    description: Pull request number to inspect
+    required: true
+  repo:
+    description: owner/repo
+    required: false
+    default: ''
+  gh_token:
+    description: GitHub token
+    required: true
+  folder:
+    description: Subfolder filter (e.g. horizontal_grid_cell). Empty = all folders.
+    required: false
+    default: ''
+
+outputs:
+  duplicate_found:
+    description: 'true if any duplicate was detected'
+    value: ${{ steps.check.outputs.duplicate_found }}
+  existing_ids:
+    description: Comma-separated list of existing IDs that matched
+    value: ${{ steps.check.outputs.existing_ids }}
+
+runs:
+  using: composite
+  steps:
+
+    - name: Checkout src-data
+      uses: actions/checkout@v4
+      with:
+        ref: src-data
+        fetch-depth: 0
+
+    - name: Check for duplicate grid content
+      id: check
+      shell: bash
+      env:
+        GH_TOKEN:  ${{ inputs.gh_token }}
+        PR_NUM:    ${{ inputs.pr_number }}
+        FOLDER:    ${{ inputs.folder }}
+      run: |
+        REPO="${{ inputs.repo }}"
+        if [ -z "$REPO" ]; then
+          REPO="${{ github.repository }}"
+        fi
+
+        JQ_STRIP='del(.["@id"], .["@type"], .validation_key, .ui_label) | to_entries | sort_by(.key) | from_entries'
+
+        TEMPGRID_FILES=$(gh pr diff "$PR_NUM" --repo "$REPO" --name-only \
+          | grep -E '(^|/)([^/]*tempgrid[^/]*)\.json$' || true)
+
+        if [ -z "$TEMPGRID_FILES" ]; then
+          echo "No tempgrid files found in PR #${PR_NUM}."
+          echo "duplicate_found=false" >> "$GITHUB_OUTPUT"
+          echo "existing_ids="         >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PR_BRANCH=$(gh pr view "$PR_NUM" --repo "$REPO" \
+          --json headRefName --jq '.headRefName')
+        git fetch origin "$PR_BRANCH" 2>/dev/null || true
+
+        DUPLICATE_FOUND=false
+        EXISTING_IDS=""
+        BODY_FILE=$(mktemp)
+
+        while IFS= read -r filepath; do
+          [ -z "$filepath" ] && continue
+          dir=$(dirname "$filepath")
+          if [ -n "$FOLDER" ] && [[ "$dir" != *"$FOLDER"* ]]; then
+            continue
+          fi
+
+          TMPFILE=$(mktemp)
+          git show "origin/${PR_BRANCH}:${filepath}" > "$TMPFILE" 2>/dev/null || {
+            rm -f "$TMPFILE"; continue
+          }
+
+          CANDIDATE_SIG=$(jq -c "$JQ_STRIP" "$TMPFILE" 2>/dev/null)
+          rm -f "$TMPFILE"
+          [ -z "$CANDIDATE_SIG" ] && continue
+
+          EXISTING_ID=""
+          for existing in "$dir"/[gGhHvVsS][0-9]*.json; do
+            [ -e "$existing" ] || continue
+            if [ "$(jq -c "$JQ_STRIP" "$existing" 2>/dev/null)" = "$CANDIDATE_SIG" ]; then
+              EXISTING_ID=$(basename "$existing" .json)
+              break
+            fi
+          done
+
+          if [ -n "$EXISTING_ID" ]; then
+            DUPLICATE_FOUND=true
+            [ -n "$EXISTING_IDS" ] && EXISTING_IDS="${EXISTING_IDS},"
+            EXISTING_IDS="${EXISTING_IDS}${EXISTING_ID}"
+            echo "DUPLICATE: $(basename "$filepath") matches existing $EXISTING_ID"
+
+            printf '%s\n' \
+              "## Duplicate grid detected" \
+              "" \
+              "> [!WARNING]" \
+              "> This submission is identical to an existing entry (ignoring ID fields). No new entry will be created." \
+              "" \
+              "**Existing ID:** \`${EXISTING_ID}\`" \
+              "" \
+              "**What to do next:**" \
+              "" \
+              "- **Use the existing grid** — reference \`${EXISTING_ID}\` in your Stage 2a (Horizontal Computational Grid) submission instead." \
+              "- **Your grid is genuinely different** — close this issue and submit a new one, using the **Description** field to explain how your grid differs from \`${EXISTING_ID}\`. Any difference not captured by the other form fields must be described there." \
+              >> "$BODY_FILE"
+          fi
+        done <<< "$TEMPGRID_FILES"
+
+        echo "duplicate_found=$DUPLICATE_FOUND" >> "$GITHUB_OUTPUT"
+        echo "existing_ids=$EXISTING_IDS"       >> "$GITHUB_OUTPUT"
+
+        if [ "$DUPLICATE_FOUND" = "true" ]; then
+          COMMENT_BODY=$(cat "$BODY_FILE")
+
+          gh pr comment "$PR_NUM" --repo "$REPO" --body "$COMMENT_BODY"
+
+          ISSUE_NUMBERS=$(gh pr view "$PR_NUM" --repo "$REPO" \
+            --json body --jq '.body' | tr '\n' ' ' \
+            | grep -oiE '(Resolves|Fixes|Closes)[[:space:]]+#[0-9]+' \
+            | grep -oE '[0-9]+' || true)
+
+          while IFS= read -r issue_num; do
+            [ -z "$issue_num" ] && continue
+            gh issue comment "$issue_num" --repo "$REPO" --body "$COMMENT_BODY"
+            gh issue close   "$issue_num" --repo "$REPO" || true
+            echo "Closed issue #${issue_num}"
+          done <<< "$ISSUE_NUMBERS"
+
+          if [ -n "$PR_BRANCH" ]; then
+            gh api -X DELETE "repos/$REPO/git/refs/heads/$PR_BRANCH" \
+              && echo "Deleted branch $PR_BRANCH" \
+              || echo "Could not delete $PR_BRANCH"
+          fi
+        fi
+
+        rm -f "$BODY_FILE"
