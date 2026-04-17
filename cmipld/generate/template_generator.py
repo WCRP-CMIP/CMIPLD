@@ -259,29 +259,42 @@ def generate_field_yaml(field_def, data, config):
                         yaml_lines.append(f"        - \"{safe_key}\"")
                 
                 elif options_type == 'list':
+                    seen = set()
                     for item in sorted(source_data, key=lambda x: str(x).lower()):
                         safe_item = sanitize_option(item)
-                        yaml_lines.append(f"        - \"{safe_item}\"")
-                
+                        if safe_item not in seen:
+                            yaml_lines.append(f"        - \"{safe_item}\"")
+                            seen.add(safe_item)
+
                 elif options_type in ['dict_multiple']:
+                    seen = set()
                     for key in sorted(source_data.keys(), key=str.lower):
                         safe_key = sanitize_option(key)
-                        yaml_lines.append(f"        - \"{safe_key}\"")
-                
+                        if safe_key not in seen:
+                            yaml_lines.append(f"        - \"{safe_key}\"")
+                            seen.add(safe_key)
+
                 elif options_type == 'dict_with_extra':
+                    seen = set()
                     for key in sorted(source_data.keys(), key=str.lower):
                         safe_key = sanitize_option(key)
-                        yaml_lines.append(f"        - \"{safe_key}\"")
-                    yaml_lines.append("        - \"Open Source\"")
-                    yaml_lines.append("        - \"Registration Required\"")
-                    yaml_lines.append("        - \"Proprietary\"")
-                
+                        if safe_key not in seen:
+                            yaml_lines.append(f"        - \"{safe_key}\"")
+                            seen.add(safe_key)
+                    for extra in ["Open Source", "Registration Required", "Proprietary"]:
+                        if extra not in seen:
+                            yaml_lines.append(f"        - \"{extra}\"")
+                            seen.add(extra)
+
                 elif options_type == 'list_with_na':
                     if field_id != 'issue_kind':
                         yaml_lines.append("        - \"Not specified\"")
+                    seen = {'Not specified'}
                     for item in sorted(source_data, key=lambda x: str(x).lower()):
                         safe_item = sanitize_option(item)
-                        yaml_lines.append(f"        - \"{safe_item}\"")
+                        if safe_item not in seen:
+                            yaml_lines.append(f"        - \"{safe_item}\"")
+                            seen.add(safe_item)
         
         if not options_available:
             print(f"    ⚠️  WARNING: No options available for dropdown field '{field_id}' (data_source: '{data_source}')")
