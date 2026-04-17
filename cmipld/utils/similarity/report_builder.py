@@ -440,100 +440,72 @@ class ReportBuilder:
 
     def _checklist(self, val_result, covered: FrozenSet[str]) -> str:
         """
-        Compact two-column status table.
-
-        Colour legend (emoji):
-          🟢  Automatically validated — passed
-          🔴  Automatically validated — failed
-          🔵  In schema, submitted, no explicit validator (manual check)
-          ⚫  Optional, not submitted
-          🔺  Required, not submitted
-          🟡  Submitted but not in schema (extra field)
+        Compact checkbox list.
+        [x] = reviewed (validated or explicitly missing required)
+        [ ] = needs manual review
+        Legend line explains the status suffixes.
         """
 
         def _display(v: Any) -> str:
             if v in ("", None, [], {}):
-                return "—"
-            return f"`{_compact_val(v, 40)}`"
+                return "_not submitted_"
+            return f"`{_compact_val(v, 50)}`"
 
         submitted       = {k: v for k, v in self.item.items() if not _is_report_skip(k)}
         submitted_short = {short(k): v for k, v in submitted.items()}
 
+        lines = [
+            "### 1. Field Status\n",
+            "> `[x]` reviewed automatically · `[ ]` needs manual check "
+            "· `← failed` schema error · `← missing` required but absent · "
+            "`← extra` not in schema\n",
+        ]
+
         if val_result is None:
-            lines = ["### 1. Field Status\n",
-                     "_No pydantic model — all fields require manual review._\n",
-                     "| Status | Field | Value |",
-                     "|--------|-------|-------|"]
+            lines.append("_No pydantic model — all fields require manual review._\n")
             for k, v in sorted(submitted.items(), key=lambda x: short(x[0])):
-                lines.append(f"| 🟡 unvalidated | `{short(k)}` | {_display(v)} |")
+                lines.append(f"- [ ] `{short(k)}`: {_display(v)} ← extra")
             return "\n".join(lines) + "\n"
 
         model_meta = val_result._model_meta
         failed     = val_result.failed_fields
 
-        rows: List[tuple] = []  # (sort_key, status_emoji, label, field, value_str)
+        # Schema fields — sorted: failed first, then passed validated, then manual, then absent
+        entries: List[tuple] = []  # (sort_key, checkbox, text)
 
-        # ── Schema fields ──────────────────────────────────────────────
         for fname, info in sorted(model_meta.items()):
             if fname in REPORT_SKIP_EXACT:
                 continue
-            req_label = "required" if info["required"] else "optional"
+            req = " _(required)_" if info["required"] else ""
 
             if fname in submitted_short:
                 val = submitted_short[fname]
                 if fname in covered:
-                    # Explicitly validated
                     orig_key = next((k for k in submitted if short(k) == fname), fname)
                     if orig_key in failed:
-                        rows.append((0, "🔴", f"**failed** · {req_label}", fname, _display(val)))
+                        entries.append((0, "[x]", f"`{fname}`{req}: {_display(val)} ← **failed**"))
                     else:
-                        rows.append((1, "🟢", f"validated · {req_label}", fname, _display(val)))
+                        entries.append((1, "[x]", f"`{fname}`{req}: {_display(val)}"))
                 else:
-                    rows.append((2, "🔵", f"manual check · {req_label}", fname, _display(val)))
+                    entries.append((2, "[ ]", f"`{fname}`{req}: {_display(val)}"))
             else:
-                # Not submitted
                 if info["required"]:
-                    rows.append((3, "🔺", "**missing** · required", fname, "—"))
+                    entries.append((3, "[x]", f"`{fname}`{req}: _not submitted_ ← **missing**"))
                 else:
-                    rows.append((4, "⚫", "optional · not submitted", fname, "—"))
+                    entries.append((4, "[ ]", f"`{fname}`{req}"))
 
-        # ── Extra fields not in schema ─────────────────────────────────
+        # Extra fields not in schema
         for k in sorted(val_result.unmodelled_fields, key=short):
             if _is_report_skip(k):
                 continue
             val = submitted.get(k, "")
-            rows.append((5, "🟡", "not in schema", short(k), _display(val)))
+            entries.append((5, "[ ]", f"`{short(k)}`: {_display(val)} ← extra"))
 
-        # ── Build two-column table ─────────────────────────────────────
-        rows.sort(key=lambda r: (r[0], r[3]))
+        entries.sort(key=lambda e: e[0])
+        for _, cb, text in entries:
+            lines.append(f"- {cb} {text}")
 
-        legend = (
-            "> 🟢 validated · 🔴 failed · 🔵 manual check · "
-            "🔺 missing required · ⚫ not submitted · 🟡 not in schema\n"
-        )
-
-        header = (
-            "| St | Field | Value | St | Field | Value |\n"
-            "|----|-------|-------|----|-------|-------|"
-        )
-
-        table_rows = []
-        for i in range(0, len(rows), 2):
-            a = rows[i]
-            left  = f"| {a[1]} | `{a[3]}` | {a[4]}"
-            if i + 1 < len(rows):
-                b = rows[i + 1]
-                right = f"| {b[1]} | `{b[3]}` | {b[4]} |"
-            else:
-                right = "| | | |"
-            table_rows.append(left + " " + right)
-
-        lines = [
-            "### 1. Field Status\n",
-            legend,
-            header,
-        ] + table_rows + [""]
-
+        lines.append("")
         return "\n".join(lines)
 
     def _errors_admonition(self, errors_md: str) -> str:
