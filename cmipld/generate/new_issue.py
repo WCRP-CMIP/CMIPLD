@@ -761,7 +761,10 @@ def main():
                 f"{people_section}"
             )
             update_pr_body(pr_number, pr_desc)
-            upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
+            if report_md.strip():
+                upsert_pr_comment(pr_number, report_md, _BOT_MARKER_PR)
+            else:
+                print("  ⚠ No report content generated — skipping PR comment", flush=True)
     except Exception as e:
         print(f"  ⚠ Could not update PR: {e}", flush=True)
 
