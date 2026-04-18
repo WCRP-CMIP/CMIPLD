@@ -32,6 +32,7 @@ from .text_similarity    import TextSimilarityAnalyzer, strip_text_fields
 REPORT_SKIP_EXACT = frozenset({
     "id", "type", "drs_name",
     "issue_kind", "issue_type", "issue_category",
+    "ui_label", "validation_key",
 })
 
 _DIFF_IGNORE = frozenset({"@id", "@type", "@context", "validation_key", "ui_label"})
@@ -367,10 +368,13 @@ class ReportBuilder:
         # covered fields may use short names; also exclude by short(k)
         exclude_set = (
             link_fields
-            | set(covered)                           # short model field names
+            | set(covered)
             | REPORT_SKIP_EXACT
-            | {f"@{k}" for k in REPORT_SKIP_EXACT}  # @-prefixed variants
+            | {f"@{k}" for k in REPORT_SKIP_EXACT}
         )
+        # Exclude blank description fields — they add noise without meaning
+        if not (self.item.get("description") or "").strip():
+            exclude_set = exclude_set | {"description"}
         sim_result = None
         try:
             sim_result = TextSimilarityAnalyzer(
