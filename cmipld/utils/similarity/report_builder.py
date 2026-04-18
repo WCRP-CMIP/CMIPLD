@@ -64,6 +64,14 @@ def _compact_val(v: Any, max_len: int = 80) -> str:
     return (s[:max_len] + "…") if len(s) > max_len else s
 
 
+def _table_cell(v: Any, max_len: int = 60) -> str:
+    """Compact value safe for use inside a markdown table cell."""
+    s = _compact_val(v, max_len)
+    # Escape pipe characters and collapse newlines so the cell stays on one row
+    s = s.replace("|", "\\|").replace("\n", " ").replace("\r", "")
+    return s
+
+
 def _is_data_link(uri: str) -> bool:
     if _TYPE_RE.search(uri):
         return False
@@ -113,8 +121,8 @@ def _diff_table(submitted: dict, existing: dict) -> str:
         if s_val == e_val:
             continue
         # Normalise for display
-        s_str = _compact_val(s_val) if s_val not in (None, "", [], {}) else "_null_"
-        e_str = _compact_val(e_val) if e_val not in (None, "", [], {}) else "_null_"
+        s_str = _table_cell(s_val) if s_val not in (None, "", [], {}) else "_null_"
+        e_str = _table_cell(e_val) if e_val not in (None, "", [], {}) else "_null_"
         rows.append(f"| `{short(k)}` | {e_str} | {s_str} |")
 
     if not rows:
@@ -453,7 +461,7 @@ class ReportBuilder:
         def _display(v: Any) -> str:
             if v in ("", None, [], {}):
                 return "_not submitted_"
-            return f"`{_compact_val(v, 50)}`"
+            return f"`{_table_cell(v, 50)}`"
 
         submitted       = {k: v for k, v in self.item.items() if not _is_report_skip(k)}
         submitted_short = {short(k): v for k, v in submitted.items()}
@@ -643,9 +651,9 @@ class ReportBuilder:
         ]
         for k, v in sorted(sim_result.text_fields.items(), key=lambda x: short(x[0])):
             fname   = short(k)
-            display = _compact_val(v, 60)
+            display = _table_cell(v, 60)
             tip     = guidance.get(fname, "")
-            label   = f"`{fname}`" if not tip else f"[`{fname}`](# \"{tip[:80]}\")"
+            label   = f"`{fname}`" if not tip else f"[`{fname}`](# \"{_table_cell(tip, 80)}\")"
             lines.append(f"| {label} | {display} |")
         lines += ["", "</details>", ""]
 
