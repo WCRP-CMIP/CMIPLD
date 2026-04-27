@@ -141,12 +141,12 @@ class LinkResult:
         if self.pairs:
             lines += [
                 "### Overlap with folder items\n",
-                "| Item | Shared/Union | Link % |",
-                "|------|-------------|--------|",
+                "| Item | Shared/Submitted | Link % |",
+                "|------|-----------------|--------|",
             ]
-            for oid, pct, n_shared, n_union in self.pairs:
+            for oid, pct, n_shared, n_submitted in self.pairs:
                 bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                lines.append(f"| `{oid}` | {n_shared}/{n_union} | {pct:.1f}% `{bar}` |")
+                lines.append(f"| `{oid}` | {n_shared}/{n_submitted} | {pct:.1f}% `{bar}` |")
         else:
             lines.append("_No link overlap found with existing folder items._")
         return "\n".join(lines)
@@ -188,13 +188,15 @@ class LinkAnalyzer:
         links     = extract_links(item)
         lfields   = _link_fields(item)
 
+        n_submitted = len(links)
+
         pairs: List[Tuple[str, float, int, int]] = sorted(
             (
                 (
                     oid,
-                    round(len(links & other) / len(links | other) * 100, 1) if (links | other) else 0.0,
+                    round(len(links & other) / n_submitted * 100, 1) if n_submitted else 0.0,
                     len(links & other),   # n_shared
-                    len(links | other),   # n_union — all unique links across both items
+                    n_submitted,          # denominator = submission link count
                 )
                 for oid, other in self._folder_links.items()
                 if oid != target_id
