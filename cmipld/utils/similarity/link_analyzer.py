@@ -116,12 +116,12 @@ class LinkResult:
         if self.pairs:
             lines += [
                 "### Overlap with folder items\n",
-                "| Item | Shared/Union | Overlap |",
-                "|------|-------------|---------|",
+                "| Item | Shared/File | Overlap |",
+                "|------|------------|---------|",
             ]
-            for oid, pct, n_shared, n_union in self.pairs:
+            for oid, pct, n_shared, n_file in self.pairs:
                 bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                lines.append(f"| `{oid}` | {n_shared}/{n_union} | {pct:.1f}% `{bar}` |")
+                lines.append(f"| `{oid}` | {n_shared}/{n_file} | {pct:.1f}% `{bar}` |")
         else:
             lines.append("_No link overlap found with existing folder items._")
         return "\n".join(lines)
@@ -159,18 +159,17 @@ class LinkAnalyzer:
 
         Returns a :class:`LinkResult` with ``.data`` and ``.md`` properties.
         """
-        target_id   = _short_id(item.get("@id", "submitted"))
-        links       = extract_links(item)
-        lfields     = _link_fields(item)
-        n_submitted = len(links)
+        target_id = _short_id(item.get("@id", "submitted"))
+        links     = extract_links(item)
+        lfields   = _link_fields(item)
 
         pairs: List[Tuple[str, float, int, int]] = sorted(
             (
                 (
                     oid,
                     round(_jaccard(links, other) * 100, 1),
-                    len(links & other),       # n_shared
-                    len(links | other),       # n_union  (matches Jaccard denominator)
+                    len(links & other),   # n_shared
+                    len(other),           # n_file — total links in the existing item
                 )
                 for oid, other in self._folder_links.items()
                 if oid != target_id

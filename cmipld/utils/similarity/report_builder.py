@@ -749,20 +749,20 @@ class ReportBuilder:
             lines += ["```", "", "</details>", ""]
 
         if link_result is not None:
-            high = [(oid, pct, n_shared, n_union) for oid, pct, n_shared, n_union in link_result.pairs
+            high = [(oid, pct, n_shared, n_file) for oid, pct, n_shared, n_file in link_result.pairs
                     if pct >= self.link_threshold]
             if high:
                 lines += [
                     "> [!WARNING]",
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
-                    "| Item | Shared/Union | Overlap | |",
-                    "|------|-------------|---------|---|",
+                    "| Item | Shared/File | Overlap | |",
+                    "|------|------------|---------|---|",
                 ]
-                for oid, pct, n_shared, n_union in high:
+                for oid, pct, n_shared, n_file in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {n_shared}/{n_union} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
+                    lines.append(f"| {link} | {n_shared}/{n_file} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     if diff:
                         lines.append(diff)
@@ -775,13 +775,13 @@ class ReportBuilder:
             if link_result.pairs:
                 lines += [
                     "<details><summary> All submission 'link' comparisons.</summary>\n",
-                    "| Item | Shared/Union | Overlap |",
-                    "|------|-------------|---------|",
+                    "| Item | Shared/File | Overlap |",
+                    "|------|------------|---------|",
                 ]
-                for oid, pct, n_shared, n_union in link_result.pairs:
+                for oid, pct, n_shared, n_file in link_result.pairs:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {n_shared}/{n_union} | {pct:.1f}% `{bar}` |")
+                    lines.append(f"| {link} | {n_shared}/{n_file} | {pct:.1f}% `{bar}` |")
                 lines += ["", "</details>", ""]
 
         return "\n".join(lines)
