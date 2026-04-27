@@ -641,6 +641,7 @@ class ReportBuilder:
         submitted_short = {short(k): v for k, v in submitted.items()}
 
         lines = [
+            "---\n",
             "### 1. Field Status\n",
             # "> `[x]` reviewed automatically · `[ ]` needs manual check "
             # "· `← failed` schema error · `← missing` required but absent · "
@@ -725,9 +726,9 @@ class ReportBuilder:
         field_graphs: Dict[str, str],
     ) -> str:
         if not field_links and link_result is None:
-            return "### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
+            return "---\n\n### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
 
-        lines = [f"### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by looking at the links to registered components of the CVs as provided by the dropdown fields. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
+        lines = [f"---\n\n### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by looking at the links to registered components of the CVs as provided by the dropdown fields. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
 
         if field_links:
             # Total = CV-eligible fields that were submitted with a non-empty value
@@ -811,9 +812,9 @@ class ReportBuilder:
         guidance: Dict[str, str] = {},
     ) -> str:
         if sim_result is None:
-            return "### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
+            return "---\n\n### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
 
-        lines = [f"### 3. Content Similarity\n","```\nWhen it comes to free text and numerical entries, direct comparisons are more difficult. Instead we use a combination of text similarity and field exclusions to identify items that contain similar content. We exclude fields that carry links (they are covered by the previous section) and fields that have explicit pydantic validators (they have explicit checks) to focus on content that is not already being checked by other means.\n```\n"]
+        lines = [f"---\n\n### 3. Content Similarity\n","```\nWhen it comes to free text and numerical entries, direct comparisons are more difficult. Instead we use a combination of text similarity and field exclusions to identify items that contain similar content. We exclude fields that carry links (they are covered by the previous section) and fields that have explicit pydantic validators (they have explicit checks) to focus on content that is not already being checked by other means.\n```\n"]
 
         if not sim_result.text_fields:
             lines.append("_No free-text fields remain after exclusions._\n")
