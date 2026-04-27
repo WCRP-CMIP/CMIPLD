@@ -785,7 +785,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -799,7 +799,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
@@ -853,7 +853,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -867,7 +867,7 @@ class ReportBuilder:
                 link = self._item_link(oid, folder_ids)
                 diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                 lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
+                lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
 
         return "\n".join(lines)
