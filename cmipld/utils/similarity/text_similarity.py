@@ -178,18 +178,28 @@ class TextSimilarityAnalyzer:
         }
 
         pairs:  List[Tuple[str, float]] = []
-        method = "embedding"
+        method = "tfidf"
 
         if text_fields and corpus:
             data_dict = {target_id: text_fields, **corpus}
-            fp = JSONSimilarityFingerprint(
-                model_name=self.model_name,
-                include_keys=False,
-                use_embeddings=self.use_embeddings,
-            )
-            fp.load_from_dict(data_dict)
-            fp.embed(show_progress=False)
-            fp.compute_similarity()
+
+            # Try embeddings first (~24 MB fastembed model), fall back to TF-IDF
+            for use_emb, label in [(True, "embedding"), (False, "tfidf")]:
+                try:
+                    fp = JSONSimilarityFingerprint(
+                        model_name=self.model_name,
+                        include_keys=False,
+                        use_embeddings=use_emb,
+                    )
+                    fp.load_from_dict(data_dict)
+                    fp.embed(show_progress=False)
+                    fp.compute_similarity()
+                    method = label
+                    break
+                except Exception:
+                    if not use_emb:
+                        raise   # TF-IDF failure is unrecoverable
+
             idx = fp.file_paths.index(target_id)
             pairs = sorted(
                 [
@@ -200,6 +210,5 @@ class TextSimilarityAnalyzer:
                 key=lambda x: x[1],
                 reverse=True,
             )
-            method = "embedding" if self.use_embeddings else "tfidf"
 
         return SimilarityResult(target_id, text_fields, pairs, method)

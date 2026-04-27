@@ -33,6 +33,7 @@ REPORT_SKIP_EXACT = frozenset({
     "id", "type", "drs_name",
     "issue_kind", "issue_type", "issue_category",
     "ui_label", "validation_key",
+    "alias",
 })
 
 _DIFF_IGNORE = frozenset({"@id", "@type", "@context", "validation_key", "ui_label","alias"})
@@ -153,22 +154,25 @@ def _normalise_for_diff(item: dict) -> dict:
 
 def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set) -> str:
     """
-    Diff restricted to only the text fields that content similarity was computed on.
-    Shows why two items score highly, rather than comparing all fields.
+    Diff on text fields — shows any field where either item has a non-blank value.
+    Both-blank fields are silently skipped.
     """
     s = {k: v for k, v in submitted_text_fields.items()}
     e = _normalise_for_diff(existing)
-    # Restrict to the same field set used for similarity
-    e = {k: v for k, v in e.items() if k in text_field_keys or short(k) in text_field_keys}
+
+    _blank = (None, "", [], {})
 
     rows = []
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
         e_val = e.get(k)
+        # Skip only if BOTH are blank
+        if s_val in _blank and e_val in _blank:
+            continue
         if s_val == e_val:
             continue
-        s_str = _table_cell(s_val) if s_val not in (None, "", [], {}) else "_null_"
-        e_str = _table_cell(e_val) if e_val not in (None, "", [], {}) else "_null_"
+        s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
+        e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
         rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
     if not rows:

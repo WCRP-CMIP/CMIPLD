@@ -123,7 +123,7 @@ class JSONSimilarityFingerprint:
             elif isinstance(obj, (list, tuple)):
                 for item in obj:
                     flatten(item, prefix=prefix)
-            else:
+            elif obj is not None and obj != "":
                 parts.append(f"{prefix}{obj}")
         flatten(data)
         return ' '.join(parts)
