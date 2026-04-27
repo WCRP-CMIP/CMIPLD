@@ -43,12 +43,17 @@ def ui_label_to_key(url, depth=2):
     result = {}
     for item in data.get('contents', []):
         if isinstance(item, dict):
-            key = item.get('validation_key') or item.get('@id', '')
+            
+            id = item.get('@id', '')
+            key = item.get('validation_key') or id
             label = item.get('ui_label', '')
+            
             if key:
-                result[key] = key          # validation_key matches itself
-            if label and key:
-                result[label] = key        # ui_label maps to validation_key
+                result[key] = id          # validation_key matches itself
+            if label and id:
+                result[label] = id        # ui_label maps to validation_key
+                result[label.replace('-','').lower()] = id # if sanitised as a sentence, this has no dashes
+            
     return result
 
 
