@@ -776,7 +776,7 @@ class ReportBuilder:
             resolved = len(field_links)
             fraction = f"{resolved}/{total_cv}" if total_cv else str(resolved)
             pct      = f"{resolved / total_cv * 100:.0f}%" if total_cv else "—"
-            lines.append(f"* Checking that linked files resolve: {fraction} ({pct})*\n")
+            lines.append(f"**Checking that linked files resolve: {fraction} ({pct})**\n")
 
             # Mermaid diagram
             by_type: Dict[str, List[tuple]] = {}
