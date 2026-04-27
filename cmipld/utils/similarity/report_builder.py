@@ -48,6 +48,23 @@ def _now() -> str:
     return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _write_step_summary(report: str) -> None:
+    """
+    Append the markdown report to the GitHub Actions step summary file
+    ($GITHUB_STEP_SUMMARY). No-ops silently outside of Actions.
+    """
+    import os
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+    try:
+        with open(summary_path, "a", encoding="utf-8") as f:
+            f.write(report)
+            f.write("\n")
+    except Exception:
+        pass
+
+
 def _is_report_skip(key: str) -> bool:
     if is_default_skip(key):
         return True
@@ -537,6 +554,7 @@ class ReportBuilder:
         sections.append(self._footer())
 
         self._report = "\n\n".join(s for s in sections if s.strip())
+        _write_step_summary(self._report)
         return self._report
 
     def _load_graph(self) -> GraphLoader:

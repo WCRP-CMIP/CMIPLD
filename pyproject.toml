@@ -75,10 +75,10 @@ coauthor_file = "cmipld.cli.shell:coauthor_file"
 cmipld-help = "cmipld.cli.shell:cmipld_help"
 
 [tool.setuptools]
-find = {}
 include-package-data = true
 
 [tool.setuptools.packages.find]
+where = ["."]
 exclude = ["*.egg-info", "build", "dist"]
 
 [tool.setuptools.package-data]
