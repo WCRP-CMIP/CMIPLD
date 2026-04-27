@@ -34,11 +34,11 @@ def _load_esgvoc_descriptors():
     globals().update({k: v for k, v in vars(_dd).items() if not k.startswith('_')})
 
 import os as _os
-_ESGVOC_BRANCH = _os.environ.get('ESGVOC_BRANCH', 'integration')  # TODO: change to 'main' when models are stable
+_ESGVOC_BRANCH = _os.environ.get('ESGVOC_BRANCH', 'main')
 
 try:
     _load_esgvoc_descriptors()
-except (ImportError, Exception):
+except ImportError:
     import subprocess
     print(f'Installing esgvoc (branch: {_ESGVOC_BRANCH}, no-deps)...')
     subprocess.check_call([

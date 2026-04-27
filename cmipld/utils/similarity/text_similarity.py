@@ -142,9 +142,12 @@ class TextSimilarityAnalyzer:
         Loaded folder graph.
     exclude : set[str] | None
         Additional field keys to exclude (link fields, pydantic-validated
-        fields).  Default-skip fields are always removed regardless.
+        fields). Default-skip fields are always removed regardless.
     model_name : str
-        Sentence-transformer model (default ``all-MiniLM-L6-v2``).
+        Sentence-transformer model name (only used when use_embeddings=True).
+    use_embeddings : bool
+        If True (default), use fastembed ONNX embeddings (~24 MB download).
+        If False, use TF-IDF cosine similarity — 0 MB, no download.
     """
 
     def __init__(
@@ -152,10 +155,12 @@ class TextSimilarityAnalyzer:
         loader: GraphLoader,
         exclude: Optional[Set[str]] = None,
         model_name: str = None,
+        use_embeddings: bool = True,
     ):
-        self._folder_items = loader.items
-        self.exclude       = set(exclude or [])
-        self.model_name    = model_name or MODEL_NAME
+        self._folder_items  = loader.items
+        self.exclude        = set(exclude or [])
+        self.model_name     = model_name or MODEL_NAME
+        self.use_embeddings = use_embeddings
 
     def analyze(self, item: dict, item_id: Optional[str] = None) -> SimilarityResult:
         """
@@ -177,7 +182,11 @@ class TextSimilarityAnalyzer:
 
         if text_fields and corpus:
             data_dict = {target_id: text_fields, **corpus}
-            fp = JSONSimilarityFingerprint(model_name=self.model_name, include_keys=False)
+            fp = JSONSimilarityFingerprint(
+                model_name=self.model_name,
+                include_keys=False,
+                use_embeddings=self.use_embeddings,
+            )
             fp.load_from_dict(data_dict)
             fp.embed(show_progress=False)
             fp.compute_similarity()
@@ -191,5 +200,6 @@ class TextSimilarityAnalyzer:
                 key=lambda x: x[1],
                 reverse=True,
             )
+            method = "embedding" if self.use_embeddings else "tfidf"
 
         return SimilarityResult(target_id, text_fields, pairs, method)

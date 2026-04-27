@@ -30,7 +30,9 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-copier = ["copier>=9.0.0"]
+copier  = ["copier>=9.0.0"]
+esgvoc  = ["esgvoc @ git+https://github.com/ESGF/esgf-vocab.git@main"]
+embeddings = ["fastembed"]
 
 [project.urls]
 Homepage = "https://github.com/WCRP-CMIP/CMIP-LD"
@@ -73,14 +75,11 @@ coauthor_file = "cmipld.cli.shell:coauthor_file"
 cmipld-help = "cmipld.cli.shell:cmipld_help"
 
 [tool.setuptools]
-packages = ["cmipld"]
+find = {}
 include-package-data = true
 
-[tool.setuptools.exclude-package-data]
-cmipld = [
-    "utils/similarity/models/*",
-    "utils/similarity/models/**/*",
-]
+[tool.setuptools.packages.find]
+exclude = ["*.egg-info", "build", "dist"]
 
 [tool.setuptools.package-data]
 cmipld = [

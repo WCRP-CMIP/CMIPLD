@@ -1,6 +1,9 @@
 """
-JSON similarity fingerprinting using fastembed (ONNX, no torch required).
-Works with dict input: {file_path: data_dict, ...}
+JSON similarity fingerprinting.
+
+Default method: TF-IDF cosine similarity (0 MB, no download, fast).
+Optional:       fastembed ONNX embeddings via use_embeddings=True.
+                Smallest available model: BAAI/bge-small-en-v1.5 (~24 MB int8).
 """
 
 import json
@@ -14,12 +17,49 @@ except ImportError:
     import numpy as np
 from typing import List, Dict, Optional, Union
 
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+# Kept for compatibility — only loaded when use_embeddings=True
+MODEL_NAME = "BAAI/bge-small-en-v1.5"
 _fastembed_model = None
 
 
+def _tfidf_similarity(texts: List[str]) -> np.ndarray:
+    """
+    Compute pairwise cosine similarity using TF-IDF.
+    Pure Python + numpy — no model download required.
+    """
+    from collections import Counter
+    import math
+
+    # Build vocabulary
+    tokenized = [t.lower().split() for t in texts]
+    vocab     = sorted({w for doc in tokenized for w in doc})
+    word_idx  = {w: i for i, w in enumerate(vocab)}
+    n_docs    = len(texts)
+    n_words   = len(vocab)
+
+    # TF matrix
+    tf = np.zeros((n_docs, n_words), dtype=np.float32)
+    for d, tokens in enumerate(tokenized):
+        counts = Counter(tokens)
+        total  = max(len(tokens), 1)
+        for w, c in counts.items():
+            if w in word_idx:
+                tf[d, word_idx[w]] = c / total
+
+    # IDF
+    df  = (tf > 0).sum(axis=0)
+    idf = np.log((n_docs + 1) / (df + 1)) + 1.0
+    tfidf = tf * idf
+
+    # Cosine similarity
+    norms = np.linalg.norm(tfidf, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    normed = tfidf / norms
+    return normed @ normed.T
+
+
 def _get_model(model_name: str = None, cache_dir: str = None):
-    """Load fastembed model, using cmipld bundled cache by default."""
+    """Load fastembed model (only called when use_embeddings=True)."""
     global _fastembed_model
     name = model_name or MODEL_NAME
     if _fastembed_model is None or getattr(_fastembed_model, 'model_name', None) != name:
@@ -41,16 +81,23 @@ def _get_model(model_name: str = None, cache_dir: str = None):
 
 
 class JSONSimilarityFingerprint:
-    """Analyze JSON similarity using fastembed ONNX embeddings. No torch required."""
+    """
+    Analyze JSON similarity.
 
-    def __init__(self, model_name: str = None, include_keys: bool = False):
-        self.model_name   = model_name or MODEL_NAME
-        self.include_keys = include_keys
-        self.file_paths   = []
-        self.data_dict    = {}
-        self.embeddings   = None
+    Default: TF-IDF cosine similarity — 0 MB, no download, fast.
+    Optional: fastembed ONNX embeddings via use_embeddings=True (~24 MB).
+    """
+
+    def __init__(self, model_name: str = None, include_keys: bool = False,
+                 use_embeddings: bool = False):
+        self.model_name     = model_name or MODEL_NAME
+        self.include_keys   = include_keys
+        self.use_embeddings = use_embeddings
+        self.file_paths     = []
+        self.data_dict      = {}
+        self.embeddings     = None
         self.similarity_matrix = None
-        self.texts        = []
+        self.texts          = []
 
     def load_from_dict(self, data_dict: Dict[str, dict]) -> int:
         self.data_dict  = data_dict
@@ -85,17 +132,26 @@ class JSONSimilarityFingerprint:
         if not self.file_paths:
             raise ValueError("No files loaded.")
         self.texts = [self.json_to_text(self.data_dict[fp]) for fp in self.file_paths]
-        model = _get_model(self.model_name)
-        self.embeddings = np.array(list(model.embed(self.texts)))
+        if self.use_embeddings:
+            model = _get_model(self.model_name)
+            self.embeddings = np.array(list(model.embed(self.texts)))
+        else:
+            # Store texts as placeholder — similarity computed via TF-IDF in compute_similarity
+            self.embeddings = None
         return self.embeddings
 
     def compute_similarity(self):
-        if self.embeddings is None:
+        if not self.texts:
             raise ValueError("Must call embed() first.")
-        norms = np.linalg.norm(self.embeddings, axis=1, keepdims=True)
-        norms[norms == 0] = 1.0
-        normalized = self.embeddings / norms
-        self.similarity_matrix = normalized @ normalized.T
+        if self.use_embeddings:
+            if self.embeddings is None:
+                raise ValueError("Embeddings not computed — call embed() first.")
+            norms = np.linalg.norm(self.embeddings, axis=1, keepdims=True)
+            norms[norms == 0] = 1.0
+            normalized = self.embeddings / norms
+            self.similarity_matrix = normalized @ normalized.T
+        else:
+            self.similarity_matrix = _tfidf_similarity(self.texts)
         return self.similarity_matrix
 
     def export_similar_pairs(self, threshold: float = 0.85, group: bool = False) -> Union[List[str], Dict[int, List[str]]]:

@@ -6,8 +6,12 @@ Pipeline for analysing submitted JSON-LD items against a folder's graph.
 
 import os as _os
 
-# Cache directory for the bundled fastembed ONNX model.
-MODEL_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'models')
+# Model cache lives in ~/.cache/cmipld/models — never inside the package.
+# This keeps the installable package small and avoids committing model files to git.
+MODEL_PATH = _os.path.join(
+    _os.path.expanduser("~"), ".cache", "cmipld", "models"
+)
+_os.makedirs(MODEL_PATH, exist_ok=True)
 
 from .graph_loader import GraphLoader
 from .link_analyzer import LinkAnalyzer, LinkResult, extract_links

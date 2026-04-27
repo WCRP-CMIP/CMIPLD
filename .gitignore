@@ -2,6 +2,9 @@
 
 version.py
 
+# Fastembed model cache — downloaded on demand, never committed
+cmipld/utils/similarity/models/
+
 ./*/*/node_modules/*
 __pycache__/
 *.py[cod]
