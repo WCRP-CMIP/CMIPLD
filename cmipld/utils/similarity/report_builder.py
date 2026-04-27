@@ -35,7 +35,7 @@ REPORT_SKIP_EXACT = frozenset({
     "ui_label", "validation_key",
 })
 
-_DIFF_IGNORE = frozenset({"@id", "@type", "@context", "validation_key", "ui_label"})
+_DIFF_IGNORE = frozenset({"@id", "@type", "@context", "validation_key", "ui_label","alias"})
 
 _TYPE_RE = re.compile(
     r"(wcrp:|esgvoc:)|/docs/contents/|/(universal|constants|emd)$"
@@ -246,53 +246,48 @@ def _fetch_cv_graph(graph_url: str) -> Dict[str, str]:
     """
     Fetch a single CV graph and return a lookup of value variants → canonical URI.
 
-    Indexes each entry by its stem variants, validation_key, and ui_label so
-    that submitted values in any reasonable format will match.
-
-    Robust to @id values arriving as full URIs, prefixed forms, or being absent
-    entirely — falls back to building the URI from the graph base URL +
-    validation_key in all cases.
+    Uses _find_contents_key to handle fully-expanded JSON-LD where "contents"
+    may have become a full URI key. Falls back to building URIs from the graph
+    base URL + validation_key when @id is missing or in prefixed form.
     """
     try:
         import cmipld
+        from .graph_loader import _find_contents_key
+
         with cmipld.ensure_remote():
             data = cmipld.expand(graph_url, depth=2)
 
-        # Base URL for constructing item URIs when @id is missing/relative
-        base_url = graph_url.replace("/_graph.json", "")
+        base_url     = graph_url.replace("/_graph.json", "")
+        contents_key = _find_contents_key(data)
+        entries      = data.get(contents_key, []) if contents_key else []
 
         lookup: Dict[str, str] = {}
-        for entry in data.get("contents", []):
+        for entry in entries:
             if not isinstance(entry, dict):
                 continue
 
-            # ── Resolve canonical URI ──────────────────────────────────────
             raw_id = entry.get("@id", "")
             vk     = entry.get("validation_key", "")
 
             if raw_id and isinstance(raw_id, str) and not raw_id.startswith("_"):
                 if raw_id.startswith("http"):
-                    uri = raw_id                              # full URI — use as-is
+                    uri = raw_id
                 else:
-                    # Prefixed or relative — extract stem and build from base
                     stem = raw_id.split("/")[-1].split(":")[-1]
                     uri  = f"{base_url}/{stem}"
             elif vk:
-                uri = f"{base_url}/{vk}"                     # build from validation_key
+                uri = f"{base_url}/{vk}"
             else:
                 continue
 
             stem = uri.split("/")[-1]
-
-            # ── Index all useful variants ──────────────────────────────────
             for variant in [stem, stem.replace("-", "_"), stem.replace("_", "-")]:
                 lookup[variant] = uri
 
-            # validation_key and ui_label — index these directly too
             for field in ("validation_key", "ui_label"):
                 val = entry.get(field, "")
                 if val and isinstance(val, str):
-                    lookup[val]       = uri
+                    lookup[val]         = uri
                     lookup[val.lower()] = uri
 
         return lookup
@@ -327,12 +322,15 @@ def _build_links_from_folder(
         for key, val in fi.items():
             if key.startswith("@"):
                 continue
+            
+            # dict
             if isinstance(val, dict) and "@id" in val:
                 uri = val["@id"]
                 if _is_data_link(uri):
                     stem = uri.split("/")[-1]
                     for variant in [stem, stem.replace("-", "_"), stem.replace("_", "-")]:
                         value_to_uri[variant] = uri
+            # list 
             elif isinstance(val, list):
                 for elem in val:
                     if isinstance(elem, dict) and "@id" in elem:
