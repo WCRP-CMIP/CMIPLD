@@ -208,13 +208,120 @@ def _validator_covered_fields(cls) -> FrozenSet[str]:
 
 # ── link construction for unregistered items ──────────────────────────────────
 
-def _build_links_from_folder(item: dict, folder_items: List[dict]) -> Dict[str, str]:
+def _infer_cv_graphs_from_folder(folder_items: List[dict]) -> Dict[str, str]:
     """
-    For a submitted item with plain string values, resolve canonical URIs
-    by searching the folder graph items (which have full URI @id refs).
+    Infer CV graph URLs by inspecting the @id URIs in existing folder items.
+
+    When an existing item has:
+        {"grid_type": {"@id": "https://.../WCRP-constants/grid_type/regular-latitude-longitude"}}
+
+    We infer that the graph for grid_type lives at:
+        "https://.../WCRP-constants/grid_type/_graph.json"
+
+    Keys are compressed to their short form (e.g. the full URI
+    https://emd.mipcvs.dev/docs/contents/HorizontalGridCell/grid_type
+    becomes just "grid_type") so they match the plain keys in submitted items.
+    """
+    field_graphs: Dict[str, str] = {}
+    for fi in folder_items:
+        for key, val in fi.items():
+            compressed = short(key)   # e.g. full URI → "grid_type"
+            if compressed.startswith("@") or compressed in field_graphs:
+                continue
+            uri = None
+            if isinstance(val, dict) and "@id" in val:
+                uri = val["@id"]
+            elif isinstance(val, list):
+                for elem in val:
+                    if isinstance(elem, dict) and "@id" in elem:
+                        uri = elem["@id"]
+                        break
+            if uri and _is_data_link(uri):
+                graph_url = uri.rsplit("/", 1)[0] + "/_graph.json"
+                field_graphs[compressed] = graph_url
+    return field_graphs
+
+
+def _fetch_cv_graph(graph_url: str) -> Dict[str, str]:
+    """
+    Fetch a single CV graph and return a lookup of value variants → canonical URI.
+
+    Indexes each entry by its stem variants, validation_key, and ui_label so
+    that submitted values in any reasonable format will match.
+
+    Robust to @id values arriving as full URIs, prefixed forms, or being absent
+    entirely — falls back to building the URI from the graph base URL +
+    validation_key in all cases.
+    """
+    try:
+        import cmipld
+        with cmipld.ensure_remote():
+            data = cmipld.expand(graph_url, depth=2)
+
+        # Base URL for constructing item URIs when @id is missing/relative
+        base_url = graph_url.replace("/_graph.json", "")
+
+        lookup: Dict[str, str] = {}
+        for entry in data.get("contents", []):
+            if not isinstance(entry, dict):
+                continue
+
+            # ── Resolve canonical URI ──────────────────────────────────────
+            raw_id = entry.get("@id", "")
+            vk     = entry.get("validation_key", "")
+
+            if raw_id and isinstance(raw_id, str) and not raw_id.startswith("_"):
+                if raw_id.startswith("http"):
+                    uri = raw_id                              # full URI — use as-is
+                else:
+                    # Prefixed or relative — extract stem and build from base
+                    stem = raw_id.split("/")[-1].split(":")[-1]
+                    uri  = f"{base_url}/{stem}"
+            elif vk:
+                uri = f"{base_url}/{vk}"                     # build from validation_key
+            else:
+                continue
+
+            stem = uri.split("/")[-1]
+
+            # ── Index all useful variants ──────────────────────────────────
+            for variant in [stem, stem.replace("-", "_"), stem.replace("_", "-")]:
+                lookup[variant] = uri
+
+            # validation_key and ui_label — index these directly too
+            for field in ("validation_key", "ui_label"):
+                val = entry.get(field, "")
+                if val and isinstance(val, str):
+                    lookup[val]       = uri
+                    lookup[val.lower()] = uri
+
+        return lookup
+    except Exception:
+        return {}
+
+
+def _build_links_from_folder(
+    item: dict,
+    folder_items: List[dict],
+) -> Dict[str, str]:
+    """
+    For a submitted item with plain string values, resolve canonical URIs by:
+      1. Inferring which fields are CV fields from the existing folder items
+      2. Fetching those CV graphs directly to get all valid values
+      3. Falling back to the existing folder items for any values not in the graph
 
     Returns {field_stem: canonical_uri}.
     """
+    # ── 1. Infer CV graph URLs from existing folder items ───────────────────
+    field_graphs = _infer_cv_graphs_from_folder(folder_items)
+
+    # ── 2. Fetch each CV graph and build per-field lookup ───────────────────
+    _graph_cache: Dict[str, Dict[str, str]] = {}
+    for field, graph_url in field_graphs.items():
+        if graph_url not in _graph_cache:
+            _graph_cache[graph_url] = _fetch_cv_graph(graph_url)
+
+    # ── 3. Build fallback lookup from existing folder items ─────────────────
     value_to_uri: Dict[str, str] = {}
     for fi in folder_items:
         for key, val in fi.items():
@@ -235,18 +342,39 @@ def _build_links_from_folder(item: dict, folder_items: List[dict]) -> Dict[str, 
                             for variant in [stem, stem.replace("-", "_"), stem.replace("_", "-")]:
                                 value_to_uri[variant] = uri
 
+    # ── 4. Match submitted values against the combined lookup ────────────────
     field_links: Dict[str, str] = {}
     for key, val in item.items():
         if _is_report_skip(key):
             continue
-        if isinstance(val, str) and val:
-            for probe in [val.strip(), val.lower().strip(),
-                          val.replace("_", "-"), val.replace("-", "_"),
-                          val.lower().replace("_", "-")]:
-                if probe in value_to_uri:
-                    field_links[short(key)] = value_to_uri[probe]
+        candidates = [val] if not isinstance(val, list) else val
+        field_cv = _graph_cache.get(field_graphs.get(key, ""), {})
+
+        for candidate in candidates:
+            if not isinstance(candidate, str) or not candidate:
+                continue
+            probes = [
+                candidate.strip(),
+                candidate.lower().strip(),
+                candidate.replace("_", "-"),
+                candidate.replace("-", "_"),
+                candidate.lower().replace("_", "-"),
+            ]
+            matched = False
+            # Check field-specific CV graph first (most accurate)
+            for probe in probes:
+                if probe in field_cv:
+                    field_links[short(key)] = field_cv[probe]
+                    matched = True
                     break
-    return field_links
+            # Fall back to the general folder-item lookup
+            if not matched:
+                for probe in probes:
+                    if probe in value_to_uri:
+                        field_links[short(key)] = value_to_uri[probe]
+                        break
+
+    return field_links, field_graphs
 
 
 # ── field_guidance loader ────────────────────────────────────────────────────
@@ -362,12 +490,16 @@ class ReportBuilder:
             for i, fi in enumerate(folder_items)
         }
         try:
-            field_links = _build_links_from_folder(self.item, folder_items)
+            field_links, field_graphs = _build_links_from_folder(
+                self.item, folder_items,
+            )
             enriched = dict(self.item)
             for fname, uri in field_links.items():
                 enriched[fname] = {"@id": uri}
             link_result = LinkAnalyzer(loader).analyze(enriched)
         except Exception:
+            field_links  = {}
+            field_graphs = {}
             pass
 
         # Text similarity — exclude @-keys, drs/validation, link fields,
@@ -402,7 +534,7 @@ class ReportBuilder:
         if val_result and val_result.errors_md:
             sections.append(self._errors_admonition(val_result.errors_md))
 
-        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id))
+        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs))
         sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance))
         sections.append(self._footer())
 
@@ -548,6 +680,7 @@ class ReportBuilder:
         field_links: Dict[str, str],
         folder_ids: Dict[str, str],
         folder_by_id: Dict[str, dict],
+        field_graphs: Dict[str, str],
     ) -> str:
         if not field_links and link_result is None:
             return "### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
@@ -555,7 +688,17 @@ class ReportBuilder:
         lines = [f"### 2. Controlled Vocabulary Links\n"]
 
         if field_links:
-            lines.append(f"{len(field_links)} CV link(s) resolved from submitted values.\n")
+            # Total = CV-eligible fields that were submitted with a non-empty value
+            total_cv = sum(
+                1 for k, v in self.item.items()
+                if k in field_graphs
+                and not _is_report_skip(k)
+                and v not in ("", None, [], {})
+            )
+            resolved = len(field_links)
+            fraction = f"{resolved}/{total_cv}" if total_cv else str(resolved)
+            pct      = f"{resolved / total_cv * 100:.0f}%" if total_cv else "—"
+            lines.append(f"**CV links resolved: {fraction} ({pct})**\n")
 
             # Mermaid diagram
             by_type: Dict[str, List[tuple]] = {}
@@ -586,20 +729,20 @@ class ReportBuilder:
             lines += ["```", "", "</details>", ""]
 
         if link_result is not None:
-            high = [(oid, pct) for oid, pct in link_result.pairs
+            high = [(oid, pct, n_shared, n_total) for oid, pct, n_shared, n_total in link_result.pairs
                     if pct >= self.link_threshold]
             if high:
                 lines += [
                     "> [!WARNING]",
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% CV overlap.**"
                     " Review field differences below before merging.\n",
-                    "| Item | CV Overlap | |",
-                    "|------|-----------|---|",
+                    "| Item | Links | CV Overlap | |",
+                    "|------|-------|-----------|---|",
                 ]
-                for oid, pct in high:
+                for oid, pct, n_shared, n_total in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
+                    lines.append(f"| {link} | {n_shared}/{n_total} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     if diff:
                         lines.append(diff)
@@ -612,13 +755,13 @@ class ReportBuilder:
             if link_result.pairs:
                 lines += [
                     "<details><summary>All CV comparisons</summary>\n",
-                    "| Item | CV Overlap |",
-                    "|------|-----------|",
+                    "| Item | Links | CV Overlap |",
+                    "|------|-------|-----------|",
                 ]
-                for oid, pct in link_result.pairs:
+                for oid, pct, n_shared, n_total in link_result.pairs:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% `{bar}` |")
+                    lines.append(f"| {link} | {n_shared}/{n_total} | {pct:.1f}% `{bar}` |")
                 lines += ["", "</details>", ""]
 
         return "\n".join(lines)
