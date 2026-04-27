@@ -807,7 +807,7 @@ class ReportBuilder:
             lines += ["```", "", "</details>", ""]
 
         if link_result is not None:
-            high = [(oid, pct, n_shared, n_file) for oid, pct, n_shared, n_file in link_result.pairs
+            high = [(oid, pct, n_shared, n_sub) for oid, pct, n_shared, n_sub in link_result.pairs
                     if pct >= self.link_threshold]
             if high:
                 lines += [
@@ -815,12 +815,12 @@ class ReportBuilder:
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
                 ]
-                for oid, pct, n_shared, n_union in high:
+                for oid, pct, n_shared, n_sub in high:
                     bar   = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link  = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content similarity: {cscore:.1f}%" if cscore is not None else ""
-                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_union} ({pct:.1f}%) `{bar}`{cscore_str}")
+                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
                     lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
                 lines.append("")
             else:
@@ -830,12 +830,12 @@ class ReportBuilder:
 
             if link_result.pairs:
                 lines.append("<details><summary>All CV link comparisons</summary>\n")
-                for oid, pct, n_shared, n_union in link_result.pairs:
+                for oid, pct, n_shared, n_sub in link_result.pairs:
                     bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link   = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content: {cscore:.1f}%" if cscore is not None else ""
-                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_union} ({pct:.1f}%) `{bar}`{cscore_str}")
+                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
                     lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
