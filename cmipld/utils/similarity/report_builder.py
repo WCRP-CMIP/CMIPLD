@@ -732,7 +732,7 @@ class ReportBuilder:
         if not field_links and link_result is None:
             return "### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
 
-        lines = [f"### 2. Controlled Vocabulary Links\n", "```We are able to compare the controlled aspect of a submission by comparing the links of this submission, to all others of the same type and the registered controlled vocabularies from the discrete drop down values. This is the quickest way to identify potential duplicates and overlaps between submissions.```\n"]
+        lines = [f"### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by comparing the links of this submission, to all others of the same type and the registered controlled vocabularies from the discrete drop down values. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
 
         if field_links:
             # Total = CV-eligible fields that were submitted with a non-empty value
@@ -745,7 +745,7 @@ class ReportBuilder:
             resolved = len(field_links)
             fraction = f"{resolved}/{total_cv}" if total_cv else str(resolved)
             pct      = f"{resolved / total_cv * 100:.0f}%" if total_cv else "—"
-            lines.append(f"** Checking that linked files resolve: {fraction} ({pct})**\n")
+            lines.append(f"* Checking that linked files resolve: {fraction} ({pct})*\n")
 
             # Mermaid diagram
             by_type: Dict[str, List[tuple]] = {}
@@ -820,7 +820,7 @@ class ReportBuilder:
         if sim_result is None:
             return "### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
 
-        lines = [f"### 3. Content Similarity\n","```When it comes to free text and numerical entries, direct comparisons are more difficult. Instead we use a combination of text similarity metrics and field exclusions to identify items that share a lot of content, even if they use different links or have differences in non-link fields. We exclude fields that carry links (they are covered by the previous section) and fields that have explicit pydantic validators (they have explicit checks) to focus on content that is not already being checked by other means.```\n"]
+        lines = [f"### 3. Content Similarity\n","```\nWhen it comes to free text and numerical entries, direct comparisons are more difficult. Instead we use a combination of text similarity metrics and field exclusions to identify items that share a lot of content, even if they use different links or have differences in non-link fields. We exclude fields that carry links (they are covered by the previous section) and fields that have explicit pydantic validators (they have explicit checks) to focus on content that is not already being checked by other means.\n```\n"]
 
         if not sim_result.text_fields:
             lines.append("_No free-text fields remain after exclusions._\n")
