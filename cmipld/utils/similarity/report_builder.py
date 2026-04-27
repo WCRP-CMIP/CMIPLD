@@ -783,16 +783,14 @@ class ReportBuilder:
                     "> [!WARNING]",
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
-                    "| Item | Shared/File | Overlap | |",
-                    "|------|------------|---------|---|",
                 ]
                 for oid, pct, n_shared, n_file in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {n_shared}/{n_file} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
                     if diff:
-                        lines.append(diff)
+                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
                 lines.append("")
             else:
                 lines.append(
@@ -800,16 +798,15 @@ class ReportBuilder:
                 )
 
             if link_result.pairs:
-                lines += [
-                    "<details><summary> All submission 'link' comparisons.</summary>\n",
-                    "| Item | Shared/File | Overlap |",
-                    "|------|------------|---------|",
-                ]
+                lines.append("<details><summary>All CV link comparisons</summary>\n")
                 for oid, pct, n_shared, n_file in link_result.pairs:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {n_shared}/{n_file} | {pct:.1f}% `{bar}` |")
-                lines += ["", "</details>", ""]
+                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
+                    if diff:
+                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+                lines.append("\n</details>\n")
 
         return "\n".join(lines)
 
@@ -855,34 +852,31 @@ class ReportBuilder:
                     "> [!WARNING]",
                     f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
                     " Confirm this submission is not a duplicate.\n",
-                    "| Item | Similarity | |",
-                    "|------|-----------|---|",
                 ]
                 for oid, score in high_sim:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    lines.append(f"| {link} | {pct:.1f}% `{bar}` | [↓ differences](#) |")
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
                     if diff:
-                        lines.append(diff)
+                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
                 lines.append("")
             else:
                 lines.append(
                     f"_No existing items exceed {self.link_threshold:.0f}% content similarity._\n"
                 )
 
-            lines += [
-                "<details><summary>All content comparisons</summary>\n",
-                "| Item | Similarity |",
-                "|------|-----------|",
-            ]
+            lines.append("<details><summary>All content comparisons</summary>\n")
             for oid, score in sim_result.pairs:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 link = self._item_link(oid, folder_ids)
-                lines.append(f"| {link} | {pct:.1f}% `{bar}` |")
-            lines += ["", "</details>", ""]
+                diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
+                if diff:
+                    lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+            lines.append("\n</details>\n")
 
         return "\n".join(lines)
 
