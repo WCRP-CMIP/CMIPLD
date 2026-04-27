@@ -118,30 +118,57 @@ def _item_url(item_id: str) -> str:
     return ""
 
 
+def _normalise_for_diff(item: dict) -> dict:
+    """
+    Flatten an item to short keys and resolve @id / @value wrappers.
+    Handles expanded JSON-LD (full URI keys) and plain short-key dicts.
+    """
+    out: Dict[str, Any] = {}
+    for k, v in item.items():
+        if k in _DIFF_IGNORE:
+            continue
+        sk = short(k)
+        if sk in _DIFF_IGNORE:
+            continue
+        # Resolve @id / @value wrappers produced by JSON-LD expansion
+        if isinstance(v, dict):
+            if "@id" in v:
+                v = v["@id"].split("/")[-1]   # stem of the URI
+            elif "@value" in v:
+                v = v["@value"]
+        elif isinstance(v, list):
+            resolved = []
+            for elem in v:
+                if isinstance(elem, dict) and "@id" in elem:
+                    resolved.append(elem["@id"].split("/")[-1])
+                elif isinstance(elem, dict) and "@value" in elem:
+                    resolved.append(elem["@value"])
+                else:
+                    resolved.append(elem)
+            v = resolved if len(resolved) != 1 else resolved[0]
+        # Last-write-wins if both a short and long key map to the same stem
+        out[sk] = v
+    return out
+
+
 def _diff_table(submitted: dict, existing: dict) -> str:
     """
-    Build a collapsible Markdown diff table between a submitted item and an
-    existing item. Only shows fields that differ; ignores identity fields.
-
-    Format:
-        | Field | Existing | Submitted |
-        |-------|----------|-----------|
-        | n_cells | 55296 | 829440 |
+    Build a collapsible Markdown diff table.
+    Normalises both dicts to short keys and resolves @id/@value wrappers
+    so expanded JSON-LD items don't produce duplicate rows.
     """
+    s = _normalise_for_diff(submitted)
+    e = _normalise_for_diff(existing)
+
     rows = []
-    all_keys = sorted(
-        {k for k in {**submitted, **existing} if k not in _DIFF_IGNORE},
-        key=lambda k: short(k),
-    )
-    for k in all_keys:
-        s_val = submitted.get(k)
-        e_val = existing.get(k)
+    for k in sorted(set(s) | set(e)):
+        s_val = s.get(k)
+        e_val = e.get(k)
         if s_val == e_val:
             continue
-        # Normalise for display
         s_str = _table_cell(s_val) if s_val not in (None, "", [], {}) else "_null_"
         e_str = _table_cell(e_val) if e_val not in (None, "", [], {}) else "_null_"
-        rows.append(f"| `{short(k)}` | {e_str} | {s_str} |")
+        rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
     if not rows:
         return ""

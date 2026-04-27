@@ -167,7 +167,7 @@ class LinkAnalyzer:
             (
                 (
                     oid,
-                    round(_jaccard(links, other) * 100, 1),
+                    round(len(links & other) / len(other) * 100, 1) if other else 0.0,
                     len(links & other),   # n_shared
                     len(other),           # n_file — total links in the existing item
                 )
