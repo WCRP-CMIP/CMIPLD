@@ -73,7 +73,8 @@ def _is_report_skip(key: str) -> bool:
 
 def _compact_val(v: Any, max_len: int = 80) -> str:
     if isinstance(v, dict):
-        s = v.get("@id", "").split("/")[-1] or v.get("@value", str(v))
+        raw = v.get("@id", "").split("/")[-1] or v.get("@value", v)
+        s = str(raw)
     elif isinstance(v, list):
         s = ", ".join(_compact_val(e, 40) for e in v)
     else:
