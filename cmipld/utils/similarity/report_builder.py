@@ -153,7 +153,7 @@ def _normalise_for_diff(item: dict) -> dict:
 
 def _diff_table(submitted: dict, existing: dict) -> str:
     """
-    Build a collapsible Markdown diff table.
+    Build a Markdown diff table (no wrapper — caller handles the details block).
     Normalises both dicts to short keys and resolves @id/@value wrappers
     so expanded JSON-LD items don't produce duplicate rows.
     """
@@ -171,17 +171,12 @@ def _diff_table(submitted: dict, existing: dict) -> str:
         rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
     if not rows:
-        return ""
+        return "_No field differences found._"
 
-    table = (
+    return (
         "| Field | Existing | Submitted |\n"
         "|-------|----------|-----------|\n"
         + "\n".join(rows)
-    )
-    return (
-        "\n<details><summary>Field differences</summary>\n\n"
-        + table
-        + "\n\n</details>\n"
     )
 
 
@@ -789,8 +784,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    if diff:
-                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
                 lines.append("")
             else:
                 lines.append(
@@ -804,8 +798,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    if diff:
-                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
@@ -859,8 +852,7 @@ class ReportBuilder:
                     link = self._item_link(oid, folder_ids)
                     diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                     lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                    if diff:
-                        lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+                    lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
                 lines.append("")
             else:
                 lines.append(
@@ -874,8 +866,7 @@ class ReportBuilder:
                 link = self._item_link(oid, folder_ids)
                 diff = _diff_table(self.item, folder_by_id.get(oid, {}))
                 lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                if diff:
-                    lines.append(f"<details><summary>Compare against {oid}</summary>{diff}</details>\n")
+                lines.append(f"\n<details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details>\n")
             lines.append("\n</details>\n")
 
         return "\n".join(lines)
