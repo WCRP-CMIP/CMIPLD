@@ -151,11 +151,40 @@ def _normalise_for_diff(item: dict) -> dict:
     return out
 
 
+def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set) -> str:
+    """
+    Diff restricted to only the text fields that content similarity was computed on.
+    Shows why two items score highly, rather than comparing all fields.
+    """
+    s = {k: v for k, v in submitted_text_fields.items()}
+    e = _normalise_for_diff(existing)
+    # Restrict to the same field set used for similarity
+    e = {k: v for k, v in e.items() if k in text_field_keys or short(k) in text_field_keys}
+
+    rows = []
+    for k in sorted(set(s) | set(e)):
+        s_val = s.get(k)
+        e_val = e.get(k)
+        if s_val == e_val:
+            continue
+        s_str = _table_cell(s_val) if s_val not in (None, "", [], {}) else "_null_"
+        e_str = _table_cell(e_val) if e_val not in (None, "", [], {}) else "_null_"
+        rows.append(f"| `{k}` | {e_str} | {s_str} |")
+
+    if not rows:
+        return "_Compared text fields are identical — this is likely a duplicate._"
+
+    return (
+        "| Field | Existing | Submitted |\n"
+        "|-------|----------|-----------|\n"
+        + "\n".join(rows)
+    )
+
+
 def _diff_table(submitted: dict, existing: dict) -> str:
     """
-    Build a Markdown diff table (no wrapper — caller handles the details block).
-    Normalises both dicts to short keys and resolves @id/@value wrappers
-    so expanded JSON-LD items don't produce duplicate rows.
+    Build a Markdown diff table on ALL fields (no wrapper — caller handles details block).
+    Normalises both dicts to short keys and resolves @id/@value wrappers.
     """
     s = _normalise_for_diff(submitted)
     e = _normalise_for_diff(existing)
@@ -839,6 +868,7 @@ class ReportBuilder:
         lines += ["", "</details>", ""]
 
         if sim_result.pairs:
+            text_field_keys = set(sim_result.text_fields.keys()) | {short(k) for k in sim_result.text_fields}
             high_sim = [(oid, s) for oid, s in sim_result.pairs
                         if s * 100 >= self.link_threshold]
             if high_sim:
@@ -851,7 +881,7 @@ class ReportBuilder:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                    diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys)
                     lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
                     lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
@@ -865,7 +895,7 @@ class ReportBuilder:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 link = self._item_link(oid, folder_ids)
-                diff = _diff_table(self.item, folder_by_id.get(oid, {}))
+                diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys)
                 lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
                 lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
