@@ -116,12 +116,12 @@ class LinkResult:
         if self.pairs:
             lines += [
                 "### Overlap with folder items\n",
-                "| Item | Links | Overlap |",
-                "|------|-------|---------|",
+                "| Item | Shared/Union | Overlap |",
+                "|------|-------------|---------|",
             ]
-            for oid, pct, n_shared, n_total in self.pairs:
+            for oid, pct, n_shared, n_union in self.pairs:
                 bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                lines.append(f"| `{oid}` | {n_shared}/{n_total} | {pct:.1f}% `{bar}` |")
+                lines.append(f"| `{oid}` | {n_shared}/{n_union} | {pct:.1f}% `{bar}` |")
         else:
             lines.append("_No link overlap found with existing folder items._")
         return "\n".join(lines)
@@ -169,8 +169,8 @@ class LinkAnalyzer:
                 (
                     oid,
                     round(_jaccard(links, other) * 100, 1),
-                    len(links & other),   # n_shared
-                    n_submitted,          # n_submitted (same for all comparisons)
+                    len(links & other),       # n_shared
+                    len(links | other),       # n_union  (matches Jaccard denominator)
                 )
                 for oid, other in self._folder_links.items()
                 if oid != target_id
