@@ -50,10 +50,35 @@ def _walk_links(obj: Any) -> Set[str]:
 
 
 def extract_links(item: dict) -> Set[str]:
-    """Return all external @id URI references from a JSON-LD item."""
+    """
+    Return all external URI references from a JSON-LD item.
+
+    Handles both forms found in expanded folder items:
+    - Dict form:   {"grid_type": {"@id": "https://...constants/grid_type/triangular"}}
+    - String form: {"grid_type": "https://...constants/grid_type/triangular"}
+    """
     own = item.get("@id", "")
-    links = _rdflib_links(item) or _walk_links(item)
+
+    # Try rdflib first (catches everything in valid JSON-LD)
+    links = _rdflib_links(item)
+
+    if not links:
+        # Walk @id dict refs
+        links = _walk_links(item)
+        # Also catch plain URI string values (expanded folder items use these)
+        for k, v in item.items():
+            if k.startswith("@"):
+                continue
+            if isinstance(v, str) and v.startswith("http") and v != own:
+                links.add(v)
+            elif isinstance(v, list):
+                for elem in v:
+                    if isinstance(elem, str) and elem.startswith("http") and elem != own:
+                        links.add(elem)
+
     links.discard(own)
+    # Discard type/context URIs — only keep leaf value URIs (3+ path segments)
+    links = {u for u in links if len([p for p in u.replace("https://", "").split("/") if p]) >= 3}
     return links
 
 
@@ -116,12 +141,12 @@ class LinkResult:
         if self.pairs:
             lines += [
                 "### Overlap with folder items\n",
-                "| Item | Shared/File | Overlap |",
-                "|------|------------|---------|",
+                "| Item | Shared/Union | Link % |",
+                "|------|-------------|--------|",
             ]
-            for oid, pct, n_shared, n_file in self.pairs:
+            for oid, pct, n_shared, n_union in self.pairs:
                 bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                lines.append(f"| `{oid}` | {n_shared}/{n_file} | {pct:.1f}% `{bar}` |")
+                lines.append(f"| `{oid}` | {n_shared}/{n_union} | {pct:.1f}% `{bar}` |")
         else:
             lines.append("_No link overlap found with existing folder items._")
         return "\n".join(lines)
@@ -167,9 +192,9 @@ class LinkAnalyzer:
             (
                 (
                     oid,
-                    round(len(links & other) / len(other) * 100, 1) if other else 0.0,
+                    round(len(links & other) / len(links | other) * 100, 1) if (links | other) else 0.0,
                     len(links & other),   # n_shared
-                    len(other),           # n_file — total links in the existing item
+                    len(links | other),   # n_union — all unique links across both items
                 )
                 for oid, other in self._folder_links.items()
                 if oid != target_id

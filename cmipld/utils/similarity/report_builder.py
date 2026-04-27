@@ -601,7 +601,7 @@ class ReportBuilder:
         if val_result and val_result.errors_md:
             sections.append(self._errors_admonition(val_result.errors_md))
 
-        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs))
+        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs, sim_result))
         sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance))
         sections.append(self._footer())
 
@@ -753,9 +753,15 @@ class ReportBuilder:
         folder_ids: Dict[str, str],
         folder_by_id: Dict[str, dict],
         field_graphs: Dict[str, str],
+        sim_result=None,
     ) -> str:
         if not field_links and link_result is None:
             return "---\n\n### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
+
+        # Build content score lookup from sim_result for use in compare-against
+        content_scores: Dict[str, float] = {}
+        if sim_result:
+            content_scores = {oid: round(s * 100, 1) for oid, s in sim_result.pairs}
 
         lines = [f"---\n\n### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by looking at the links to registered components of the CVs as provided by the dropdown fields. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
 
@@ -809,12 +815,13 @@ class ReportBuilder:
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
                 ]
-                for oid, pct, n_shared, n_file in high:
-                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link = self._item_link(oid, folder_ids)
-                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
-                    lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
+                for oid, pct, n_shared, n_union in high:
+                    bar   = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    link  = self._item_link(oid, folder_ids)
+                    cscore = content_scores.get(oid)
+                    cscore_str = f"  ·  Content similarity: {cscore:.1f}%" if cscore is not None else ""
+                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_union} ({pct:.1f}%) `{bar}`{cscore_str}")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -823,12 +830,13 @@ class ReportBuilder:
 
             if link_result.pairs:
                 lines.append("<details><summary>All CV link comparisons</summary>\n")
-                for oid, pct, n_shared, n_file in link_result.pairs:
-                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link = self._item_link(oid, folder_ids)
-                    diff = _diff_table(self.item, folder_by_id.get(oid, {}))
-                    lines.append(f"- [ ] {link} — {n_shared}/{n_file} ({pct:.1f}%) `{bar}`")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
+                for oid, pct, n_shared, n_union in link_result.pairs:
+                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    link   = self._item_link(oid, folder_ids)
+                    cscore = content_scores.get(oid)
+                    cscore_str = f"  ·  Content: {cscore:.1f}%" if cscore is not None else ""
+                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_union} ({pct:.1f}%) `{bar}`{cscore_str}")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
