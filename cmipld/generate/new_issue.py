@@ -778,22 +778,34 @@ def main():
     except Exception as e:
         print(f"  ⚠ Could not update PR: {e}", flush=True)
 
-    pr_ref = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
+    pr_ref    = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
+    pr_action = "updated" if existing_pr else "created"
 
-    auto_fields = []
-    try:
-        from cmipld.utils.similarity.report_builder import _validator_covered_fields
-        from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
-        auto_fields = sorted(_validator_covered_fields(
-            DATA_DESCRIPTOR_CLASS_MAPPING.get(issue_type)))
-    except Exception:
-        pass
-    field_list = ", ".join(f"`{f}`" for f in auto_fields) if auto_fields else "all submitted fields"
+    # Build per-field pass/fail list from the pre-computed val_results
+    field_lines = []
+    for fp, vr in val_results.items():
+        if vr is None:
+            continue
+        covered = set()
+        try:
+            from cmipld.utils.similarity.report_builder import _validator_covered_fields
+            from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
+            covered = _validator_covered_fields(DATA_DESCRIPTOR_CLASS_MAPPING.get(issue_type))
+        except Exception:
+            pass
+        for fname in sorted(covered):
+            if fname in vr.failed_fields:
+                field_lines.append(f"- [x] `{fname}` ← **failed**")
+            else:
+                field_lines.append(f"- [x] `{fname}`")
+
+    fields_section = "\n".join(field_lines) if field_lines else "_No automatic field checks available._"
 
     success_lines = [
         "## Automatic checks passed\n",
-        f"Automatic checks ({field_list}) all passed. "
-        f"{pr_ref} created for review.\n",
+        f"__{pr_ref}__ {pr_action} for review.\n",
+        "### Validated fields\n",
+        fields_section,
     ]
 
     upsert_comment(int(issue_number), "\n".join(success_lines), _BOT_MARKER_ISSUE)
