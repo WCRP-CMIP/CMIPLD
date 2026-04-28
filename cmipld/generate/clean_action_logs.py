@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""
+Clean up old GitHub Actions workflow runs.
+
+Usage:
+    clean_action_logs                          # delete all completed runs in current repo
+    clean_action_logs --repo owner/repo        # specific repo
+    clean_action_logs --workflow src-data-change.yml  # specific workflow only
+    clean_action_logs --keep 5                 # keep the 5 most recent per workflow
+    clean_action_logs --status failure         # only delete failed runs
+    clean_action_logs --dry-run                # show what would be deleted
+"""
+
+import argparse
+import json
+import subprocess
+import sys
+from collections import defaultdict
+
+
+def gh(*args) -> list | dict | str | None:
+    cmd = ["gh"] + list(args)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    try:
+        return json.loads(result.stdout)
+    except Exception:
+        return result.stdout.strip()
+
+
+def get_repo(repo_arg: str | None) -> str:
+    if repo_arg:
+        return repo_arg
+    result = subprocess.run(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        capture_output=True, text=True,
+    )
+    return result.stdout.strip()
+
+
+def list_runs(repo: str, workflow: str | None, status: str | None) -> list[dict]:
+    args = [
+        "run", "list", "--repo", repo,
+        "--limit", "200",
+        "--json", "databaseId,status,conclusion,workflowName,createdAt,displayTitle",
+    ]
+    if workflow:
+        args += ["--workflow", workflow]
+    if status:
+        args += ["--status", status]
+    runs = gh(*args)
+    return runs if isinstance(runs, list) else []
+
+
+def delete_run(repo: str, run_id: int, dry_run: bool) -> bool:
+    if dry_run:
+        return True
+    result = subprocess.run(
+        ["gh", "run", "delete", str(run_id), "--repo", repo],
+        capture_output=True, text=True,
+    )
+    return result.returncode == 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Delete old GitHub Actions workflow runs")
+    parser.add_argument("-r", "--repo",     help="owner/repo (default: current repo)")
+    parser.add_argument("-w", "--workflow", help="Filter to a specific workflow file or name")
+    parser.add_argument("-k", "--keep",     type=int, default=0,
+                        help="Keep N most recent runs per workflow (default: 0 = delete all matched)")
+    parser.add_argument("-s", "--status",   choices=["completed", "failure", "success", "cancelled", "skipped"],
+                        help="Only delete runs with this status/conclusion")
+    parser.add_argument("--dry-run",        action="store_true", help="Show what would be deleted without deleting")
+    args = parser.parse_args()
+
+    repo = get_repo(args.repo)
+    if not repo:
+        print("❌ Could not determine repo. Use --repo owner/repo.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"📋 Fetching runs for {repo}…")
+    runs = list_runs(repo, args.workflow, args.status if args.status in ("completed", "failure", "success", "cancelled", "skipped") else None)
+
+    if not runs:
+        print("No runs found.")
+        return
+
+    # Filter by conclusion if needed (gh --status maps to conclusion for completed runs)
+    if args.status in ("failure", "success", "cancelled", "skipped"):
+        runs = [r for r in runs if r.get("conclusion") == args.status]
+
+    # Group by workflow name, sorted newest first
+    by_workflow: dict[str, list] = defaultdict(list)
+    for r in sorted(runs, key=lambda x: x["createdAt"], reverse=True):
+        by_workflow[r["workflowName"]].append(r)
+
+    to_delete = []
+    for wf_name, wf_runs in by_workflow.items():
+        keep = args.keep
+        to_delete.extend(wf_runs[keep:])
+
+    if not to_delete:
+        print(f"✅ Nothing to delete (keeping {args.keep} per workflow).")
+        return
+
+    prefix = "[DRY RUN] " if args.dry_run else ""
+    print(f"\n{prefix}Deleting {len(to_delete)} run(s):\n")
+
+    deleted = 0
+    failed  = 0
+    for r in to_delete:
+        label = f"  #{r['databaseId']}  {r['workflowName']:<35}  {r.get('conclusion') or r['status']:<12}  {r['createdAt'][:10]}  {r['displayTitle'][:40]}"
+        ok = delete_run(repo, r["databaseId"], args.dry_run)
+        status = "✓" if ok else "✗"
+        print(f"  {status} {label}")
+        if ok:
+            deleted += 1
+        else:
+            failed += 1
+
+    print(f"\n{'Would delete' if args.dry_run else 'Deleted'} {deleted} run(s).", end="")
+    if failed:
+        print(f"  {failed} failed.", end="")
+    print()
+
+
+if __name__ == "__main__":
+    main()
