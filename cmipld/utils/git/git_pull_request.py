@@ -1,8 +1,22 @@
 import os
 import subprocess
 import sys
-from . import reset_branch, branchinfo, update_summary, update_issue,branch_pull_requests
-from ..io import shell 
+import json
+from . import reset_branch, branchinfo, update_summary, update_issue, branch_pull_requests
+from ..io import shell
+
+
+def _find_pr_by_title(title: str) -> dict | None:
+    """Return the first open PR whose title exactly matches *title*, or None."""
+    try:
+        raw = shell("gh pr list --state open --json number,title,headRefName --limit 100").strip()
+        prs = json.loads(raw or "[]")
+        for pr in prs:
+            if pr.get("title") == title:
+                return pr
+    except Exception:
+        pass
+    return None
 
 def prepare_pull(feature_branch):
     """Prepare a pull request branch"""
@@ -16,10 +30,18 @@ def prepare_pull(feature_branch):
 def newpull(feature_branch, author, content, title, issue, base_branch='main', update=None):
     """Create or update a pull request"""
 
+    # 1. Check by branch name
     prs = branch_pull_requests(head=feature_branch)
     if prs:
         update = prs[0]['number']
-        update_summary(f"++ Found existing PR: {update}. Will be updating this.")
+        update_summary(f"++ Found existing PR #{update} by branch. Will update.")
+
+    # 2. Fallback: check by title to avoid duplicates if branch lookup missed it
+    if not update:
+        existing = _find_pr_by_title(title)
+        if existing:
+            update = existing['number']
+            update_summary(f"++ Found existing PR #{update} by title. Will update.")
 
     # Get current branch name
     current_branch = shell("git rev-parse --abbrev-ref HEAD").strip()
