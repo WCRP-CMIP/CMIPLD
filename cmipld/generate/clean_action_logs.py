@@ -106,6 +106,9 @@ def main():
         run_iter = to_delete
 
     for r in run_iter:
+        title = r['displayTitle'][:50]
+        if hasattr(run_iter, 'set_postfix'):
+            run_iter.set_postfix_str(title)
         ok = delete_run(repo, r["databaseId"], args.dry_run)
         if ok:
             deleted += 1
