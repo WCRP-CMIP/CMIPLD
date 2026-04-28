@@ -99,10 +99,14 @@ def main():
     print(f"\n{prefix}Deleting {len(to_delete)} run(s):\n")
 
     deleted = failed = 0
-    for r in to_delete:
+    try:
+        from tqdm import tqdm
+        run_iter = tqdm(to_delete, desc="Deleting runs", unit="run")
+    except ImportError:
+        run_iter = to_delete
+
+    for r in run_iter:
         ok = delete_run(repo, r["databaseId"], args.dry_run)
-        mark = "✓" if ok else "✗"
-        print(f"  {mark}  {r['workflowName']:<35}  {r.get('conclusion','?'):<12}  {r['createdAt'][:10]}  {r['displayTitle'][:50]}")
         if ok:
             deleted += 1
         else:
