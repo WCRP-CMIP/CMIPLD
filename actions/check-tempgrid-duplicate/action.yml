@@ -52,10 +52,22 @@ runs:
           REPO="${{ github.repository }}"
         fi
 
-        JQ_STRIP='del(.["@id"], .["@type"], .validation_key, .ui_label) | to_entries | sort_by(.key) | from_entries'
+        JQ_STRIP='del(.["@id"], .["@type"], .validation_key, .ui_label, .alias) | to_entries | sort_by(.key) | from_entries'
 
-        TEMPGRID_FILES=$(gh pr diff "$PR_NUM" --repo "$REPO" --name-only \
+        TEMPGRID_FILES=$(gh pr diff "$PR_NUM" --repo "$REPO" --name-only 2>/dev/null \
           | grep -E '(^|/)([^/]*tempgrid[^/]*)\.json$' || true)
+
+        # If gh pr diff fails (e.g. PR not yet created), fall back to listing
+        # tempgrid files directly on the PR branch
+        if [ -z "$TEMPGRID_FILES" ]; then
+          PR_BRANCH=$(gh pr view "$PR_NUM" --repo "$REPO" \
+            --json headRefName --jq '.headRefName' 2>/dev/null || true)
+          if [ -n "$PR_BRANCH" ]; then
+            git fetch origin "$PR_BRANCH" 2>/dev/null || true
+            TEMPGRID_FILES=$(git diff --name-only "origin/src-data...origin/${PR_BRANCH}" 2>/dev/null \
+              | grep -E '(^|/)([^/]*tempgrid[^/]*)\.json$' || true)
+          fi
+        fi
 
         if [ -z "$TEMPGRID_FILES" ]; then
           echo "No tempgrid files found in PR #${PR_NUM}."
@@ -64,8 +76,8 @@ runs:
           exit 0
         fi
 
-        PR_BRANCH=$(gh pr view "$PR_NUM" --repo "$REPO" \
-          --json headRefName --jq '.headRefName')
+        PR_BRANCH=${PR_BRANCH:-$(gh pr view "$PR_NUM" --repo "$REPO" \
+          --json headRefName --jq '.headRefName' 2>/dev/null || true)}
         git fetch origin "$PR_BRANCH" 2>/dev/null || true
 
         DUPLICATE_FOUND=false
