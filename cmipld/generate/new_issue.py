@@ -463,26 +463,25 @@ def main():
     # ── STEP 1: pycmipld validation ────────────────────────────────────
     print(f"\n{prefix}Running pycmipld validation …", flush=True)
     validation_errors: dict = {}
+    val_results: dict = {}
     pydantic_overrides = files_to_write.get('_pydantic_data', {})
-    for file_path, data in files_to_write.items():
+    for file_path, data in list(files_to_write.items()):
         if file_path.startswith('_'):
             continue
         file_type = file_path.split(os.sep)[0] if os.sep in file_path else issue_type
-        # Use handler-supplied pydantic-compatible copy if provided, else raw data
         validation_data = pydantic_overrides.get(file_path, data)
         passed, errors_md = run_pycmipld_validation(validation_data, file_type)
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 
-        # Also run PydanticValidator (richer result used by ReportBuilder for
-        # the field checklist) — store so update() can pass it through without
-        # running validation a second time.
+        # Run PydanticValidator once here so ReportBuilder can reuse the result
         try:
             from cmipld.utils.similarity.pydantic_validator import PydanticValidator
-            val_result = PydanticValidator(file_type, data).validate()
-            files_to_write.setdefault('_val_results', {})[file_path] = val_result
+            val_results[file_path] = PydanticValidator(file_type, data).validate()
         except Exception:
             pass
+
+    files_to_write['_val_results'] = val_results
 
     # ── STEP 2: handler update() for custom checks ─────────────────────
     script_path = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
