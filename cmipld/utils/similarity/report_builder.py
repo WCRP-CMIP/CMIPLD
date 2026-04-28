@@ -967,7 +967,9 @@ class ReportBuilder:
                     if url and "mipcvs.dev" in url and not url.endswith(".json"):
                         url += ".json"
                     diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%"
+                    is_identical = diff.startswith("_Compared text fields are identical")
+                    identical_flag = "  **`identical`**" if is_identical else ""
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%{identical_flag}"
                     lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             else:
                 lines.append(
@@ -982,7 +984,9 @@ class ReportBuilder:
                 if url and "mipcvs.dev" in url and not url.endswith(".json"):
                     url += ".json"
                 diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%"
+                is_identical = diff.startswith("_Compared text fields are identical")
+                identical_flag = "  **`identical`**" if is_identical else ""
+                summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%{identical_flag}"
                 lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
 
