@@ -664,7 +664,7 @@ def main():
     for fp, d in processed_data.items():
         r = d.pop('_validation_report', '') or ''
         if r:
-            report_parts.append(f"### `{fp}`\n\n{r}")
+            report_parts.append(r)
     report_md = '\n\n---\n\n'.join(report_parts)
 
     # ── STEP 8: Create / update PR ─────────────────────────────────────
