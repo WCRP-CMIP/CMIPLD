@@ -865,9 +865,10 @@ class ReportBuilder:
                     link  = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content similarity: {cscore:.1f}%  (see section 3)" if cscore is not None else ""
+                    summary = f"Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}"
                     diff  = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
-                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
+                    lines.append(f"- [ ] {link}")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -881,8 +882,9 @@ class ReportBuilder:
                     link   = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content similarity: {cscore:.1f}%  (see section 3)" if cscore is not None else ""
-                    lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
+                    summary = f"Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}"
+                    lines.append(f"- [ ] {link}")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
@@ -937,8 +939,8 @@ class ReportBuilder:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
                     diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                    lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
+                    lines.append(f"- [ ] {link}")
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{pct:.1f}% `{bar}`</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -951,8 +953,8 @@ class ReportBuilder:
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 link = self._item_link(oid, folder_ids)
                 diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
-                lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
+                lines.append(f"- [ ] {link}")
+                lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{pct:.1f}% `{bar}`</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
 
         return "\n".join(lines)
