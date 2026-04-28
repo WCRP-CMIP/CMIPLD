@@ -698,7 +698,7 @@ class ReportBuilder:
             if not _TYPE_RE.search(t)
         ) or ", ".join(self.item.get("@type", []))
         return (
-            f"## Submission Review — `{self.item_id}`\n\n"
+            f"`{self.item_id}`\n\n"
             f"""> [!IMPORTANT]  \n> This report is for use of reviewers only! \n> It is not intended to be used by submitters and may contain technical details and internal links that are not meaningful outside the review process. \n\n"""
             f"| Property | Value |\n"
             f"|----------|-------|\n"
