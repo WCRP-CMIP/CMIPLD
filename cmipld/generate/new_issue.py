@@ -660,8 +660,13 @@ def main():
                        comment=commit_msg, branch=branch_name)
 
     # ── STEP 7: Combine all validation reports ──────────────────────────
+    SKIP_TYPES = {"wcrp:subgrid", "wcrp:component_config"}
     report_parts = []
     for fp, d in processed_data.items():
+        item_types = set(d.get("@type", []))
+        if item_types & SKIP_TYPES:
+            report_parts.append(f"_Report for `{fp}` skipped — automatically generated file._")
+            continue
         r = d.pop('_validation_report', '') or ''
         if r:
             report_parts.append(r)
