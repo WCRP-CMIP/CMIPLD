@@ -154,11 +154,15 @@ def _normalise_for_diff(item: dict) -> dict:
 
 def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set) -> str:
     """
-    Diff on text fields — shows any field where either item has a non-blank value.
-    Both-blank fields are silently skipped.
+    Diff restricted to only the text fields used for content similarity.
+    Shows field if either item has a non-blank value for it.
+    CV link fields (excluded from the similarity computation) are not shown.
     """
     s = {k: v for k, v in submitted_text_fields.items()}
     e = _normalise_for_diff(existing)
+    # Restrict e to only the fields used in the similarity comparison
+    # so CV link stems (grid_type, region etc.) don't appear as false nulls
+    e = {k: v for k, v in e.items() if k in text_field_keys or short(k) in text_field_keys}
 
     _blank = (None, "", [], {})
 
@@ -166,7 +170,6 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
         e_val = e.get(k)
-        # Skip only if BOTH are blank
         if s_val in _blank and e_val in _blank:
             continue
         if s_val == e_val:
