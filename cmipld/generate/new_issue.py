@@ -660,7 +660,7 @@ def main():
                        comment=commit_msg, branch=branch_name)
 
     # ── STEP 7: Combine all validation reports ──────────────────────────
-    SKIP_TYPES = {"wcrp:subgrid", "wcrp:component_config"}
+    SKIP_TYPES = {"wcrp:horizontal_subgrid", "wcrp:subgrid", "wcrp:component_config"}
     report_parts = []
     for fp, d in processed_data.items():
         item_types = set(d.get("@type", []))
