@@ -200,6 +200,40 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     return header + "\n".join(diff_rows)
 
 
+def _link_diff(submitted: dict, existing: dict, link_field_names: Set[str]) -> str:
+    """
+    Diff restricted to only the CV-linked fields.
+    Shows the stem value (e.g. 'regular-latitude-longitude') for each CV field
+    so reviewers can see exactly which controlled vocabulary choices differ.
+    """
+    s = _normalise_for_diff(submitted)
+    e = _normalise_for_diff(existing)
+
+    # Restrict to just the CV-linked field names
+    all_link_keys = {k for k in (set(s) | set(e)) if k in link_field_names or short(k) in link_field_names}
+
+    _blank = (None, "", [], {})
+    rows = []
+    for k in sorted(all_link_keys):
+        s_val = s.get(k)
+        e_val = e.get(k)
+        if s_val in _blank and e_val in _blank:
+            continue
+        s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
+        e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
+        same  = "✅" if s_val == e_val else "❌"
+        rows.append(f"| {same} `{k}` | {e_str} | {s_str} |")
+
+    if not rows:
+        return "_No CV link fields found in either item._"
+
+    return (
+        "| | Field | Existing | Submitted |\n"
+        "|-|-------|----------|-----------|\n"
+        + "\n".join(rows)
+    )
+
+
 def _diff_table(submitted: dict, existing: dict) -> str:
     """
     Build a Markdown diff table on ALL fields (no wrapper — caller handles details block).
@@ -839,8 +873,9 @@ class ReportBuilder:
                     link  = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content similarity: {cscore:.1f}%" if cscore is not None else ""
+                    diff  = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
                     lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
             else:
                 lines.append(
@@ -855,7 +890,7 @@ class ReportBuilder:
                     cscore = content_scores.get(oid)
                     cscore_str = f"  ·  Content: {cscore:.1f}%" if cscore is not None else ""
                     lines.append(f"- [ ] {link} — Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_diff_table(self.item, folder_by_id.get(oid, {}))}\n\n</details></div>\n')
+                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
