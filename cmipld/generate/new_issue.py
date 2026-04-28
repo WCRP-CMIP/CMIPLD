@@ -474,10 +474,11 @@ def main():
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 
-        # Run PydanticValidator once here so ReportBuilder can reuse the result
+        # Run PydanticValidator once here so ReportBuilder can reuse the result.
+        # Use validation_data (pydantic-compatible copy) so field names match the schema.
         try:
             from cmipld.utils.similarity.pydantic_validator import PydanticValidator
-            val_results[file_path] = PydanticValidator(file_type, data).validate()
+            val_results[file_path] = PydanticValidator(file_type, validation_data).validate()
         except Exception:
             pass
 
