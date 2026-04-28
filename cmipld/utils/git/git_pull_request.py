@@ -34,14 +34,16 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
     prs = branch_pull_requests(head=feature_branch)
     if prs:
         update = prs[0]['number']
-        update_summary(f"++ Found existing PR #{update} by branch. Will update.")
+        pr_url = f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/pull/{update}"
+        update_summary(f"++ Found existing [PR #{update}]({pr_url}) by branch. Will update.")
 
     # 2. Fallback: check by title to avoid duplicates if branch lookup missed it
     if not update:
         existing = _find_pr_by_title(title)
         if existing:
             update = existing['number']
-            update_summary(f"++ Found existing PR #{update} by title. Will update.")
+            pr_url = f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', '')}/pull/{update}"
+            update_summary(f"++ Found existing [PR #{update}]({pr_url}) by title. Will update.")
 
     # Get current branch name
     current_branch = shell("git rev-parse --abbrev-ref HEAD").strip()
