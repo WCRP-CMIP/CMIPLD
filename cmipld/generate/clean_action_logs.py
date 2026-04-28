@@ -41,7 +41,7 @@ def list_runs(repo, workflow=None):
     args = [
         "run", "list", "--repo", repo,
         "--status", "completed",
-        "--limit", "200",
+        "--limit", "1000",
         "--json", "databaseId,conclusion,workflowName,createdAt,displayTitle",
     ]
     if workflow:
