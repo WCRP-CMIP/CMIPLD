@@ -871,14 +871,22 @@ class ReportBuilder:
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
                 ]
-                # Mini checkbox group — just filenames
+                # Checkbox table with bars
+                lines += [
+                    "| | Item | Links | Content (§3) |",
+                    "|---|---|---|---|",
+                ]
                 for oid, pct, n_shared, n_sub in high:
-                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)}")
+                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    link   = self._item_link(oid, folder_ids)
+                    cscore = content_scores.get(oid)
+                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
+                    lines.append(f"| - [ ] | {link} | {n_shared}/{n_sub} ({pct:.1f}%) `{bar}` | {cscore_str} |")
                 lines.append("")
                 # Sequential collapsibles — no checkboxes
                 for oid, pct, n_shared, n_sub in high:
-                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    url    = folder_ids.get(oid, "")
+                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    url  = folder_ids.get(oid, "")
                     if url and "mipcvs.dev" in url and not url.endswith(".json"):
                         url += ".json"
                     cscore = content_scores.get(oid)
@@ -951,9 +959,16 @@ class ReportBuilder:
                     f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
                     " Confirm this submission is not a duplicate.\n",
                 ]
-                # Mini checkbox group — just filenames
+                # Checkbox table with bars
+                lines += [
+                    "| | Item | Content similarity |",
+                    "|---|---|---|",
+                ]
                 for oid, score in high_sim:
-                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)}")
+                    pct  = score * 100
+                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    link = self._item_link(oid, folder_ids)
+                    lines.append(f"| - [ ] | {link} | {pct:.1f}% `{bar}` |")
                 lines.append("")
                 # Sequential collapsibles — no checkboxes
                 for oid, score in high_sim:
