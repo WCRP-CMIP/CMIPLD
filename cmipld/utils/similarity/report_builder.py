@@ -155,10 +155,8 @@ def _normalise_for_diff(item: dict) -> dict:
 def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set,
                exclude_set: Optional[Set[str]] = None) -> str:
     """
-    Diff on text fields, rendered as a checkbox list.
-    Matching fields: - [x] `field` — value
-    Differing fields: - [ ] `field` — existing → submitted
-    When all match, shows that message then the full list.
+    Diff on text fields — table format.
+    When all fields match, shows identical message plus the full table.
     """
     s = {short(k): v for k, v in submitted_text_fields.items()}
 
@@ -169,39 +167,38 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     e = _normalise_for_diff(e_stripped)
 
     _blank = (None, "", [], {})
-
-    match_rows = []
-    diff_rows  = []
+    diff_rows = []
+    all_rows  = []
 
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
         e_val = e.get(k)
         if s_val in _blank and e_val in _blank:
             continue
-        if s_val == e_val:
-            match_rows.append(f"- [x] `{k}` — {_table_cell(e_val)}")
-        else:
-            e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
-            s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
-            diff_rows.append(f"- [ ] `{k}` — {e_str} → {s_str}")
+        s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
+        e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
+        all_rows.append(f"| `{k}` | {e_str} | {s_str} |")
+        if s_val != e_val:
+            diff_rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
-    if not match_rows and not diff_rows:
+    header = "| Field | Existing | Submitted |\n|-------|----------|-----------|\n"
+
+    if not all_rows:
         return "_No comparable text fields found._"
 
     if not diff_rows:
         return (
             "_Compared text fields are identical — this is likely a duplicate._\n\n"
-            + "\n".join(match_rows)
+            + header
+            + "\n".join(all_rows)
         )
 
-    return "\n".join(diff_rows + match_rows)
+    return header + "\n".join(diff_rows)
 
 
 def _link_diff(submitted: dict, existing: dict, link_field_names: Set[str]) -> str:
     """
-    Diff restricted to only the CV-linked fields, rendered as a checkbox list.
-    Matching fields: - [x] `field` — value
-    Differing fields: - [ ] `field` — existing → submitted
+    Diff restricted to only the CV-linked fields — table format.
     """
     s = _normalise_for_diff(submitted)
     e = _normalise_for_diff(existing)
@@ -215,17 +212,18 @@ def _link_diff(submitted: dict, existing: dict, link_field_names: Set[str]) -> s
         e_val = e.get(k)
         if s_val in _blank and e_val in _blank:
             continue
-        if s_val == e_val:
-            rows.append(f"- [x] `{k}` — {_table_cell(e_val)}")
-        else:
-            e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
-            s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
-            rows.append(f"- [ ] `{k}` — {e_str} → {s_str}")
+        s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
+        e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
+        rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
     if not rows:
         return "_No CV link fields found in either item._"
 
-    return "\n".join(rows)
+    return (
+        "| Field | Existing | Submitted |\n"
+        "|-------|----------|-----------|\n"
+        + "\n".join(rows)
+    )
 
 
 def _diff_table(submitted: dict, existing: dict) -> str:
