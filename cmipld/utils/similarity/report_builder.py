@@ -884,7 +884,9 @@ class ReportBuilder:
                     url  = folder_ids.get(oid, "")
                     if url and "mipcvs.dev" in url and not url.endswith(".json"):
                         url += ".json"
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%)"
+                    cscore = content_scores.get(oid)
+                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}% | {cscore_str})"
                     diff = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
                     lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             else:
@@ -901,8 +903,7 @@ class ReportBuilder:
                         url += ".json"
                     cscore = content_scores.get(oid)
                     cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%)"
-                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)} ({pct:.1f}% | {cscore_str})")
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}% | {cscore_str})"
                     lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
