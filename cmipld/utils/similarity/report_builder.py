@@ -155,14 +155,13 @@ def _normalise_for_diff(item: dict) -> dict:
 def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set,
                exclude_set: Optional[Set[str]] = None) -> str:
     """
-    Diff on text fields used for content similarity.
-    Applies strip_text_fields to the existing item with the same exclude_set so
-    fields present in the existing item but absent from the submission (e.g.
-    horizontal_units vs units) are correctly shown rather than silently dropped.
+    Diff on text fields, rendered as a checkbox list.
+    Matching fields: - [x] `field` — value
+    Differing fields: - [ ] `field` — existing → submitted
+    When all match, shows that message then the full list.
     """
     s = {short(k): v for k, v in submitted_text_fields.items()}
 
-    # Apply the same strip_text_fields logic to the existing item
     if exclude_set:
         e_stripped = strip_text_fields(existing, exclude=exclude_set)
     else:
@@ -171,33 +170,31 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
 
     _blank = (None, "", [], {})
 
-    diff_rows = []
-    all_rows  = []
+    match_rows = []
+    diff_rows  = []
 
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
         e_val = e.get(k)
         if s_val in _blank and e_val in _blank:
             continue
-        s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
-        e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
-        all_rows.append(f"| `{k}` | {e_str} | {s_str} |")
-        if s_val != e_val:
-            diff_rows.append(f"| `{k}` | {e_str} | {s_str} |")
+        if s_val == e_val:
+            match_rows.append(f"- [x] `{k}` — {_table_cell(e_val)}")
+        else:
+            e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
+            s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
+            diff_rows.append(f"- [ ] `{k}` — {e_str} → {s_str}")
 
-    header = "| Field | Existing | Submitted |\n|-------|----------|-----------|\n"
-
-    if not all_rows:
+    if not match_rows and not diff_rows:
         return "_No comparable text fields found._"
 
     if not diff_rows:
         return (
             "_Compared text fields are identical — this is likely a duplicate._\n\n"
-            + header
-            + "\n".join(all_rows)
+            + "\n".join(match_rows)
         )
 
-    return header + "\n".join(diff_rows)
+    return "\n".join(diff_rows + match_rows)
 
 
 def _link_diff(submitted: dict, existing: dict, link_field_names: Set[str]) -> str:
