@@ -871,27 +871,20 @@ class ReportBuilder:
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
                 ]
-                # Checkbox table with bars
-                lines += [
-                    "| | Item | Links | Content (§3) |",
-                    "|---|---|---|---|",
-                ]
+                # Checkbox list with link% and content%
                 for oid, pct, n_shared, n_sub in high:
-                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link   = self._item_link(oid, folder_ids)
                     cscore = content_scores.get(oid)
                     cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
-                    lines.append(f"| - [ ] | {link} | {n_shared}/{n_sub} ({pct:.1f}%) `{bar}` | {cscore_str} |")
+                    lines.append(f"- [ ] {link} ({pct:.1f}% | {cscore_str})")
                 lines.append("")
-                # Sequential collapsibles — no checkboxes
+                # Sequential collapsibles — no checkboxes, no content score in summary
                 for oid, pct, n_shared, n_sub in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     url  = folder_ids.get(oid, "")
                     if url and "mipcvs.dev" in url and not url.endswith(".json"):
                         url += ".json"
-                    cscore = content_scores.get(oid)
-                    cscore_str = f"  ·  Content (Section 3): {cscore:.1f}%" if cscore is not None else ""
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%){cscore_str}"
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%)"
                     diff = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
                     lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             else:
@@ -907,8 +900,9 @@ class ReportBuilder:
                     if url and "mipcvs.dev" in url and not url.endswith(".json"):
                         url += ".json"
                     cscore = content_scores.get(oid)
-                    cscore_str = f"  ·  Content (Section 3): {cscore:.1f}%" if cscore is not None else ""
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%){cscore_str}"
+                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%)"
+                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)} ({pct:.1f}% | {cscore_str})")
                     lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
@@ -959,18 +953,12 @@ class ReportBuilder:
                     f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
                     " Confirm this submission is not a duplicate.\n",
                 ]
-                # Checkbox table with bars
-                lines += [
-                    "| | Item | Content similarity |",
-                    "|---|---|---|",
-                ]
+                # Checkbox list with content%
                 for oid, score in high_sim:
                     pct  = score * 100
-                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link = self._item_link(oid, folder_ids)
-                    lines.append(f"| - [ ] | {link} | {pct:.1f}% `{bar}` |")
+                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)} ({pct:.1f}%)")
                 lines.append("")
-                # Sequential collapsibles — no checkboxes
+                # Sequential collapsibles
                 for oid, score in high_sim:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
