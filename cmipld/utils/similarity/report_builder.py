@@ -555,14 +555,16 @@ class ReportBuilder:
         graph_data: Optional[dict] = None,
         use_embeddings: bool = True,
         link_threshold: float = 85.0,
+        val_result=None,
     ):
-        self.folder_url     = folder_url
-        self.kind           = kind
-        self.item           = item
-        self.item_id        = _short_id(item.get("@id", "submitted"))
-        self._graph_data    = graph_data
-        self.use_embeddings = use_embeddings
-        self.link_threshold = link_threshold
+        self.folder_url       = folder_url
+        self.kind             = kind
+        self.item             = item
+        self.item_id          = _short_id(item.get("@id", "submitted"))
+        self._graph_data      = graph_data
+        self.use_embeddings   = use_embeddings
+        self.link_threshold   = link_threshold
+        self._pre_val_result  = val_result   # pre-computed ValidationResult from new_issue.py
         self._report: Optional[str] = None
 
     def build(self) -> str:
@@ -576,17 +578,26 @@ class ReportBuilder:
         loader       = self._load_graph()
         folder_items = loader.items
 
-        # Pydantic validation + covered fields
+        # Pydantic validation — use pre-computed result if passed in, else run now
         val_result  = None
         val_cls     = None
         covered: FrozenSet[str] = frozenset()
-        try:
-            from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
-            val_cls  = DATA_DESCRIPTOR_CLASS_MAPPING.get(self.kind)
-            covered  = _validator_covered_fields(val_cls)
-            val_result = PydanticValidator(self.kind, self.item).validate()
-        except Exception:
-            pass
+        if self._pre_val_result is not None:
+            val_result = self._pre_val_result
+            try:
+                from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
+                val_cls = DATA_DESCRIPTOR_CLASS_MAPPING.get(self.kind)
+                covered = _validator_covered_fields(val_cls)
+            except Exception:
+                pass
+        else:
+            try:
+                from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
+                val_cls  = DATA_DESCRIPTOR_CLASS_MAPPING.get(self.kind)
+                covered  = _validator_covered_fields(val_cls)
+                val_result = PydanticValidator(self.kind, self.item).validate()
+            except Exception:
+                pass
 
         # Link analysis — resolve submitted plain values to canonical URIs
         link_result = None

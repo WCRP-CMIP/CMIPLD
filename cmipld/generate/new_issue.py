@@ -474,6 +474,16 @@ def main():
         if not passed and errors_md:
             validation_errors[file_path] = errors_md
 
+        # Also run PydanticValidator (richer result used by ReportBuilder for
+        # the field checklist) — store so update() can pass it through without
+        # running validation a second time.
+        try:
+            from cmipld.utils.similarity.pydantic_validator import PydanticValidator
+            val_result = PydanticValidator(file_type, data).validate()
+            files_to_write.setdefault('_val_results', {})[file_path] = val_result
+        except Exception:
+            pass
+
     # ── STEP 2: handler update() for custom checks ─────────────────────
     script_path = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
     if os.path.exists(script_path):
