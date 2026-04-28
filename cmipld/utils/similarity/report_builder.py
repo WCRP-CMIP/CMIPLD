@@ -871,16 +871,21 @@ class ReportBuilder:
                     f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
                     " Review field differences below before merging.\n",
                 ]
+                # Mini checkbox group — just filenames
                 for oid, pct, n_shared, n_sub in high:
-                    bar   = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link  = self._item_link(oid, folder_ids)
-                    cscore = content_scores.get(oid)
-                    cscore_str = f"  ·  Content similarity: {cscore:.1f}%  (see section 3)" if cscore is not None else ""
-                    summary = f"Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}"
-                    diff  = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
-                    lines.append(f"- [ ] {link}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
+                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)}")
                 lines.append("")
+                # Sequential collapsibles — no checkboxes
+                for oid, pct, n_shared, n_sub in high:
+                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+                    url    = folder_ids.get(oid, "")
+                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                        url += ".json"
+                    cscore = content_scores.get(oid)
+                    cscore_str = f"  ·  Content (Section 3): {cscore:.1f}%" if cscore is not None else ""
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%){cscore_str}"
+                    diff = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
+                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             else:
                 lines.append(
                     f"_No existing items exceed {self.link_threshold:.0f}% link overlap._\n"
@@ -890,12 +895,13 @@ class ReportBuilder:
                 lines.append("<details><summary>All CV link comparisons</summary>\n")
                 for oid, pct, n_shared, n_sub in link_result.pairs:
                     bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link   = self._item_link(oid, folder_ids)
+                    url    = folder_ids.get(oid, "")
+                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                        url += ".json"
                     cscore = content_scores.get(oid)
-                    cscore_str = f"  ·  Content similarity: {cscore:.1f}%  (see section 3)" if cscore is not None else ""
-                    summary = f"Links: {n_shared}/{n_sub} ({pct:.1f}%) `{bar}`{cscore_str}"
-                    lines.append(f"- [ ] {link}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
+                    cscore_str = f"  ·  Content (Section 3): {cscore:.1f}%" if cscore is not None else ""
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}%){cscore_str}"
+                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
@@ -945,14 +951,20 @@ class ReportBuilder:
                     f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
                     " Confirm this submission is not a duplicate.\n",
                 ]
+                # Mini checkbox group — just filenames
+                for oid, score in high_sim:
+                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)}")
+                lines.append("")
+                # Sequential collapsibles — no checkboxes
                 for oid, score in high_sim:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    link = self._item_link(oid, folder_ids)
+                    url  = folder_ids.get(oid, "")
+                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                        url += ".json"
                     diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                    lines.append(f"- [ ] {link}")
-                    lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{pct:.1f}% `{bar}`</summary>\n\n{diff}\n\n</details></div>\n')
-                lines.append("")
+                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%"
+                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             else:
                 lines.append(
                     f"_No existing items exceed {self.link_threshold:.0f}% content similarity._\n"
@@ -962,10 +974,12 @@ class ReportBuilder:
             for oid, score in sim_result.pairs:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                link = self._item_link(oid, folder_ids)
+                url  = folder_ids.get(oid, "")
+                if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                    url += ".json"
                 diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                lines.append(f"- [ ] {link}")
-                lines.append(f'\n<div style="padding-left:1.5em"><details><summary>{pct:.1f}% `{bar}`</summary>\n\n{diff}\n\n</details></div>\n')
+                summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%"
+                lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
 
         return "\n".join(lines)
