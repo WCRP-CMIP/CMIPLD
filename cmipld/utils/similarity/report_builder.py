@@ -152,20 +152,27 @@ def _normalise_for_diff(item: dict) -> dict:
     return out
 
 
-def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set) -> str:
+def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set,
+               exclude_set: Optional[Set[str]] = None) -> str:
     """
-    Diff restricted to only the text fields used for content similarity.
-    Shows field if either item has a non-blank value for it.
-    When all compared fields are identical, shows that message plus the full table.
+    Diff on text fields used for content similarity.
+    Applies strip_text_fields to the existing item with the same exclude_set so
+    fields present in the existing item but absent from the submission (e.g.
+    horizontal_units vs units) are correctly shown rather than silently dropped.
     """
-    s = {k: v for k, v in submitted_text_fields.items()}
-    e = _normalise_for_diff(existing)
-    e = {k: v for k, v in e.items() if k in text_field_keys or short(k) in text_field_keys}
+    s = {short(k): v for k, v in submitted_text_fields.items()}
+
+    # Apply the same strip_text_fields logic to the existing item
+    if exclude_set:
+        e_stripped = strip_text_fields(existing, exclude=exclude_set)
+    else:
+        e_stripped = existing
+    e = _normalise_for_diff(e_stripped)
 
     _blank = (None, "", [], {})
 
-    diff_rows  = []
-    all_rows   = []
+    diff_rows = []
+    all_rows  = []
 
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
@@ -614,7 +621,7 @@ class ReportBuilder:
             sections.append(self._errors_admonition(val_result.errors_md))
 
         sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs, sim_result))
-        sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance))
+        sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance, exclude_set))
         sections.append(self._footer())
 
         self._report = "\n\n".join(s for s in sections if s.strip())
@@ -859,6 +866,7 @@ class ReportBuilder:
         folder_ids: Dict[str, str],
         folder_by_id: Dict[str, dict],
         guidance: Dict[str, str] = {},
+        exclude_set: Optional[Set[str]] = None,
     ) -> str:
         if sim_result is None:
             return "---\n\n### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
@@ -901,7 +909,7 @@ class ReportBuilder:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     link = self._item_link(oid, folder_ids)
-                    diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys)
+                    diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
                     lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
                     lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
                 lines.append("")
@@ -915,7 +923,7 @@ class ReportBuilder:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 link = self._item_link(oid, folder_ids)
-                diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys)
+                diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
                 lines.append(f"- [ ] {link} — {pct:.1f}% `{bar}`")
                 lines.append(f'\n<div style="padding-left:1.5em"><details><summary>Compare against {oid}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
