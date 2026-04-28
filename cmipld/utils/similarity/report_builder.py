@@ -156,36 +156,41 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     """
     Diff restricted to only the text fields used for content similarity.
     Shows field if either item has a non-blank value for it.
-    CV link fields (excluded from the similarity computation) are not shown.
+    When all compared fields are identical, shows that message plus the full table.
     """
     s = {k: v for k, v in submitted_text_fields.items()}
     e = _normalise_for_diff(existing)
-    # Restrict e to only the fields used in the similarity comparison
-    # so CV link stems (grid_type, region etc.) don't appear as false nulls
     e = {k: v for k, v in e.items() if k in text_field_keys or short(k) in text_field_keys}
 
     _blank = (None, "", [], {})
 
-    rows = []
+    diff_rows  = []
+    all_rows   = []
+
     for k in sorted(set(s) | set(e)):
         s_val = s.get(k)
         e_val = e.get(k)
         if s_val in _blank and e_val in _blank:
             continue
-        if s_val == e_val:
-            continue
         s_str = _table_cell(s_val) if s_val not in _blank else "_null_"
         e_str = _table_cell(e_val) if e_val not in _blank else "_null_"
-        rows.append(f"| `{k}` | {e_str} | {s_str} |")
+        all_rows.append(f"| `{k}` | {e_str} | {s_str} |")
+        if s_val != e_val:
+            diff_rows.append(f"| `{k}` | {e_str} | {s_str} |")
 
-    if not rows:
-        return "_Compared text fields are identical — this is likely a duplicate._"
+    header = "| Field | Existing | Submitted |\n|-------|----------|-----------|\n"
 
-    return (
-        "| Field | Existing | Submitted |\n"
-        "|-------|----------|-----------|\n"
-        + "\n".join(rows)
-    )
+    if not all_rows:
+        return "_No comparable text fields found._"
+
+    if not diff_rows:
+        return (
+            "_Compared text fields are identical — this is likely a duplicate._\n\n"
+            + header
+            + "\n".join(all_rows)
+        )
+
+    return header + "\n".join(diff_rows)
 
 
 def _diff_table(submitted: dict, existing: dict) -> str:
