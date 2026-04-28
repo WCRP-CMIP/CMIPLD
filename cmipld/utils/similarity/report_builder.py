@@ -581,13 +581,13 @@ class ReportBuilder:
             field_graphs = {}
             pass
 
-        # Text similarity — exclude @-keys, drs/validation, link fields,
-        # AND validator-covered fields (they have explicit checks)
+        # Text similarity — exclude @-keys, drs/validation, CV link fields,
+        # and report-skip metadata. Do NOT exclude pydantic-covered fields —
+        # validators check schema constraints, not content, so those fields
+        # are still meaningful to compare numerically.
         link_fields = link_result.link_fields if link_result else set()
-        # covered fields may use short names; also exclude by short(k)
         exclude_set = (
             link_fields
-            | set(covered)
             | REPORT_SKIP_EXACT
             | {f"@{k}" for k in REPORT_SKIP_EXACT}
         )
