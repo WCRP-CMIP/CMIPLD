@@ -60,6 +60,7 @@ def strip_text_fields(item: dict, exclude: Optional[Set[str]] = None) -> dict:
         and k not in excl
         and short(k) not in excl_short
         and not _is_link(v)
+        and v not in (None, "", [], {})
     }
 
 
