@@ -29,6 +29,15 @@ from .link_analyzer      import LinkAnalyzer
 from .pydantic_validator import PydanticValidator, short, is_default_skip
 from .text_similarity    import TextSimilarityAnalyzer, strip_text_fields
 
+# Fields that contain short in-repo IDs (not HTTP URIs) which should still
+# appear as resolved links in the report's CV link section.
+# Maps field_stem -> base URI of the target folder on the live registry.
+# The canonical URI for a value is built as: base_uri + "/" + value
+INREPO_LINK_FIELDS: Dict[str, str] = {
+    "horizontal_subgrids":  "https://emd.mipcvs.dev/horizontal_subgrid",
+    "horizontal_grid_cells": "https://emd.mipcvs.dev/horizontal_grid_cell",
+}
+
 REPORT_SKIP_EXACT = frozenset({
     "id", "type", "drs_name",
     "issue_kind", "issue_type", "issue_category",
@@ -146,6 +155,9 @@ def _normalise_for_diff(item: dict) -> dict:
                     resolved.append(elem["@value"])
                 else:
                     resolved.append(elem)
+            # Sort lists so comparison is order-independent (e.g. variable
+            # type lists submitted in different order still compare equal)
+            resolved = sorted(str(x) for x in resolved)
             v = resolved if len(resolved) != 1 else resolved[0]
         # Last-write-wins if both a short and long key map to the same stem
         out[sk] = v
@@ -409,18 +421,58 @@ def _fetch_cv_graph(graph_url: str) -> Dict[str, str]:
         return {}
 
 
+def _fetch_inrepo_item(uri: str) -> dict:
+    """
+    Fetch a single in-repo EMD item by its canonical URI.
+    Returns the JSON dict, or {} on any failure.
+    """
+    try:
+        import urllib.request as _req
+        import json as _json
+        url = uri.rstrip('/') + '.json'
+        with _req.urlopen(url, timeout=5) as r:
+            return _json.loads(r.read().decode())
+    except Exception:
+        return {}
+
+
 def _build_links_from_folder(
     item: dict,
     folder_items: List[dict],
 ) -> Dict[str, str]:
     """
     For a submitted item with plain string values, resolve canonical URIs by:
-      1. Inferring which fields are CV fields from the existing folder items
-      2. Fetching those CV graphs directly to get all valid values
-      3. Falling back to the existing folder items for any values not in the graph
+      1. Resolving known in-repo short-ID fields directly from INREPO_LINK_FIELDS
+      2. Inferring which fields are CV fields from the existing folder items
+      3. Fetching those CV graphs directly to get all valid values
+      4. Falling back to the existing folder items for any values not in the graph
 
     Returns {field_stem: canonical_uri}.
     """
+    # ── 0. Resolve known in-repo linked fields ──────────────────────────────
+    # These fields contain short IDs like "g114-mass" that reference other
+    # EMD folders, not external CVs, so _infer_cv_graphs_from_folder never
+    # picks them up. Build the canonical URI directly from the base URL.
+    field_links_inrepo: Dict[str, str] = {}
+    for key, val in item.items():
+        field_stem = short(key)
+        base = INREPO_LINK_FIELDS.get(field_stem)
+        if base is None:
+            continue
+        candidates = val if isinstance(val, list) else [val]
+        for candidate in candidates:
+            # candidate may be a plain string (raw submission) or a full dict
+            # (after validate_data substitution in horizontal_computational_grid update())
+            if isinstance(candidate, str) and candidate:
+                sid = candidate.strip().lower()
+            elif isinstance(candidate, dict):
+                raw = candidate.get("@id") or candidate.get("validation_key") or ""
+                sid = raw.split("/")[-1].strip().lower()
+            else:
+                continue
+            if sid:
+                field_links_inrepo[field_stem] = f"{base.rstrip('/')}/{sid}"
+
     # ── 1. Infer CV graph URLs from existing folder items ───────────────────
     field_graphs = _infer_cv_graphs_from_folder(folder_items)
 
@@ -486,7 +538,7 @@ def _build_links_from_folder(
                         field_links[short(key)] = value_to_uri[probe]
                         break
 
-    return field_links, field_graphs
+    return {**field_links_inrepo, **field_links}, field_graphs
 
 
 # ── field_guidance loader ────────────────────────────────────────────────────
@@ -811,7 +863,9 @@ class ReportBuilder:
         field_graphs: Dict[str, str],
         sim_result=None,
     ) -> str:
-        if not field_links and link_result is None:
+        if not field_links and link_result is None and not any(
+            self.item.get(f) for f in INREPO_LINK_FIELDS
+        ):
             return "---\n\n### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
 
         # Build content score lookup from sim_result for use in compare-against
@@ -821,25 +875,65 @@ class ReportBuilder:
 
         lines = [f"---\n\n### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by looking at the links to registered components of the CVs as provided by the dropdown fields. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
 
-        if field_links:
-            # Total = CV-eligible fields that were submitted with a non-empty value
+        # Count in-repo linked fields for the resolved fraction
+        inrepo_present = sum(
+            1 for f in INREPO_LINK_FIELDS
+            if self.item.get(f) not in (None, "", [], {})
+        )
+
+        if field_links or inrepo_present:
+            # Total = CV-eligible fields + in-repo link fields with a value
             total_cv = sum(
                 1 for k, v in self.item.items()
                 if k in field_graphs
                 and not _is_report_skip(k)
                 and v not in ("", None, [], {})
-            )
-            resolved = len(field_links)
+            ) + inrepo_present
+            resolved = len(field_links) + inrepo_present
             fraction = f"{resolved}/{total_cv}" if total_cv else str(resolved)
             pct      = f"{resolved / total_cv * 100:.0f}%" if total_cv else "—"
             lines.append(f"**Checking that linked files resolve: {fraction} ({pct})**\n")
 
             # Mermaid diagram
+            # Build by_type from CV-resolved field_links
             by_type: Dict[str, List[tuple]] = {}
             for fkey, uri in sorted(field_links.items()):
                 cv_type  = uri.split("/")[-2] if uri.count("/") >= 3 else "cv"
                 val_stem = uri.split("/")[-1]
-                by_type.setdefault(cv_type, []).append((fkey, val_stem, uri))
+                by_type.setdefault(cv_type, []).append((fkey, val_stem, uri, {}))
+
+            # Also inject in-repo link fields directly from self.item.
+            # Values may be plain strings (raw submission) OR full dicts
+            # (after validate_data substitution), so handle both.
+            # When a dict is present its data is used directly for Mermaid
+            # expansion — no server fetch needed.
+            for field_stem, base_url in INREPO_LINK_FIELDS.items():
+                val = None
+                for k, v in self.item.items():
+                    if short(k) == field_stem:
+                        val = v
+                        break
+                if not val or val in ("", [], {}):
+                    continue
+                cv_type = base_url.rstrip("/").split("/")[-1]
+                vals = val if isinstance(val, list) else [val]
+                for v in vals:
+                    if not v:
+                        continue
+                    if isinstance(v, str):
+                        sid  = v.strip().lower()
+                        data = {}
+                    elif isinstance(v, dict):
+                        raw  = v.get("@id") or v.get("validation_key") or ""
+                        sid  = raw.split("/")[-1].strip().lower()
+                        data = v
+                    else:
+                        continue
+                    if not sid:
+                        continue
+                    uri = f"{base_url.rstrip('/')}/{sid}"
+                    if not any(vs == sid for _, vs, _, _ in by_type.get(cv_type, [])):
+                        by_type.setdefault(cv_type, []).append((field_stem, sid, uri, data))
 
             lines += ["<details><summary>Graph of links in submission.</summary>\n", "```mermaid", "graph TD"]
             node = _safe_node(self.item_id)
@@ -849,14 +943,38 @@ class ReportBuilder:
             for cv_type, entries in sorted(by_type.items()):
                 sg = _safe_node(f"sg_{cv_type}")
                 lines.append(f'    subgraph {sg}["{cv_type}"]')
-                for fkey, val_stem, uri in entries:
+                for entry in entries:
+                    fkey, val_stem, uri = entry[0], entry[1], entry[2]
+                    # entry may be a 3-tuple (CV fields) or 4-tuple (in-repo, with data dict)
+                    inline_data = entry[3] if len(entry) == 4 else {}
                     nid       = _safe_node(f"{cv_type}_{val_stem}")
                     click_url = uri + ".json" if "mipcvs.dev" in uri and not uri.endswith(".json") else uri
                     lines.append(f'        {nid}["{val_stem}"]')
                     lines.append(f'        click {nid} "{click_url}" _blank')
+
+                    # Expand horizontal_subgrid nodes: use inline dict data if
+                    # available (from validate_data), otherwise fetch from server.
+                    if cv_type == "horizontal_subgrid":
+                        sg_data = inline_data if inline_data else _fetch_inrepo_item(uri)
+                        grid_cell = sg_data.get("horizontal_grid_cells")
+                        if grid_cell and isinstance(grid_cell, str):
+                            gc_nid  = _safe_node(f"gc_{val_stem}")
+                            gc_url  = f"{INREPO_LINK_FIELDS['horizontal_grid_cells']}/{grid_cell}.json"
+                            lines.append(f'        {gc_nid}["grid: {grid_cell}"]')
+                            lines.append(f'        click {gc_nid} "{gc_url}" _blank')
+                            lines.append(f'        {nid} --> {gc_nid}')
+                        vtypes = sg_data.get("cell_variable_type", [])
+                        if isinstance(vtypes, str):
+                            vtypes = [vtypes]
+                        for vt in sorted(vtypes):
+                            vt_nid = _safe_node(f"vt_{val_stem}_{vt}")
+                            lines.append(f'        {vt_nid}("{vt}")')
+                            lines.append(f'        {nid} --> {vt_nid}')
+
                 lines.append("    end")
                 lines.append("")
-                for fkey, val_stem, uri in entries:
+                for entry in entries:
+                    val_stem = entry[1]
                     nid = _safe_node(f"{cv_type}_{val_stem}")
                     lines.append(f'    {node} --> {nid}')
 
