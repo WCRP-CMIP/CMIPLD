@@ -29,14 +29,19 @@ from .link_analyzer      import LinkAnalyzer
 from .pydantic_validator import PydanticValidator, short, is_default_skip
 from .text_similarity    import TextSimilarityAnalyzer, strip_text_fields
 
-# Fields that contain short in-repo IDs (not HTTP URIs) which should still
-# appear as resolved links in the report's CV link section.
-# Maps field_stem -> base URI of the target folder on the live registry.
-# The canonical URI for a value is built as: base_uri + "/" + value
-INREPO_LINK_FIELDS: Dict[str, str] = {
-    "horizontal_subgrids":  "https://emd.mipcvs.dev/horizontal_subgrid",
+# Fields whose values are short IDs (not full HTTP URIs) that should be
+# resolved to canonical links in the report. Covers both in-repo folders
+# and external CVs where the base URL is known.
+# Maps field_stem -> base URI; canonical URI = base + "/" + value
+SHORT_ID_LINK_FIELDS: Dict[str, str] = {
+    "horizontal_subgrids":   "https://emd.mipcvs.dev/horizontal_subgrid",
     "horizontal_grid_cells": "https://emd.mipcvs.dev/horizontal_grid_cell",
+    "horizontal_grid_cell":  "https://emd.mipcvs.dev/horizontal_grid_cell",  # context spelling
+    "cell_variable_type":    "https://constants.mipcvs.dev/cell_variable_type",
 }
+
+# Keep old name as alias so existing references don't break
+INREPO_LINK_FIELDS = SHORT_ID_LINK_FIELDS
 
 REPORT_SKIP_EXACT = frozenset({
     "id", "type", "drs_name",
@@ -1134,3 +1139,150 @@ class ReportBuilder:
     def __repr__(self):
         state = "built" if self._report else "not built"
         return f"ReportBuilder({self.folder_url!r}, kind={self.kind!r}, {state})"
+
+
+# ── Dedicated subgrid report ──────────────────────────────────────────────────
+
+def build_subgrid_report(data: dict, folder_items: list | None = None) -> str:
+    """
+    Generate a focused review report for a horizontal_subgrid record.
+
+    Unlike the full ReportBuilder (which is designed for records with a
+    pydantic model and many fields), subgrid records have exactly two
+    meaningful linked fields defined in their context:
+
+        horizontal_grid_cell(s) — @type:@id, links to horizontal_grid_cell folder
+        cell_variable_type      — @type:@id, links to constants CV
+
+    This function produces a compact Markdown report that:
+      1. Clearly identifies the record as a subgrid with its @id
+      2. Resolves and displays both linked fields with clickable URLs
+      3. Compares against all existing subgrid folder items using Jaccard
+         similarity on those same linked fields, flagging close matches
+
+    Parameters
+    ----------
+    data : dict
+        The subgrid record dict (with plain string values for linked fields).
+    folder_items : list[dict] | None
+        Existing subgrid records from the folder graph. When None, comparison
+        is skipped (no network access attempted).
+    """
+    sid = _short_id(data.get("@id", "submitted"))
+
+    # ── 1. Resolve linked fields ───────────────────────────────────────────
+    # Grid cell — field may be 'horizontal_grid_cells' (plural, data key)
+    # or 'horizontal_grid_cell' (singular, context key)
+    gc_base = SHORT_ID_LINK_FIELDS["horizontal_grid_cells"]
+    gc_val  = (
+        data.get("horizontal_grid_cells")
+        or data.get("horizontal_grid_cell")
+        or ""
+    )
+    if isinstance(gc_val, dict):
+        gc_val = gc_val.get("@id", "").split("/")[-1]
+    gc_val = gc_val.strip().lower() if gc_val else ""
+    gc_uri = f"{gc_base}/{gc_val}" if gc_val else ""
+
+    # Variable types
+    cvt_base = SHORT_ID_LINK_FIELDS["cell_variable_type"]
+    cvt_raw  = data.get("cell_variable_type", [])
+    if isinstance(cvt_raw, str):
+        cvt_raw = [cvt_raw]
+    cvt_vals = sorted(
+        (v.strip().lower() if isinstance(v, str) else v.get("@id", "").split("/")[-1])
+        for v in cvt_raw
+        if v
+    )
+    cvt_uris = [(v, f"{cvt_base}/{v}") for v in cvt_vals]
+
+    # ── 2. Build link set for Jaccard comparison ───────────────────────────
+    own_links: set[str] = set()
+    if gc_uri:
+        own_links.add(gc_uri)
+    own_links.update(uri for _, uri in cvt_uris)
+
+    # ── 3. Compare against existing subgrid items ──────────────────────────
+    comparisons: list[tuple[str, float]] = []
+    if folder_items:
+        for fi in folder_items:
+            other_id = _short_id(fi.get("@id", ""))
+            if not other_id or other_id == sid:
+                continue
+            other_links: set[str] = set()
+
+            # Grid cell from existing item
+            fi_gc = fi.get("horizontal_grid_cells") or fi.get("horizontal_grid_cell") or ""
+            if isinstance(fi_gc, dict):
+                fi_gc = fi_gc.get("@id", "").split("/")[-1]
+            fi_gc = fi_gc.strip().lower() if fi_gc else ""
+            if fi_gc:
+                other_links.add(f"{gc_base}/{fi_gc}")
+
+            # Variable types from existing item
+            fi_cvt = fi.get("cell_variable_type", [])
+            if isinstance(fi_cvt, str):
+                fi_cvt = [fi_cvt]
+            for v in fi_cvt:
+                v_str = v.strip().lower() if isinstance(v, str) else v.get("@id", "").split("/")[-1]
+                if v_str:
+                    other_links.add(f"{cvt_base}/{v_str}")
+
+            union = own_links | other_links
+            score = len(own_links & other_links) / len(union) if union else 0.0
+            comparisons.append((other_id, round(score * 100, 1)))
+
+        comparisons.sort(key=lambda x: x[1], reverse=True)
+
+    # ── 4. Render Markdown ─────────────────────────────────────────────────
+    lines = [
+        f"`{sid}` *(horizontal_subgrid)*\n",
+        f"> [!IMPORTANT]  \n"
+        f"> This report is for use of reviewers only!\n",
+        "---\n",
+        "### Linked Fields\n",
+    ]
+
+    # Grid cell
+    if gc_uri:
+        click_url = gc_uri + ".json"
+        lines.append(f"- **`horizontal_grid_cell`** → [{gc_val}]({click_url})")
+    else:
+        lines.append("- **`horizontal_grid_cell`** → _not specified_")
+
+    # Variable types
+    if cvt_uris:
+        vt_links = ", ".join(f"[{v}]({u}.json)" for v, u in cvt_uris)
+        lines.append(f"- **`cell_variable_type`** → {vt_links}")
+    else:
+        lines.append("- **`cell_variable_type`** → _none_")
+
+    lines.append("")
+
+    # Comparison table
+    if comparisons:
+        high = [(oid, pct) for oid, pct in comparisons if pct >= 80.0]
+        if high:
+            lines += [
+                "> [!WARNING]",
+                f"> **{len(high)} existing subgrid(s) share ≥80% link overlap.**"
+                " Confirm this is not a duplicate.\n",
+            ]
+        lines.append("<details><summary>Similarity against existing subgrids</summary>\n")
+        lines += [
+            "| Subgrid | Overlap |",
+            "|---------|---------|" ,
+        ]
+        for oid, pct in comparisons:
+            bar = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
+            lines.append(f"| `{oid}` | {pct:.0f}% `{bar}` |")
+        lines.append("\n</details>\n")
+    else:
+        lines.append("_No existing subgrids to compare against._\n")
+
+    lines.append(
+        "---\n"
+        f"_Generated by [cmipld](https://github.com/WCRP-CMIP/CMIP-LD) · {_now()}_\n"
+    )
+
+    return "\n".join(lines)
