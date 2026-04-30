@@ -139,6 +139,15 @@ runs:
 
           gh pr comment "$PR_NUM" --repo "$REPO" --body "$COMMENT_BODY"
 
+          # Rename PR title: prepend | <existing_ids> | stripping any prior prefix
+          OLD_PR_TITLE=$(gh pr view "$PR_NUM" --repo "$REPO" \
+            --json title --jq '.title' 2>/dev/null || true)
+          CLEAN_PR_TITLE=$(echo "$OLD_PR_TITLE" | sed 's/^|[^|]*| *//')
+          NEW_PR_TITLE="| ${EXISTING_IDS} | ${CLEAN_PR_TITLE}"
+          if [ "$OLD_PR_TITLE" != "$NEW_PR_TITLE" ]; then
+            gh pr edit "$PR_NUM" --repo "$REPO" --title "$NEW_PR_TITLE" || true
+          fi
+
           ISSUE_NUMBERS=$(gh pr view "$PR_NUM" --repo "$REPO" \
             --json body --jq '.body' | tr '\n' ' ' \
             | grep -oiE '(Resolves|Fixes|Closes)[[:space:]]+#[0-9]+' \
@@ -147,7 +156,17 @@ runs:
           while IFS= read -r issue_num; do
             [ -z "$issue_num" ] && continue
             gh issue comment "$issue_num" --repo "$REPO" --body "$COMMENT_BODY"
-            gh issue close   "$issue_num" --repo "$REPO" || true
+
+            # Rename issue title the same way
+            OLD_ISSUE_TITLE=$(gh issue view "$issue_num" --repo "$REPO" \
+              --json title --jq '.title' 2>/dev/null || true)
+            CLEAN_ISSUE_TITLE=$(echo "$OLD_ISSUE_TITLE" | sed 's/^|[^|]*| *//')
+            NEW_ISSUE_TITLE="| ${EXISTING_IDS} | ${CLEAN_ISSUE_TITLE}"
+            if [ "$OLD_ISSUE_TITLE" != "$NEW_ISSUE_TITLE" ]; then
+              gh issue edit "$issue_num" --repo "$REPO" --title "$NEW_ISSUE_TITLE" || true
+            fi
+
+            gh issue close "$issue_num" --repo "$REPO" || true
             echo "Closed issue #${issue_num}"
           done <<< "$ISSUE_NUMBERS"
 
