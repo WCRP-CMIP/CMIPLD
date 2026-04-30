@@ -52,7 +52,7 @@ def ui_label_to_key(url, depth=2):
                 result[key] = id          # validation_key matches itself
             if label and id:
                 result[label] = id        # ui_label maps to validation_key
-                result[label.replace('-','').lower()] = id # if sanitised as a sentence, this has no dashes
+                result[label.lower()] = id 
             
     return result
 
