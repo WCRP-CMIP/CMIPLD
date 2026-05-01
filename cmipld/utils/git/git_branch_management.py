@@ -10,15 +10,18 @@ def getbranch():
 def newbranch(branch):
     """Create or switch to a new branch"""
     branch = branch.replace(' ', '-')
-    shell(f"git pull;")
+    shell(f"git pull origin {getbranch()} || true;")
     shell(f"git checkout -b {branch} || git checkout {branch};")
     try:
-        shell(f"git pull;")
+        # Only pull if the branch already exists on the remote
+        remote_exists = subprocess.getoutput(
+            f"git ls-remote --heads origin {branch}"
+        ).strip()
+        if remote_exists:
+            shell(f"git pull origin {branch};")
+            shell(f"git branch --set-upstream-to=origin/{branch};")
     except Exception as e:
         print("Error pulling branch:", e)
-    # Set upstream branch to origin
-    # shell(f'git branch --set-upstream-to=origin {branch};')
-    shell(f'git branch -u origin {branch};')
 
 def branchinfo(feature_branch):
     """Check if a branch exists and get its info"""
