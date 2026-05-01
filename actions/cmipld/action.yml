@@ -28,11 +28,13 @@ runs:
       run: npm i -g jsonld-recursive
 
     - name: Cache pip
+      id: pip-cache
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-cmipld-${{ inputs.branch }}
+        key: ${{ runner.os }}-pip-cmipld-${{ inputs.branch }}-${{ hashFiles('.cmipld-src/**/*.py') }}
         restore-keys: |
+          ${{ runner.os }}-pip-cmipld-${{ inputs.branch }}-
           ${{ runner.os }}-pip-cmipld-
 
     - name: Install CMIPLD Python library
