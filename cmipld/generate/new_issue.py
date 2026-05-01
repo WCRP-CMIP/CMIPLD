@@ -376,6 +376,7 @@ def find_existing_pr_for_issue(issue_number: str) -> dict | None:
     try:
         result = subprocess.run(
             ["gh", "pr", "list", "--repo", repo, "--state", "open",
+             "--limit", "200",
              "--json", "number,url,headRefName,title,body"],
             capture_output=True, text=True, check=True,
         )
@@ -704,7 +705,27 @@ def main():
     pr_number = None
     pr_url    = ""
     try:
+        # First try exact branch name match
         prs = git.branch_pull_requests(head=branch_name)
+
+        # Fallback: search all open PRs for any whose headRefName contains the issue number.
+        # This handles re-runs where the stored headRefName differs from the current branch.
+        if not prs:
+            import re as _re
+            _all_raw = subprocess.run(
+                ["gh", "pr", "list", "--state", "open", "--limit", "200",
+                 "--json", "number,headRefName,url", "--repo", _repo()],
+                capture_output=True, text=True,
+            ).stdout.strip()
+            _all_prs  = json.loads(_all_raw or "[]")
+            _pat      = _re.compile(
+                rf'[_\-]{_re.escape(str(issue_number))}[_\-]'
+                rf'|[_\-]{_re.escape(str(issue_number))}$'
+            )
+            prs = [p for p in _all_prs if _pat.search(p.get("headRefName", ""))]
+            if prs:
+                print(f"  ✓ Found PR #{prs[0]['number']} via issue-number search", flush=True)
+
         if prs:
             try:
                 subprocess.run(

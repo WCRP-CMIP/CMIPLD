@@ -9,7 +9,7 @@ from ..io import shell
 def _find_pr_by_title(title: str) -> dict | None:
     """Return the first open PR whose title exactly matches *title*, or None."""
     try:
-        raw = shell("gh pr list --state open --json number,title,headRefName --limit 100").strip()
+        raw = shell("gh pr list --state open --json number,title,headRefName --limit 200").strip()
         prs = json.loads(raw or "[]")
         for pr in prs:
             if pr.get("title") == title:
@@ -57,8 +57,8 @@ def newpull(feature_branch, author, content, title, issue, base_branch='main', u
         raise ValueError(f"No commits between {base_branch} and {current_branch}. Cannot create pull request.")
 
     if update:
-        # PR already exists — new_issue.py handles body + comment upserts separately
-        print(f"++ PR #{update} already exists — skipping body write (handled by caller)", flush=True)
+        # PR already exists — new_issue.py handles the full body update below
+        print(f"++ PR #{update} already exists — will be updated by caller", flush=True)
         output = str(update)
     else:
         # Create a minimal PR body; new_issue.py will overwrite it via update_pr_body()

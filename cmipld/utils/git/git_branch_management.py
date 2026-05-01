@@ -60,7 +60,7 @@ def branch_pull_requests(head = None,base = None):
     
     
     
-    cmd = f"gh pr list --json url,title,headRefName,baseRefName,number"
+    cmd = f"gh pr list --limit 200 --json url,title,headRefName,baseRefName,number"
     if head:
         cmd += f" --head {head}"
     if base:
