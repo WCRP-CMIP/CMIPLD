@@ -13,15 +13,18 @@ def newbranch(branch):
     shell(f"git pull origin {getbranch()} || true;")
     shell(f"git checkout -b {branch} || git checkout {branch};")
     try:
-        # Only pull if the branch already exists on the remote
+        # Only pull if the branch already exists on the remote AND
+        # there are no untracked files that would conflict.
+        # Since we force-push at the end, pulling is only needed to avoid
+        # diverged history — fetch the ref without touching working tree.
         remote_exists = subprocess.getoutput(
             f"git ls-remote --heads origin {branch}"
         ).strip()
         if remote_exists:
-            shell(f"git pull origin {branch};")
+            shell(f"git fetch origin {branch};")
             shell(f"git branch --set-upstream-to=origin/{branch};")
     except Exception as e:
-        print("Error pulling branch:", e)
+        print("Error setting upstream:", e)
 
 def branchinfo(feature_branch):
     """Check if a branch exists and get its info"""
