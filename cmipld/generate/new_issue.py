@@ -168,9 +168,23 @@ def run_pycmipld_validation(data: dict, issue_type: str) -> tuple[bool, str | No
 
 
 def build_warning_comment(errors_md: str, failed_fields: list[str],
-                           guidance: dict, issue_type: str) -> str:
-    lines = [
-        "## Submission validation failed\n",
+                           guidance: dict, issue_type: str,
+                           existing_pr: dict | None = None) -> str:
+    lines = ["## Submission validation failed\n"]
+
+    # If a PR already exists from a previous successful submission, surface it
+    # at the top so reviewers/submitters can see it's frozen until the issue
+    # is corrected. The PR is NOT updated while validation is failing.
+    if existing_pr:
+        pr_num = existing_pr.get('number')
+        pr_url = existing_pr.get('url', '')
+        lines.append(
+            f"> [!CAUTION]\n"
+            f"> An existing pull request **[#{pr_num}]({pr_url})** is associated with this issue.\n"
+            f"> It will **not be updated** until the validation errors below are resolved.\n"
+        )
+
+    lines += [
         "The following errors were found. Please edit the issue to correct them. "
         "[How to edit an issue.](https://scribehow.com/embed-preview/Edit_an_Issues_Description_Field_on_GitHub__BFQ9OA50Q9-RbQvQ3r_GEQ?as=slides&size=flexible)\n",
         "> [!WARNING]",
@@ -485,19 +499,23 @@ def main():
 
     files_to_write['_val_results'] = val_results
 
-    # ── STEP 2: handler update() for custom checks ─────────────────────
-    script_path = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
-    if os.path.exists(script_path):
-        spec = importlib.util.spec_from_file_location(issue_type, script_path)
-        mod  = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        if hasattr(mod, 'update'):
-            mod.update(files_to_write, parsed_issue, issue,
-                       dry_run=(dry_run or validate_only))
-
-    # ── STEP 3: If validation failed → post warning, stop ─────────────
+    # ── STEP 2: If validation failed → post warning, stop ─────────────
+    # This MUST run before the handler update() — otherwise we waste time
+    # building review reports we'll never use, and risk side effects from
+    # update() leaking when we should be aborting.
     if validation_errors:
         print(f"\n{prefix}Validation failed — posting warnings to issue #{issue_number}", flush=True)
+
+        # Look up existing PR (if any) so the warning comment can link to it.
+        # We do NOT update the PR while validation is failing — it stays frozen
+        # at its last good state until the submitter fixes the issue.
+        existing_pr_for_warn = None
+        if issue_number and not dry_run:
+            try:
+                existing_pr_for_warn = find_existing_pr_for_issue(issue_number)
+            except Exception as _e:
+                print(f"  ⚠ Could not look up existing PR: {_e}", flush=True)
+
         comment_body = ""
         for file_path, errors_md in validation_errors.items():
             failed_fields = []
@@ -506,13 +524,28 @@ def main():
                     parts = [p.strip() for p in line.split('|') if p.strip()]
                     if parts:
                         failed_fields.append(parts[0].strip('`').split('.')[0])
-            comment_body = build_warning_comment(errors_md, failed_fields, guidance, issue_type)
+            comment_body = build_warning_comment(
+                errors_md, failed_fields, guidance, issue_type,
+                existing_pr=existing_pr_for_warn,
+            )
 
         if not dry_run and issue_number:
             upsert_comment(int(issue_number), comment_body, _BOT_MARKER_ISSUE)
         else:
             print(comment_body, flush=True)
         sys.exit(1)
+
+    # ── STEP 3: handler update() for custom checks (review report) ────
+    # Only runs when validation has already passed, so ReportBuilder's
+    # output is guaranteed to be relevant to the PR we're about to make.
+    script_path = os.path.join(_repo_root(), HANDLER_PATH, f"{issue_type}.py")
+    if os.path.exists(script_path):
+        spec = importlib.util.spec_from_file_location(issue_type, script_path)
+        mod  = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if hasattr(mod, 'update'):
+            mod.update(files_to_write, parsed_issue, issue,
+                       dry_run=(dry_run or validate_only))
 
     print(f"\n{prefix}All validations passed.", flush=True)
 
