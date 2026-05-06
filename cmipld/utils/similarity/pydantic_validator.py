@@ -30,6 +30,23 @@ from pydantic import BaseModel
 
 DEFAULT_SKIP_PREFIXES: tuple = ("drs", "validation")
 
+# Types whose raw issue/form data shape does not match the esgvoc pydantic
+# schema, so running pydantic on them always produces spurious "Field required"
+# errors (e.g. horizontal_subgrids contains string IDs at submission time but
+# the schema expects fully-expanded objects with .id/.type/.drs_name — those
+# get hydrated later via JSON-LD resolution). Pydantic validation is the wrong
+# tool for these types at submission stage; we skip it explicitly so neither
+# new_issue.py nor ReportBuilder produces misleading "Schema validation failed"
+# admonitions on PRs that successfully merged.
+#
+# This is the single source of truth — new_issue.py imports this set instead
+# of maintaining its own copy.
+SKIP_PYDANTIC_VALIDATION: frozenset = frozenset({
+    "horizontal_subgrid",
+    "horizontal_computational_grid",
+    "component_config",
+})
+
 CMIPLD_KEY_TRANSLATION: Dict[str, str] = {
     "validation_key": "drs_name",
     "@id":            "id",
@@ -225,6 +242,19 @@ class PydanticValidator:
 
     def validate(self) -> ValidationResult:
         """Run validation and return a :class:`ValidationResult`."""
+        # Early-skip: types in SKIP_PYDANTIC_VALIDATION are known to have
+        # submission-stage data shapes that don't match the esgvoc schema.
+        # Returning a no-op passed result here means new_issue.py STEP 1 sees
+        # passed=True (so the PR is allowed to be created — same as before),
+        # and ReportBuilder sees a val_result with no errors_md (so the
+        # "Schema validation failed" admonition does not appear on the PR).
+        if self.kind in SKIP_PYDANTIC_VALIDATION:
+            return ValidationResult(
+                passed=True, validated_fields=frozenset(),
+                failed_fields=frozenset(), unmodelled_fields=frozenset(),
+                model_fields=frozenset(), model_meta={}, errors_md=None, kind=self.kind,
+            )
+
         model_fnames = _model_fields(self._cls)
         model_meta   = _model_metadata(self._cls)
 

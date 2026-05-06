@@ -144,11 +144,11 @@ def load_field_guidance(kind: str) -> dict:
 
 # ── Validation helpers ────────────────────────────────────────────────────────
 
-_SKIP_VALIDATION = {
-    'horizontal_subgrid',
-    'horizontal_computational_grid',
-    'component_config',
-}
+# Single source of truth: `SKIP_PYDANTIC_VALIDATION` lives in pydantic_validator
+# so both this file (STEP 1 in main()) and ReportBuilder fall back to the same
+# behaviour for these types. Aliased to the local name to keep existing usages
+# below readable. See pydantic_validator.py for the rationale.
+from cmipld.utils.similarity.pydantic_validator import SKIP_PYDANTIC_VALIDATION as _SKIP_VALIDATION
 
 
 def run_pycmipld_validation(data: dict, issue_type: str) -> tuple[bool, str | None]:
