@@ -26,10 +26,24 @@ def gen_author_str(author):
 
 
 def commit_one(location, author, comment, branch=None):
-    """Commit changes with specific author and optional branch"""
+    """
+    Stage *location*, commit-and-push only if staging produced an actual diff.
 
+    Returns
+    -------
+    bool
+        ``True`` when a commit was made (and pushed, if *branch* was given);
+        ``False`` when the working tree at *location* already matches HEAD,
+        in which case nothing was committed and nothing was pushed.
+
+    The no-op case is the important one: re-running the workflow on an issue
+    that hasn't materially changed must NOT keep force-pushing the branch,
+    because every force-push triggers downstream CI and confuses reviewers
+    looking at the PR's commit history. The caller is free to continue with
+    PR description / comment updates regardless of the return value — those
+    are not gated on a push having happened.
+    """
     author_str = gen_author_str(author)
-
 
     # Normalize author for git config commands
     if isinstance(author, str):
@@ -39,25 +53,43 @@ def commit_one(location, author, comment, branch=None):
         author_login = author.get('login', author.get('name', 'unknown'))
         author_email = author.get('email', f"{author_login}@users.noreply.github.com")
 
-    cmds = [
-        f'git config user.name "{author_login}";'
-        f'git config user.email "{author_email}";',
-        f'git add {location};',
-        f'git commit --author="{author_str}" -m "{comment}";'
-    ]
+    # Configure committer identity. Done as one chained shell so a single
+    # subprocess setup covers both lines (cheaper than two shell() calls).
+    shell(
+        f'git config user.name "{author_login}"; '
+        f'git config user.email "{author_email}";'
+    )
+
+    # Stage the file. `git add` is idempotent — if the file is unchanged it
+    # silently no-ops, which is the behaviour we rely on below.
+    shell(f'git add {location};')
+
+    # Did staging actually produce something to commit? `git diff --cached
+    # --quiet -- <path>` exits 0 when there is NO diff and 1 when there is
+    # one. We use subprocess.run directly because shell() raises on non-zero
+    # exit, which would defeat the purpose of the check.
+    diff_check = subprocess.run(
+        ['git', 'diff', '--cached', '--quiet', '--', location],
+        capture_output=True,
+    )
+    if diff_check.returncode == 0:
+        print(
+            f'  ↩ No changes to commit for "{location}" — skipping commit/push. '
+            f'PR description and comments will still be updated.'
+        )
+        return False
+
+    # Real changes — commit and (optionally) force-push.
+    shell(f'git commit --author="{author_str}" -m "{comment}";')
 
     if branch:
-        cmds.append(f'git push origin {branch} --force;')
         print(f'🚀 Pushing commit to branch "{branch}" as {author_str}')
-        
-        cmds.append('git push origin HEAD -f;')
-        # cmds.append('git push -f;')
+        shell(f'git push origin {branch} --force;')
+        # The redundant `git push origin HEAD -f` from the previous version
+        # was removed — the explicit `--force` push to the named branch above
+        # already covers it, and pushing twice doubled the CI trigger volume.
 
-
-    for cmd in cmds:
-        print(f">> {cmd}")
-        shell(cmd)
-        # os.popen(cmd).read()
+    return True
 
 def commit(message):
     """Commit all changes with a message"""
