@@ -840,34 +840,32 @@ def main():
     pr_ref    = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
     pr_action = "updated" if existing_pr else "created"
 
-    # Build per-field pass/fail list from the pre-computed val_results
-    field_lines = []
-    for fp, vr in val_results.items():
-        if vr is None:
-            continue
-        covered = set()
-        try:
-            from cmipld.utils.similarity.report_builder import _validator_covered_fields
-            from cmipld.utils.esgvoc import DATA_DESCRIPTOR_CLASS_MAPPING
-            covered = _validator_covered_fields(DATA_DESCRIPTOR_CLASS_MAPPING.get(issue_type))
-        except Exception:
-            pass
-        for fname in sorted(covered):
-            if fname in vr.failed_fields:
-                field_lines.append(f"- [x] `{fname}` ← **failed**")
-            else:
-                field_lines.append(f"- [x] `{fname}`")
+    # Issue comment now mirrors the PR review comment (same full validation
+    # report). The submitter sees identical detail in both places — they don't
+    # have to navigate to the PR to understand what was checked, what passed,
+    # what's flagged, and what needs manual review.
+    #
+    # We prepend a small banner pointing at the PR so the issue thread still
+    # makes the link explicit, but the body itself is the same `report_md`
+    # built by ReportBuilder for the PR comment.
+    if report_md.strip():
+        issue_banner = (
+            f"## Automatic checks passed\n\n"
+            f"__{pr_ref}__ {pr_action} for review. "
+            f"The full validation report is reproduced below — it is identical to the comment on the PR.\n\n"
+            f"---\n"
+        )
+        issue_body_md = issue_banner + report_md
+    else:
+        # Fallback: no report was built (skip-validation type, etc.) —
+        # fall back to a minimal note so the comment still gets posted.
+        issue_body_md = (
+            f"## Automatic checks passed\n\n"
+            f"__{pr_ref}__ {pr_action} for review.\n\n"
+            f"_No detailed validation report is available for this submission type._"
+        )
 
-    fields_section = "\n".join(field_lines) if field_lines else "_No automatic field checks available._"
-
-    success_lines = [
-        "## Automatic checks passed\n",
-        f"__{pr_ref}__ {pr_action} for review.\n",
-        "### Validated fields\n",
-        fields_section,
-    ]
-
-    upsert_comment(int(issue_number), "\n".join(success_lines), _BOT_MARKER_ISSUE)
+    upsert_comment(int(issue_number), issue_body_md, _BOT_MARKER_ISSUE)
 
     print(f"\n✅ Done: {title}", flush=True)
 

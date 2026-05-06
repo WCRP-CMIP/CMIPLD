@@ -711,8 +711,24 @@ class ReportBuilder:
             self._header(),
             self._checklist(val_result, covered),
         ]
-        if val_result and val_result.errors_md:
+        # Only show the "Schema validation failed" admonition when validation
+        # ACTUALLY failed. The report is only built after STEP 1 validation
+        # passed (otherwise new_issue.py exits before getting here), so this
+        # branch is rarely taken — but when somebody runs ReportBuilder
+        # directly on raw data (no pre-computed val_result), it can still
+        # trigger and we need to be honest about the result.
+        #
+        # Previously this admonition appeared whenever errors_md was non-empty,
+        # which is misleading because pycmipld emits warnings/info in
+        # validation_md even on success. Reviewers were seeing "validation
+        # failed" on submissions that had successfully produced a PR.
+        if val_result and not val_result.passed and val_result.errors_md:
             sections.append(self._errors_admonition(val_result.errors_md))
+        elif val_result and val_result.passed and val_result.errors_md:
+            # Validation passed but pycmipld returned notes — show them under
+            # a non-alarming header so reviewers can still see the diagnostic
+            # output (same content as fed to pydantic on the massaged copy).
+            sections.append(self._validation_notes(val_result.errors_md))
 
         sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs, sim_result))
         sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance, exclude_set))
@@ -754,9 +770,18 @@ class ReportBuilder:
             t.split(":")[-1] for t in self.item.get("@type", [])
             if not _TYPE_RE.search(t)
         ) or ", ".join(self.item.get("@type", []))
+        # Header now serves both reviewers (on the PR) and submitters (on the
+        # issue). Replaced the old "reviewers only" disclaimer with a short
+        # explanation of what the three sections below mean.
         return (
             f"`{self.item_id}`\n\n"
-            f"""> [!IMPORTANT]  \n> This report is for use of reviewers only! \n> It is not intended to be used by submitters and may contain technical details and internal links that are not meaningful outside the review process. \n\n"""
+            f"> [!NOTE]\n"
+            f"> This report has three parts:\n"
+            f">   **1. Field Status** — every schema field, with what was submitted.\n"
+            f">   **2. Controlled Vocabulary Links** — how submitted values match registered CV entries.\n"
+            f">   **3. Content Similarity** — overlap with existing items (potential duplicates).\n"
+            f">\n"
+            f"> **Legend** — `[x]` validated by schema or explicitly missing required · `[ ]` needs manual check · `← failed` schema error · `← missing` required but absent · `← extra` not in schema.\n\n"
             f"| Property | Value |\n"
             f"|----------|-------|\n"
             f"| **Type** | `{self.kind}` |\n"
@@ -798,6 +823,49 @@ class ReportBuilder:
 
         model_meta = val_result._model_meta
         failed     = val_result.failed_fields
+
+        # Pre-compute summary counts so reviewers see the headline numbers
+        # (X submitted, Y validated, Z need review, N missing required)
+        # before scanning the per-field list.
+        n_submitted_total  = 0    # any model field present in submission
+        n_validated        = 0    # schema-validated (covered) and not failed
+        n_failed           = 0    # schema-validated but failed
+        n_manual           = 0    # submitted but no custom check → reviewer judgement
+        n_missing_required = 0    # required schema field absent from submission
+        n_extra            = sum(
+            1 for k in val_result.unmodelled_fields if not _is_report_skip(k)
+        )
+        for fname, info in model_meta.items():
+            if fname in REPORT_SKIP_EXACT:
+                continue
+            if fname in submitted_short:
+                n_submitted_total += 1
+                if fname in covered:
+                    orig_key = next((k for k in submitted if short(k) == fname), fname)
+                    if orig_key in failed:
+                        n_failed += 1
+                    else:
+                        n_validated += 1
+                else:
+                    n_manual += 1
+            elif info.get("required"):
+                n_missing_required += 1
+
+        summary_bits = []
+        if n_submitted_total:
+            summary_bits.append(f"**{n_submitted_total} submitted**")
+        if n_validated:
+            summary_bits.append(f"✅ {n_validated} validated")
+        if n_manual:
+            summary_bits.append(f"👀 {n_manual} need manual review")
+        if n_failed:
+            summary_bits.append(f"❌ {n_failed} failed")
+        if n_missing_required:
+            summary_bits.append(f"⚠️ {n_missing_required} required missing")
+        if n_extra:
+            summary_bits.append(f"❓ {n_extra} extra")
+        if summary_bits:
+            lines.append(" · ".join(summary_bits) + "\n")
 
         # Schema fields — sorted: failed first, then passed validated, then manual, then absent
         entries: List[tuple] = []  # (sort_key, checkbox, text)
@@ -857,6 +925,39 @@ class ReportBuilder:
             "> **Schema validation failed** — the following errors must be resolved before this submission can be merged.\n>\n"
             + "\n".join(f"> {line}" for line in filtered_md.splitlines())
             + "\n"
+        )
+
+    def _validation_notes(self, errors_md: str) -> str:
+        """
+        Render pycmipld's validation_md as informational notes when validation
+        passed. Same content as would be shown to the submitter in the issue
+        comment if validation had failed — but framed as 'pydantic notes'
+        rather than 'failed' because the model instance was successfully
+        constructed (passed=True) and the PR therefore exists.
+        """
+        kept_rows = []
+        for line in errors_md.strip().splitlines():
+            if line.startswith("|") and "---" not in line and "Field" not in line:
+                parts = [p.strip() for p in line.split("|") if p.strip()]
+                if parts and short(parts[0].strip("`")) in REPORT_SKIP_EXACT:
+                    continue
+            kept_rows.append(line)
+
+        data_rows = [r for r in kept_rows
+                     if r.startswith("|") and "---" not in r and "Field" not in r]
+        if not data_rows:
+            return ""
+
+        filtered_md = "\n".join(kept_rows)
+        return (
+            "<details><summary>Pydantic validation notes "
+            "(<em>same data fed to the schema — passed</em>)</summary>\n\n"
+            "> [!NOTE]\n"
+            "> The submission passed schema validation (otherwise this PR would not exist). "
+            "These are the diagnostic rows pycmipld emitted on the massaged copy of the data — "
+            "shown here for transparency, not as blockers.\n>\n"
+            + "\n".join(f"> {line}" for line in filtered_md.splitlines())
+            + "\n\n</details>\n"
         )
 
     def _link_section(
@@ -1027,7 +1128,11 @@ class ReportBuilder:
                     cscore = content_scores.get(oid)
                     cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
                     summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}% | {cscore_str})"
-                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
+                    # Auto-expand items above 50% link overlap so reviewers see
+                    # the diff immediately without an extra click — the wrapper
+                    # itself ("All CV link comparisons") stays collapsed.
+                    open_attr = " open" if pct > 50 else ""
+                    lines.append(f'<div style="padding-left:1.5em"><details{open_attr}><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
                 lines.append("\n</details>\n")
 
         return "\n".join(lines)
@@ -1110,7 +1215,10 @@ class ReportBuilder:
                 is_identical = diff.startswith("_Compared text fields are identical")
                 identical_flag = "  <span style='color:red'><b>identical</b></span>" if is_identical else ""
                 summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%{identical_flag}"
-                lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
+                # Auto-expand comparisons above 50% similarity so reviewers can
+                # spot near-duplicates immediately. The wrapper stays collapsed.
+                open_attr = " open" if pct > 50 else ""
+                lines.append(f'<div style="padding-left:1.5em"><details{open_attr}><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
             lines.append("\n</details>\n")
 
         return "\n".join(lines)
