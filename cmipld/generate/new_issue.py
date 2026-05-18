@@ -840,30 +840,38 @@ def main():
     pr_ref    = f"[PR #{pr_number}]({pr_url})" if pr_url else f"branch `{branch_name}`"
     pr_action = "updated" if existing_pr else "created"
 
-    # Issue comment now mirrors the PR review comment (same full validation
-    # report). The submitter sees identical detail in both places — they don't
-    # have to navigate to the PR to understand what was checked, what passed,
-    # what's flagged, and what needs manual review.
-    #
-    # We prepend a small banner pointing at the PR so the issue thread still
-    # makes the link explicit, but the body itself is the same `report_md`
-    # built by ReportBuilder for the PR comment.
-    if report_md.strip():
-        issue_banner = (
-            f"## Automatic checks passed\n\n"
-            f"__{pr_ref}__ {pr_action} for review. "
-            f"The full validation report is reproduced below — it is identical to the comment on the PR.\n\n"
-            f"---\n"
+    # Issue comment: brief summary only — the full report lives on the PR.
+    # Collect the names of all fields that were checked across all submitted files.
+    _SUMMARY_IGNORE = {
+        'issue_kind', 'issue_type', 'issue_category',
+        'additional_collaborators', 'collaborators',
+        'additional_information', 'description',
+    }
+    checked_names = sorted({
+        f
+        for vr in val_results.values()
+        if vr is not None
+        for f in (vr.validated_fields | vr.unmodelled_fields)
+        if f not in _SUMMARY_IGNORE and not f.startswith('@')
+    })
+    if not checked_names:
+        # Fallback: list non-empty parsed_issue fields that aren't internal keys
+        checked_names = sorted(
+            k for k, v in parsed_issue.items()
+            if v and k not in _SUMMARY_IGNORE and not k.startswith('@')
         )
-        issue_body_md = issue_banner + report_md
+
+    if checked_names:
+        checks_inline = ", ".join(f"`{n}`" for n in checked_names)
+        checks_str = f"Automatic checks ({checks_inline}) all passed."
     else:
-        # Fallback: no report was built (skip-validation type, etc.) —
-        # fall back to a minimal note so the comment still gets posted.
-        issue_body_md = (
-            f"## Automatic checks passed\n\n"
-            f"__{pr_ref}__ {pr_action} for review.\n\n"
-            f"_No detailed validation report is available for this submission type._"
-        )
+        checks_str = "Automatic checks passed."
+
+    issue_body_md = (
+        f"## Automatic checks passed\n\n"
+        f"{checks_str} "
+        f"__{pr_ref}__ {pr_action} for review."
+    )
 
     upsert_comment(int(issue_number), issue_body_md, _BOT_MARKER_ISSUE)
 
