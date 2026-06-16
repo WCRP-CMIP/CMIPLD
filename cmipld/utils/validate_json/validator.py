@@ -188,47 +188,46 @@ class JSONValidator:
         except Exception as e:
             log.debug(f"Error processing {file_path}: {e}")
             return False, f"Error: {str(e)}"
+    
 
     def _handle_file_rename(self, file_path: Path, expected_filename: str) -> bool:
-        """Handle file renaming if needed."""
-        
-        
-        expected_filename = expected_filename.replace('-pending','_pending')
-        
-        if expected_filename != file_path.stem:
-            new_file_path = file_path.parent / (expected_filename + file_path.suffix)
-            
-            if new_file_path.exists():
-                log.warn(f"Cannot rename {file_path.name} to {new_file_path.name}: target file already exists.")
-                log.warn(f"Target file already exists: {new_file_path}")
-                modified = False
-                return modified
-            
-            if not self.dry_run:
-                
-                
-                
-                
-                
-                # if new_file_path.exists():
-                #     new_file_path.unlink()
-                
-                
-                shutil.move(str(file_path), str(new_file_path))
-                
-                
-                
-                
-                # file_path.unlink()
-                
-                # if new_file_path.exists() and not file_path.exists():
-                #     print(f"✅ Moved: {file_path.name} → {new_file_path}")
+        import uuid
+        """Handle file renaming if needed (safe across macOS/Linux)."""
 
-                # file_path = new_file_path
-                log.info(f"Renamed file: {file_path.name} -> {new_file_path.name}")
-            modified = True
+        if expected_filename == file_path.stem:
+            return False
+
+        new_file_path = file_path.with_name(expected_filename + file_path.suffix)
+
+        # Detect real conflict (not case-only)
+        is_case_only = file_path.name.lower() == new_file_path.name.lower()
+
+        if new_file_path.exists() and not is_case_only:
+            log.warning(
+                f"Cannot rename {file_path.name} to {new_file_path.name}: target already exists."
+            )
+            return False
+
+        if self.dry_run:
             return True
-        return False
+
+        try:
+            # Case-only rename requires temp file on macOS/filesystems
+            if is_case_only:
+                tmp_path = file_path.with_name(
+                    f".tmp_{uuid.uuid4().hex}{file_path.suffix}"
+                )
+                file_path.rename(tmp_path)
+                tmp_path.rename(new_file_path)
+            else:
+                file_path.rename(new_file_path)
+
+            log.info(f"Renamed file: {file_path.name} -> {new_file_path.name}")
+            return True
+
+        except Exception as e:
+            log.error(f"Failed to rename {file_path} -> {new_file_path}: {e}")
+            return False
 
     def _validate_required_keys(self, data: Dict[str, Any]) -> bool:
         """Validate and add missing required keys."""
