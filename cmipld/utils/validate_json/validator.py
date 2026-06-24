@@ -192,7 +192,20 @@ class JSONValidator:
 
     def _handle_file_rename(self, file_path: Path, expected_filename: str) -> bool:
         import uuid
-        """Handle file renaming if needed (safe across macOS/Linux)."""
+        """Rename file to match @id in the data (not the other way around)."""
+
+        # Read @id from file to use as the expected filename
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            atid = data.get('@id', '').strip()
+        except Exception:
+            atid = ''
+
+        # If @id is set, it is authoritative — rename file to match it
+        if atid:
+            expected_filename = atid
+        # else fall back to the lowercased stem passed in (existing behaviour)
 
         if expected_filename == file_path.stem:
             return False
@@ -326,11 +339,14 @@ class JSONValidator:
         return modified
 
 
-    def _validate_id_field(self, data: Dict[str, Any], expected_id: str) -> bool:
-        """Validate and fix the ID field."""
-        if data.get('@id') != expected_id:
-            data['@id'] = expected_id
+    def _validate_id_field(self, data: Dict[str, Any], current_filename: str) -> bool:
+        """Validate and fix the ID field - ensure filename matches @id, not the other way around."""
+        atid = data.get('@id', '')
+        if not atid:
+            # No @id set — fall back to filename as before
+            data['@id'] = current_filename
             return True
+        # @id is authoritative — nothing to change in the data
         return False
 
     def _validate_type_field(self, data: Dict[str, Any], file_path: Path) -> bool:
