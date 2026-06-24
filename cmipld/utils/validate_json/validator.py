@@ -225,15 +225,28 @@ class JSONValidator:
             return True
 
         try:
+            import subprocess
+
+            # Use git mv so git tracks the rename rather than delete+add
+            def _git_mv(src: Path, dst: Path):
+                result = subprocess.run(
+                    ['git', 'mv', str(src), str(dst)],
+                    cwd=str(src.parent),
+                    capture_output=True, text=True
+                )
+                if result.returncode != 0:
+                    # Not a git repo or git mv failed — fall back to plain rename
+                    src.rename(dst)
+
             # Case-only rename requires temp file on macOS/filesystems
             if is_case_only:
                 tmp_path = file_path.with_name(
                     f".tmp_{uuid.uuid4().hex}{file_path.suffix}"
                 )
-                file_path.rename(tmp_path)
-                tmp_path.rename(new_file_path)
+                _git_mv(file_path, tmp_path)
+                _git_mv(tmp_path, new_file_path)
             else:
-                file_path.rename(new_file_path)
+                _git_mv(file_path, new_file_path)
 
             log.info(f"Renamed file: {file_path.name} -> {new_file_path.name}")
             return True
