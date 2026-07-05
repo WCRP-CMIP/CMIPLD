@@ -86,7 +86,7 @@ def build(
     Parameters
     ----------
     dynamic : list of full realm names that are active (dynamic + prescribed)
-    embedded : list of [parent, child] pairs (full names or codes)
+    embedded : list of [child, parent] pairs (full names or codes)
     coupling_groups : list of groups; realms within a group are all mutually coupled
     """
     # Normalise everything to codes
@@ -99,7 +99,7 @@ def build(
     for pair in embedded:
         if len(pair) < 2:
             continue
-        parent, child = to_code(pair[0]), to_code(pair[1])
+        child, parent = to_code(pair[0]), to_code(pair[1])
         parent_of[child] = parent
         children_of.setdefault(parent, []).append(child)
 
@@ -244,9 +244,9 @@ def validate(
     parent_of: Dict[str, str] = {}
     for pair in embedded:
         if len(pair) < 2:
-            errors.append(f"Embedding pair needs [parent, child], got: {pair}")
+            errors.append(f"Embedding pair needs [child, parent], got: {pair}")
             continue
-        parent, child = to_code(pair[0]), to_code(pair[1])
+        child, parent = to_code(pair[0]), to_code(pair[1])
         if child in parent_of:
             errors.append(
                 f"'{to_name(child)}' ({child}) is embedded in more than one parent: "
@@ -314,7 +314,7 @@ def from_model_data(data: dict) -> str:
     """
     dynamic = data.get("dynamic_components", []) + data.get("prescribed_components", [])
     embedded = data.get("embedded_components", [])
-    coupling_groups = data.get("coupling_groups", [])
+    coupling_groups = data.get("coupling_groups", []) or data.get("coupled_components", [])
     return build(dynamic, embedded, coupling_groups)
 
 
@@ -323,11 +323,11 @@ def to_model_fields(crs: str) -> Dict[str, list]:
     Invert a CRS string into the fields used in a model JSON-LD dict.
 
     Returns dict with 'embedded_components' and 'coupling_groups'.
-    embedded_components: [[parent_name, child_name], ...]
+    embedded_components: [[child_name, parent_name], ...]
     coupling_groups: one group containing all coupled realm names
     """
     parsed = parse(crs)
-    embedded = [[to_name(p), to_name(c)] for p, c in parsed["embeddings"]]
+    embedded = [[to_name(c), to_name(p)] for p, c in parsed["embeddings"]]
 
     # Reconstruct coupling groups: build adjacency, find connected components
     from collections import defaultdict
