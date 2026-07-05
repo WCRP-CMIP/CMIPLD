@@ -3,12 +3,17 @@ Canonical Realm String (CRS) — build, parse, validate.
 
 A CRS is a compact deterministic fingerprint for ESM coupling topology, e.g.:
 
-    A[AcAe](L,O)L(O)O[ObSi]
+    A[AcAe](L,O)L(O)O[ObSi]Ae^Li^
 
 Notation
 --------
   parent[child1child2]   — child realms embedded inside parent (sorted)
   parent(c1,c2)          — forward-only couplings from parent to others (sorted)
+  code^                  — the realm is PRESCRIBED (present but imposed from an
+                           external dataset, not interactively coupled). The '^'
+                           binds to the code it follows, e.g. 'Ae^', 'Li^'.
+                           Prescribed realms appear as bare roots (never embedded
+                           or coupled) after all dynamic realms in canonical order.
 
 Realm codes (canonical order)
 ------------------------------
@@ -79,18 +84,29 @@ def build(
     dynamic: List[str],
     embedded: List[List[str]],
     coupling_groups: List[List[str]],
+    prescribed: List[str] | None = None,
 ) -> str:
     """
     Construct the canonical CRS string.
 
     Parameters
     ----------
-    dynamic : list of full realm names that are active (dynamic + prescribed)
+    dynamic : list of full realm names that are dynamic (prognostic, interactive)
     embedded : list of [child, parent] pairs (full names or codes)
     coupling_groups : list of groups; realms within a group are all mutually coupled
+    prescribed : list of full realm names that are prescribed (imposed from an
+        external dataset, not interactively coupled). Rendered as bare roots with
+        a trailing '^', after all dynamic realms in canonical order.
+
+    Backwards compatibility: if `prescribed` is None, any realm that appears in
+    `dynamic` but in no embedding or coupling is still rendered plain (no '^'),
+    matching the previous dynamic+prescribed-merged behaviour.
     """
     # Normalise everything to codes
     dyn_codes: Set[str] = {to_code(r) for r in dynamic}
+    pre_codes: Set[str] = {to_code(r) for r in (prescribed or [])}
+    # A realm is only prescribed if it isn't also dynamic.
+    pre_codes -= dyn_codes
 
     # parent_of[child] = parent
     parent_of: Dict[str, str] = {}
@@ -118,7 +134,7 @@ def build(
     for lo, hi in coupling_pairs:
         forward.setdefault(lo, []).append(hi)
 
-    # Root realms — active, not embedded in anything else
+    # Dynamic root realms — active, not embedded in anything else
     roots = _sort([c for c in dyn_codes if c not in embedded_codes])
 
     parts: List[str] = []
@@ -133,6 +149,10 @@ def build(
         if coupled:
             token += "(" + ",".join(coupled) + ")"
         parts.append(token)
+
+    # Prescribed realms — bare roots with a '^' marker, after the dynamic ones.
+    for realm in _sort([c for c in pre_codes if c not in embedded_codes]):
+        parts.append(realm + "^")
 
     return "".join(parts)
 
@@ -149,9 +169,11 @@ def parse(crs: str) -> Dict[str, list]:
       'embeddings'      : [[parent_code, child_code], ...]
       'coupling_pairs'  : [[code_a, code_b], ...]  (canonical order, no duplicates)
       'roots'           : [code, ...]  (non-embedded realms in canonical order)
+      'prescribed'      : [code, ...]  (realms marked with '^', canonical order)
     """
     embeddings: List[List[str]] = []
     coupling_pairs: List[List[str]] = []
+    prescribed: List[str] = []
 
     i = 0
     n = len(crs)
@@ -176,6 +198,10 @@ def parse(crs: str) -> Dict[str, list]:
 
         if ch.isupper():
             code, i = read_code(i)
+            # A trailing '^' marks the realm as prescribed.
+            if i < n and crs[i] == "^":
+                prescribed.append(code)
+                i += 1
             current_parent = parent_stack[-1] if parent_stack else None
             if current_parent:
                 embeddings.append([current_parent, code])
@@ -223,6 +249,7 @@ def parse(crs: str) -> Dict[str, list]:
         "embeddings":     embeddings,
         "coupling_pairs": coupling_pairs,
         "roots":          _sort(roots),
+        "prescribed":     _sort(prescribed),
     }
 
 
@@ -232,6 +259,7 @@ def validate(
     dynamic: List[str],
     embedded: List[List[str]],
     coupling_groups: List[List[str]],
+    prescribed: List[str] | None = None,
 ) -> List[str]:
     """
     Check CRS constraints. Returns a list of error strings (empty = OK).
@@ -239,6 +267,7 @@ def validate(
     errors: List[str] = []
 
     dyn_codes = {to_code(r) for r in dynamic}
+    pre_codes = {to_code(r) for r in (prescribed or [])} - dyn_codes
 
     # Build parent map
     parent_of: Dict[str, str] = {}
@@ -255,9 +284,14 @@ def validate(
         else:
             parent_of[child] = parent
 
-    # Check embedded realms are subset of dynamic
+    # Check embedded realms are subset of dynamic (prescribed realms must not be
+    # embedded — they are non-interactive by definition).
     for child, parent in parent_of.items():
-        if child not in dyn_codes:
+        if child in pre_codes:
+            errors.append(
+                f"Prescribed realm '{to_name(child)}' ({child}) cannot be embedded"
+            )
+        elif child not in dyn_codes:
             errors.append(
                 f"Embedded realm '{to_name(child)}' ({child}) is not in dynamic_components"
             )
@@ -292,11 +326,16 @@ def validate(
         if has_cycle(child):
             errors.append(f"Embedding cycle detected involving '{to_name(child)}' ({child})")
 
-    # Coupling group realms should be in dynamic
+    # Coupling group realms should be in dynamic (prescribed realms are not
+    # interactively coupled, so they must not appear in coupling groups).
     for i, group in enumerate(coupling_groups, 1):
         for r in group:
             code = to_code(r)
-            if code not in dyn_codes:
+            if code in pre_codes:
+                errors.append(
+                    f"Coupling group {i}: '{r}' is prescribed and cannot be coupled"
+                )
+            elif code not in dyn_codes:
                 errors.append(
                     f"Coupling group {i}: '{r}' is not in dynamic_components"
                 )
@@ -310,12 +349,14 @@ def from_model_data(data: dict) -> str:
     """
     Build a CRS string directly from a model JSON-LD dict.
 
-    Reads: dynamic_components, embedded_components, coupling_groups
+    Reads: dynamic_components, prescribed_components, embedded_components,
+    coupled_components (or legacy coupling_groups).
     """
-    dynamic = data.get("dynamic_components", []) + data.get("prescribed_components", [])
+    dynamic = data.get("dynamic_components", [])
+    prescribed = data.get("prescribed_components", [])
     embedded = data.get("embedded_components", [])
     coupling_groups = data.get("coupling_groups", []) or data.get("coupled_components", [])
-    return build(dynamic, embedded, coupling_groups)
+    return build(dynamic, embedded, coupling_groups, prescribed=prescribed)
 
 
 def to_model_fields(crs: str) -> Dict[str, list]:
