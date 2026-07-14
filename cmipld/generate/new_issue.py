@@ -499,6 +499,26 @@ def main():
 
     files_to_write['_val_results'] = val_results
 
+    # ── STEP 1b: promote handler-emitted errors into validation_errors ────
+    # Handlers can surface their own hard-failure messages (e.g. model.py's
+    # CRS coupling/embedding checks) via a reserved `_crs_errors`/`_errors`
+    # list on the file dict. These are folded into validation_errors so they
+    # flow through the SAME overwritable issue comment (STEP 2, _BOT_MARKER_ISSUE)
+    # and abort before any PR is created — identical UX to the esgvoc/pydantic
+    # checks. These keys are still present here because the handler's update()
+    # (which pops them) only runs later in STEP 3, after validation passes.
+    for file_path, data in files_to_write.items():
+        if file_path.startswith('_') or not isinstance(data, dict):
+            continue
+        handler_errs = data.get('_crs_errors') or data.get('_errors')
+        if handler_errs:
+            errs_md = "\n".join(f"- {e}" for e in handler_errs)
+            # Lead with the handler's readable messages; keep any esgvoc text after.
+            if file_path in validation_errors:
+                validation_errors[file_path] = errs_md + "\n\n" + validation_errors[file_path]
+            else:
+                validation_errors[file_path] = errs_md
+
     # ── STEP 2: If validation failed → post warning, stop ─────────────
     # This MUST run before the handler update() — otherwise we waste time
     # building review reports we'll never use, and risk side effects from
