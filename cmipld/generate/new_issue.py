@@ -14,6 +14,53 @@ def _repo_root() -> str:
     import os
     return os.environ.get('GITHUB_WORKSPACE', os.getcwd())
 
+
+
+# ── JSON Sanitization (RFC 7159 compliance) ───────────────────────────────────
+
+def _sanitize_json_string(text: str) -> str:
+    """
+    Escape control characters (U+0000–U+001F) in a string for RFC 7159 compliance.
+    These may come from multi-line user input in issue form descriptions.
+    """
+    if not isinstance(text, str):
+        return text
+    
+    result = []
+    for char in text:
+        code = ord(char)
+        if 0 <= code <= 0x1F:  # Control character
+            if char == '\n':
+                result.append('\\n')
+            elif char == '\t':
+                result.append('\\t')
+            elif char == '\r':
+                result.append('\\r')
+            elif char == '\b':
+                result.append('\\b')
+            elif char == '\f':
+                result.append('\\f')
+            else:
+                result.append(f'\\u{code:04x}')
+        else:
+            result.append(char)
+    return ''.join(result)
+
+
+def _sanitize_value(value):
+    """
+    Recursively sanitize all strings in a data structure (dict/list/str).
+    Ensures control chars are properly escaped before JSON serialization.
+    """
+    if isinstance(value, str):
+        # Re-serialize and parse to ensure proper escaping via json module
+        return json.loads(json.dumps(value))
+    elif isinstance(value, dict):
+        return {k: _sanitize_value(v) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [_sanitize_value(v) for v in value]
+    return value
+
 HANDLER_PATH = '.github/ISSUE_SCRIPT/'
 DATA_PATH    = './'
 
@@ -642,8 +689,10 @@ def main():
         _saved_links = {k: v for k, v in clean_data.items()
                         if isinstance(v, list) and not k.startswith('@')}
 
+        # Sanitize data before writing to ensure RFC 7159 compliance
+        sanitized_data = _sanitize_value(clean_data)
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(clean_data, f, indent=4, ensure_ascii=False)
+            json.dump(sanitized_data, f, indent=4, ensure_ascii=False)
 
         validator = JSONValidator(os.path.dirname(output_path), dry_run=False)
         validator.validate_and_fix_json(output_path)
@@ -662,8 +711,10 @@ def main():
                         i += 1
                     else:
                         break
+            # Sanitize data before writing
+            sanitized_data = _sanitize_value(data)
             with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
+                json.dump(sanitized_data, f, indent=4, ensure_ascii=False)
 
         if 'validation_key' not in data and '@id' in data:
             data['validation_key'] = data['@id']
@@ -825,6 +876,9 @@ def main():
             people_section = submitter_line
             if collab_line:
                 people_section += f"\n{collab_line}"
+            
+            progress_link = f"\n\nTo view your progress [see here](https://emd.mipcvs.dev/docs/Progress_Tracker?handle={author_login})"
+            people_section += progress_link
 
             # For multi-file submissions, show each file as its own fenced block
             # so reviewers can see every artefact without reading the diff.

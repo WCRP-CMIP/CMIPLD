@@ -8,6 +8,10 @@ A CRS is a compact deterministic fingerprint for ESM coupling topology, e.g.:
 Notation
 --------
   parent[child1child2]   — child realms embedded inside parent (sorted)
+  parent[child[gchild]]  — embeddings nest to arbitrary depth; a child may itself
+                           contain an embedding block, e.g. 'A[Ac[Ae]L]' means
+                           aerosol inside chemistry inside atmosphere, alongside
+                           land-surface also inside atmosphere.
   parent(c1,c2)          — forward-only couplings from parent to others (sorted)
   code^                  — the realm is PRESCRIBED (present but imposed from an
                            external dataset, not interactively coupled). The '^'
@@ -29,6 +33,7 @@ Realm codes (canonical order)
 Rules
 -----
 * Each realm may be embedded in at most one parent.
+* Embeddings form a forest and may nest to any depth (no cycles).
 * Embedded realms cannot appear in coupling groups.
 * Couplings are forward-only: listed under the earlier code in canonical order.
 * All output is deterministic (sorted by canonical order).
@@ -78,6 +83,58 @@ def to_name(code: str) -> str:
     return CODE_TO_REALM.get(code, code)
 
 
+# ── Embedding forest helpers ───────────────────────────────────────────────────
+
+# With 8 realms, an embedding chain longer than this is necessarily cyclic.
+MAX_EMBED_DEPTH: int = len(CANONICAL_ORDER)
+
+
+class CRSSyntaxError(ValueError):
+    """Raised when a CRS string cannot be parsed."""
+
+
+def _embedding_maps(embedded) -> Tuple[Dict[str, str], Dict[str, List[str]]]:
+    """
+    Turn a list of [child, parent] pairs into (parent_of, children_of).
+
+    Duplicate identical pairs are collapsed; a child claimed by two *different*
+    parents raises, since that cannot be rendered as a tree.
+    """
+    parent_of: Dict[str, str] = {}
+    children_of: Dict[str, List[str]] = {}
+    for pair in embedded:
+        if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+            continue
+        child, parent = to_code(pair[0]), to_code(pair[1])
+        if child in parent_of:
+            if parent_of[child] != parent:
+                raise ValueError(
+                    f"'{to_name(child)}' ({child}) is embedded in more than one "
+                    f"parent: '{to_name(parent_of[child])}' and '{to_name(parent)}'"
+                )
+            continue
+        parent_of[child] = parent
+        kids = children_of.setdefault(parent, [])
+        if child not in kids:
+            kids.append(child)
+    return parent_of, children_of
+
+
+def _assert_acyclic(parent_of: Dict[str, str]) -> None:
+    """Raise if the embedding map contains a cycle (including self-embedding)."""
+    for start in parent_of:
+        seen: Set[str] = set()
+        cur = start
+        while cur in parent_of:
+            if cur in seen:
+                raise ValueError(
+                    f"Embedding cycle detected involving "
+                    f"'{to_name(start)}' ({start})"
+                )
+            seen.add(cur)
+            cur = parent_of[cur]
+
+
 # ── Build ──────────────────────────────────────────────────────────────────────
 
 def build(
@@ -108,16 +165,9 @@ def build(
     # A realm is only prescribed if it isn't also dynamic.
     pre_codes -= dyn_codes
 
-    # parent_of[child] = parent
-    parent_of: Dict[str, str] = {}
-    # children_of[parent] = [child, ...]
-    children_of: Dict[str, List[str]] = {}
-    for pair in embedded:
-        if len(pair) < 2:
-            continue
-        child, parent = to_code(pair[0]), to_code(pair[1])
-        parent_of[child] = parent
-        children_of.setdefault(parent, []).append(child)
+    # parent_of[child] = parent ; children_of[parent] = [child, ...]
+    parent_of, children_of = _embedding_maps(embedded)
+    _assert_acyclic(parent_of)
 
     # Expand coupling groups into pairs, exclude embedded realms
     embedded_codes = set(parent_of.keys())
@@ -134,115 +184,173 @@ def build(
     for lo, hi in coupling_pairs:
         forward.setdefault(lo, []).append(hi)
 
-    # Dynamic root realms — active, not embedded in anything else
-    roots = _sort([c for c in dyn_codes if c not in embedded_codes])
+    # Render a realm and, recursively, everything embedded inside it. Nesting is
+    # unbounded in principle; MAX_EMBED_DEPTH is a belt-and-braces guard on top
+    # of the cycle check above.
+    rendered: Set[str] = set()
 
-    parts: List[str] = []
-    for realm in roots:
-        token = realm
-        # Embedding children
-        kids = _sort(children_of.get(realm, []))
+    def render(code: str, depth: int = 0) -> str:
+        if depth > MAX_EMBED_DEPTH:
+            raise ValueError(
+                f"Embedding nested deeper than {MAX_EMBED_DEPTH} at "
+                f"'{to_name(code)}' ({code})"
+            )
+        rendered.add(code)
+        token = code
+        # Embedded children — each may carry its own embedding block.
+        kids = _sort(children_of.get(code, []))
         if kids:
-            token += "[" + "".join(kids) + "]"
-        # Forward couplings
-        coupled = _sort(forward.get(realm, []))
+            token += "[" + "".join(render(k, depth + 1) for k in kids) + "]"
+        # Forward couplings (embedded realms never have any, by the CRS rules)
+        coupled = _sort(forward.get(code, []))
         if coupled:
             token += "(" + ",".join(coupled) + ")"
-        parts.append(token)
+        return token
+
+    # Dynamic root realms — active, not embedded in anything else
+    roots = _sort([c for c in dyn_codes if c not in embedded_codes])
+    parts: List[str] = [render(realm) for realm in roots]
 
     # Prescribed realms — bare roots with a '^' marker, after the dynamic ones.
     for realm in _sort([c for c in pre_codes if c not in embedded_codes]):
+        rendered.add(realm)
         parts.append(realm + "^")
+
+    # Nothing may be silently dropped: a realm whose parent chain does not reach
+    # a rendered root would otherwise vanish from the string.
+    missing = (dyn_codes | pre_codes) - rendered
+    if missing:
+        raise ValueError(
+            "CRS would omit realm(s) — check the parents named in "
+            "embedded_components: "
+            + ", ".join(f"'{to_name(c)}' ({c})" for c in _sort(missing))
+        )
 
     return "".join(parts)
 
 
 # ── Parse ──────────────────────────────────────────────────────────────────────
 
-def parse(crs: str) -> Dict[str, list]:
+def parse(crs: str, strict: bool = True) -> Dict[str, list]:
     """
     Parse a CRS string back into embeddings and coupling pairs.
+
+    Recursive descent, so embedding blocks nest to any depth and a coupling
+    block binds to the realm it lexically follows rather than to a guessed
+    owner.
+
+    Parameters
+    ----------
+    crs : the CRS string
+    strict : raise CRSSyntaxError on malformed input (unbalanced brackets,
+        unknown realm codes, stray characters). Set False for the older
+        permissive behaviour, which skips anything it cannot interpret.
 
     Returns
     -------
     dict with keys:
-      'embeddings'      : [[parent_code, child_code], ...]
+      'embeddings'      : [[parent_code, child_code], ...]  (all depths, flat)
       'coupling_pairs'  : [[code_a, code_b], ...]  (canonical order, no duplicates)
       'roots'           : [code, ...]  (non-embedded realms in canonical order)
       'prescribed'      : [code, ...]  (realms marked with '^', canonical order)
+      'tree'            : nested [{'code': str, 'children': [...]}, ...] in
+                          document order — the embedding forest as written
     """
+    s = crs.strip()
+    n = len(s)
+    i = 0
+
     embeddings: List[List[str]] = []
     coupling_pairs: List[List[str]] = []
     prescribed: List[str] = []
+    roots: List[str] = []
+    tree: List[dict] = []
 
-    i = 0
-    n = len(crs)
+    def fail(msg: str) -> None:
+        if strict:
+            raise CRSSyntaxError(f"{msg} at position {i} in {crs!r}")
 
     def read_code(pos: int) -> Tuple[str, int]:
         """Read a 1-or-2-char realm code starting at pos."""
-        if pos >= n:
+        if pos >= n or not s[pos].isupper():
             return "", pos
-        code = crs[pos]
+        code = s[pos]
         pos += 1
-        if pos < n and crs[pos].islower():
-            code += crs[pos]
+        if pos < n and s[pos].islower():
+            code += s[pos]
             pos += 1
         return code, pos
 
-    # Stack holds the current parent realm while inside [...]
-    parent_stack: List[str] = []
-    roots: List[str] = []
+    def parse_realm(parent: str | None, depth: int) -> dict | None:
+        nonlocal i
+        code, i = read_code(i)
+        if not code:
+            fail("expected a realm code")
+            i += 1
+            return None
+        if code not in CODE_TO_REALM:
+            fail(f"unknown realm code '{code}'")
+        node = {"code": code, "children": []}
 
-    while i < n:
-        ch = crs[i]
-
-        if ch.isupper():
-            code, i = read_code(i)
-            # A trailing '^' marks the realm as prescribed.
-            if i < n and crs[i] == "^":
-                prescribed.append(code)
-                i += 1
-            current_parent = parent_stack[-1] if parent_stack else None
-            if current_parent:
-                embeddings.append([current_parent, code])
-            else:
-                roots.append(code)
-
-            # Look ahead
-            if i < n and crs[i] == "[":
-                parent_stack.append(code)
-                i += 1  # consume '['
-            elif i < n and crs[i] == "(":
-                # couplings follow — handled below
-                pass
-
-        elif ch == "]":
-            if parent_stack:
-                parent_stack.pop()
+        # A trailing '^' marks the realm as prescribed.
+        if i < n and s[i] == "^":
+            prescribed.append(code)
             i += 1
 
-        elif ch == "(":
-            # The realm that owns these couplings is the last root-level realm
-            # we encountered (or top of stack if nested, but coupling can't be
-            # inside embedding by the CRS rules).
-            owner = roots[-1] if roots else (parent_stack[-1] if parent_stack else None)
+        if parent is None:
+            roots.append(code)
+        else:
+            embeddings.append([parent, code])
+
+        # Embedding block — recurse.
+        if i < n and s[i] == "[":
+            if depth + 1 > MAX_EMBED_DEPTH:
+                fail(f"embedding nested deeper than {MAX_EMBED_DEPTH}")
+            i += 1  # consume '['
+            while i < n and s[i] != "]":
+                before = i
+                child = parse_realm(code, depth + 1)
+                if child:
+                    node["children"].append(child)
+                if i == before:      # no progress — bail out rather than spin
+                    fail("malformed embedding block")
+                    i += 1
+            if i >= n:
+                fail("unclosed '['")
+            else:
+                i += 1  # consume ']'
+
+        # Coupling block — owned by this realm, whatever the depth.
+        if i < n and s[i] == "(":
             i += 1  # consume '('
-            while i < n and crs[i] != ")":
-                if crs[i] == ",":
+            while i < n and s[i] != ")":
+                if s[i] == ",":
                     i += 1
                     continue
-                if crs[i].isupper():
-                    coupled, i = read_code(i)
-                    if owner:
-                        pair = _sort([owner, coupled])
-                        if pair not in coupling_pairs:
-                            coupling_pairs.append(pair)
-                else:
+                coupled, i = read_code(i)
+                if not coupled:
+                    fail("malformed coupling list")
                     i += 1
-            if i < n and crs[i] == ")":
+                    continue
+                if coupled not in CODE_TO_REALM:
+                    fail(f"unknown realm code '{coupled}' in coupling list")
+                pair = _sort([code, coupled])
+                if pair not in coupling_pairs:
+                    coupling_pairs.append(pair)
+            if i >= n:
+                fail("unclosed '('")
+            else:
                 i += 1  # consume ')'
 
+        return node
+
+    while i < n:
+        if s[i].isupper():
+            node = parse_realm(None, 0)
+            if node:
+                tree.append(node)
         else:
+            fail(f"unexpected character '{s[i]}'")
             i += 1
 
     return {
@@ -250,6 +358,7 @@ def parse(crs: str) -> Dict[str, list]:
         "coupling_pairs": coupling_pairs,
         "roots":          _sort(roots),
         "prescribed":     _sort(prescribed),
+        "tree":           tree,
     }
 
 
@@ -277,10 +386,13 @@ def validate(
             continue
         child, parent = to_code(pair[0]), to_code(pair[1])
         if child in parent_of:
-            errors.append(
-                f"'{to_name(child)}' ({child}) is embedded in more than one parent: "
-                f"'{to_name(parent_of[child])}' and '{to_name(parent)}'"
-            )
+            # An exact duplicate pair is harmless — only conflicting parents are
+            # an error (the old code reported 'X and X' for repeats).
+            if parent_of[child] != parent:
+                errors.append(
+                    f"'{to_name(child)}' ({child}) is embedded in more than one parent: "
+                    f"'{to_name(parent_of[child])}' and '{to_name(parent)}'"
+                )
         else:
             parent_of[child] = parent
 
@@ -339,6 +451,48 @@ def validate(
                 errors.append(
                     f"Coupling group {i}: '{r}' is not in dynamic_components"
                 )
+
+    # Depth guard — flags a chain too deep to render (also catches cycles that
+    # slipped past has_cycle on malformed input).
+    def _depth(code: str) -> int:
+        d, cur, seen = 0, code, set()
+        while cur in parent_of and cur not in seen:
+            seen.add(cur)
+            cur = parent_of[cur]
+            d += 1
+        return d
+
+    for child in parent_of:
+        if _depth(child) > MAX_EMBED_DEPTH:
+            errors.append(
+                f"Embedding chain for '{to_name(child)}' ({child}) is deeper "
+                f"than {MAX_EMBED_DEPTH}"
+            )
+
+    # Round-trip assertion. build() must be able to render every realm, and
+    # parse() must recover exactly the embeddings it was given. This is what
+    # catches silent structural loss (e.g. nested embeddings being dropped).
+    if not errors:
+        try:
+            s = build(dynamic, embedded, coupling_groups, prescribed=prescribed)
+            back = parse(s)
+            want = {
+                (to_code(p[1]), to_code(p[0]))
+                for p in embedded
+                if isinstance(p, (list, tuple)) and len(p) >= 2
+            }
+            got = {(p, c) for p, c in back["embeddings"]}
+            if want != got:
+                lost = _sort([c for _, c in want - got])
+                detail = (
+                    " — realm(s) lost: "
+                    + ", ".join(f"'{to_name(c)}' ({c})" for c in lost)
+                ) if lost else ""
+                errors.append(
+                    f"CRS '{s}' does not round-trip to embedded_components{detail}"
+                )
+        except (ValueError, CRSSyntaxError) as exc:
+            errors.append(str(exc))
 
     return errors
 
