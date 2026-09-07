@@ -149,15 +149,17 @@ class JSONValidator:
             else:
                 current_filename = file_path.stem.lower()
             
-            # Handle file renaming
-            modified = self._handle_file_rename(file_path, current_filename) or modified
-            
-            # Basic validation and fixing
+            # Basic validation and fixing. This must run *before* the rename so
+            # that the filename is derived from an already-normalised @id.
             modified = self._validate_key_format(data) or modified
             modified = self._validate_required_keys(data) or modified
             
             modified = self._validate_id_field(data, current_filename) or modified
             
+            # Handle file renaming. file_path is reassigned so that the write
+            # below targets the renamed file rather than recreating the old one.
+            renamed, file_path = self._handle_file_rename(file_path, current_filename, data)
+            modified = renamed or modified
 
             modified = self._validate_type_field(data, file_path) or modified
             
@@ -190,25 +192,46 @@ class JSONValidator:
             return False, f"Error: {str(e)}"
     
 
-    def _handle_file_rename(self, file_path: Path, expected_filename: str) -> bool:
+    def _handle_file_rename(self, file_path: Path, expected_filename: str,
+                            data: Optional[Dict[str, Any]] = None) -> Tuple[bool, Path]:
+        """Rename file to match @id in the data (not the other way around).
+
+        @id is authoritative for the filename, and the resulting filename is
+        always lowercase. Returns (was_renamed, path_to_use_from_now_on); the
+        caller must use the returned path when writing, otherwise a rename
+        would leave the original file behind as a duplicate.
+        """
         import uuid
-        """Rename file to match @id in the data (not the other way around)."""
 
-        # Read @id from file to use as the expected filename
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            atid = data.get('@id', '').strip()
-        except Exception:
-            atid = ''
+        # @id from the already-parsed data; only re-read if not supplied
+        if data is None:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except Exception:
+                data = {}
 
-        # If @id is set, it is authoritative — rename file to match it
-        if atid:
-            expected_filename = atid
+        atid = data.get('@id', '')
+        atid = atid.strip() if isinstance(atid, str) else ''
+
+        # If @id is set, it is authoritative — rename file to match it,
         # else fall back to the lowercased stem passed in (existing behaviour)
+        expected_filename = (atid or expected_filename).lower()
+
+        if not expected_filename:
+            return False, file_path
+
+        # An @id that is a CURIE, URI or contains whitespace cannot be used as
+        # a bare filename — report it rather than creating a bad path
+        if any(c in '/\\:' for c in expected_filename) or any(c.isspace() for c in expected_filename):
+            log.warning(
+                f"Cannot derive a filename for {file_path.name} from @id "
+                f"'{expected_filename}': contains path or whitespace characters. Skipping rename."
+            )
+            return False, file_path
 
         if expected_filename == file_path.stem:
-            return False
+            return False, file_path
 
         new_file_path = file_path.with_name(expected_filename + file_path.suffix)
 
@@ -219,10 +242,11 @@ class JSONValidator:
             log.warning(
                 f"Cannot rename {file_path.name} to {new_file_path.name}: target already exists."
             )
-            return False
+            return False, file_path
 
         if self.dry_run:
-            return True
+            log.info(f"[dry-run] Would rename file: {file_path.name} -> {new_file_path.name}")
+            return True, file_path
 
         try:
             import subprocess
@@ -249,11 +273,11 @@ class JSONValidator:
                 _git_mv(file_path, new_file_path)
 
             log.info(f"Renamed file: {file_path.name} -> {new_file_path.name}")
-            return True
+            return True, new_file_path
 
         except Exception as e:
             log.error(f"Failed to rename {file_path} -> {new_file_path}: {e}")
-            return False
+            return False, file_path
 
     def _validate_required_keys(self, data: Dict[str, Any]) -> bool:
         """Validate and add missing required keys."""
@@ -353,13 +377,28 @@ class JSONValidator:
 
 
     def _validate_id_field(self, data: Dict[str, Any], current_filename: str) -> bool:
-        """Validate and fix the ID field - ensure filename matches @id, not the other way around."""
+        """Validate and fix the ID field.
+
+        @id is authoritative for the filename, but must itself be lowercase.
+        Only the top-level @id is normalised — nested @id values (links to
+        other records) are left alone, as are validation_key and ui_label,
+        which keep their original casing.
+        """
         atid = data.get('@id', '')
-        if not atid:
-            # No @id set — fall back to filename as before
+
+        if not isinstance(atid, str) or not atid.strip():
+            # No usable @id set — fall back to the (lowercased) filename
             data['@id'] = current_filename
             return True
-        # @id is authoritative — nothing to change in the data
+
+        normalised = atid.strip().lower()
+
+        if normalised != atid:
+            log.warn(f"@id '{atid}' is not lowercase: corrected to '{normalised}'")
+            data['@id'] = normalised
+            return True
+
+        # @id is authoritative and already normalised — nothing to change
         return False
 
     def _validate_type_field(self, data: Dict[str, Any], file_path: Path) -> bool:

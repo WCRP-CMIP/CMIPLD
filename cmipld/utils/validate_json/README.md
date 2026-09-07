@@ -373,11 +373,17 @@ validate_and_fix_json(file_path)
 Each check returns a boolean indicating if the file was modified:
 
 **File Naming Check**
+
+Runs *after* `_validate_id_field`, so the filename is derived from an
+already-lowercased `@id`.
 ```python
-_handle_file_rename(file_path, expected_filename)
+_handle_file_rename(file_path, expected_filename, data)
     |
+    +-- Take @id as the target name (falling back to the lowercased stem)
+    +-- Lowercase it; skip with a warning if it contains '/', ':' or whitespace
     +-- Compare actual filename to expected (lowercase, hyphens)
-    +-- Rename file if mismatch found
+    +-- Rename file if mismatch found (git mv where possible)
+    +-- Returns (was_renamed, path_to_write_to)
 ```
 
 **Required Keys Check**
