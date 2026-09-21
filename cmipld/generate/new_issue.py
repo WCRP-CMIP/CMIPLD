@@ -80,20 +80,38 @@ FOLDER_MAPPING = {
 _BOT_MARKER_ISSUE = "<!-- emd-bot-issue-status -->"
 _BOT_MARKER_PR    = "<!-- emd-bot-pr-report -->"
 
+# GitHub rejects issue/PR comment bodies over 65536 characters. We keep some
+# headroom for the timestamp footer and the marker we append.
+_MAX_COMMENT_CHARS = 60000
+
 
 # ── GitHub comment upsert ─────────────────────────────────────────────────────
 
 def _gh_api(path: str, method: str = "GET", fields: dict | None = None) -> dict | list | None:
-    """Thin wrapper around `gh api`."""
+    """
+    Thin wrapper around `gh api`.
+
+    Fields are sent as a JSON body on **stdin** (`--input -`), never as `-f
+    key=value` argv entries. Review reports routinely exceed 100 kB, and Linux
+    caps a single argv entry at 128 KiB (MAX_ARG_STRLEN) — the old argv form
+    raised OSError [Errno 7] "Argument list too long", which is not a
+    CalledProcessError, so it escaped this handler and aborted the caller
+    before the PR comment was ever posted.
+    """
     cmd = ["gh", "api", path, "-X", method]
+    stdin_payload = None
     if fields:
-        for k, v in fields.items():
-            cmd += ["-f", f"{k}={v}"]
+        cmd += ["--input", "-"]
+        stdin_payload = json.dumps(fields)
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, input=stdin_payload,
+                                capture_output=True, text=True, check=True)
         return json.loads(result.stdout) if result.stdout.strip() else None
     except subprocess.CalledProcessError as e:
         print(f"  gh api {method} {path} failed: {e.stderr[:200]}", flush=True)
+        return None
+    except OSError as e:
+        print(f"  gh api {method} {path} could not run: {e}", flush=True)
         return None
 
 
@@ -130,15 +148,38 @@ def upsert_comment(number: int, body: str, marker: str, on: str = "issue") -> No
 
     import datetime
     ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    full_body = body + f"\n\n_Last updated: {ts}_\n\n{marker}"
+    footer = f"\n\n_Last updated: {ts}_\n\n{marker}"
+
+    # GitHub hard-rejects bodies over 65536 chars with a 422. Grid review
+    # reports regularly exceed 100k, so truncate rather than lose the comment
+    # entirely — the full report is always in the workflow run log.
+    budget = _MAX_COMMENT_CHARS - len(footer)
+    if len(body) > budget:
+        notice = (
+            "\n\n> [!NOTE]\n"
+            "> This report was truncated to fit GitHub's comment size limit.\n"
+            "> The full report is available in the workflow run log.\n"
+        )
+        original_len = len(body)
+        body = body[: budget - len(notice)].rstrip() + notice
+        print(f"  ℹ Comment body truncated {original_len} → {len(body)} chars "
+              f"for #{number}", flush=True)
+
+    full_body = body + footer
 
     if existing_id:
-        _gh_api(f"repos/{repo}/issues/comments/{existing_id}", "PATCH",
-                {"body": full_body})
-        print(f"  Updated comment #{existing_id} on #{number}", flush=True)
+        res = _gh_api(f"repos/{repo}/issues/comments/{existing_id}", "PATCH",
+                      {"body": full_body})
+        if res is None:
+            print(f"  ⚠ FAILED to update comment #{existing_id} on #{number}", flush=True)
+        else:
+            print(f"  Updated comment #{existing_id} on #{number}", flush=True)
     else:
-        _gh_api(path, "POST", {"body": full_body})
-        print(f"  Created comment on #{number}", flush=True)
+        res = _gh_api(path, "POST", {"body": full_body})
+        if res is None:
+            print(f"  ⚠ FAILED to create comment on #{number}", flush=True)
+        else:
+            print(f"  Created comment on #{number}", flush=True)
 
 
 def upsert_pr_comment(pr_number: int, body: str, marker: str) -> None:
@@ -877,7 +918,7 @@ def main():
             if collab_line:
                 people_section += f"\n{collab_line}"
             
-            progress_link = f"\n\nTo view your progress [see here](https://emd.mipcvs.dev/docs/Progress_Tracker?handle={author_login})"
+            progress_link = f"\n\nTo view your progress [see here](https://emd.wcrp-cmip.org/docs/Progress_Tracker?handle={author_login})"
             people_section += progress_link
 
             # For multi-file submissions, show each file as its own fenced block

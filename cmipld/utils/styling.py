@@ -124,7 +124,7 @@ def shorten_uri(uri: Any, mappings: Optional[Dict[str, str]] = None) -> str:
         Shortened URI string (e.g., 'emd:model/CESM2')
         
     Example:
-        >>> shorten_uri('https://emd.mipcvs.dev/model/CESM2')
+        >>> shorten_uri('https://emd.wcrp-cmip.org/model/CESM2')
         'emd:model/CESM2'
     """
     uri_str = str(uri)

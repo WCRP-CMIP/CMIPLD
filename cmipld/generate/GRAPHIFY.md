@@ -98,8 +98,8 @@ For each vocabulary directory:
   "@context": { ... },
   "@type": ["Collection"],
   "contents": [
-    {"@id": "https://emd.mipcvs.dev/model/CESM2"},
-    {"@id": "https://emd.mipcvs.dev/model/HadGEM3-GC31-LL"}
+    {"@id": "https://emd.wcrp-cmip.org/model/CESM2"},
+    {"@id": "https://emd.wcrp-cmip.org/model/HadGEM3-GC31-LL"}
   ]
 }
 ```

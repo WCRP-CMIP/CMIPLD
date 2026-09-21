@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 from ..io import shell  # assuming your shell() prints output and handles errors
 
@@ -62,7 +63,11 @@ def commit_one(location, author, comment, branch=None):
 
     # Stage the file. `git add` is idempotent — if the file is unchanged it
     # silently no-ops, which is the behaviour we rely on below.
-    shell(f'git add {location};')
+    # The path MUST be quoted: handler-generated @ids have produced filenames
+    # containing spaces (e.g. 'g251-v velocity.json'), and an unquoted pathspec
+    # split on the space, raising and killing main() before the PR and issue
+    # comments were ever posted.
+    shell(f'git add {shlex.quote(location)};')
 
     # Did staging actually produce something to commit? `git diff --cached
     # --quiet -- <path>` exits 0 when there is NO diff and 1 when there is
@@ -97,7 +102,7 @@ def commit(message):
 
 def addfile(file):
     """Stage a specific file"""
-    shell(f'git add {file}')
+    shell(f'git add {shlex.quote(file)}')
 
 def addall():
     """Stage all changes"""

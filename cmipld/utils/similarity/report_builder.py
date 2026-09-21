@@ -34,11 +34,24 @@ from .text_similarity    import TextSimilarityAnalyzer, strip_text_fields
 # and external CVs where the base URL is known.
 # Maps field_stem -> base URI; canonical URI = base + "/" + value
 SHORT_ID_LINK_FIELDS: Dict[str, str] = {
-    "horizontal_subgrids":   "https://emd.mipcvs.dev/horizontal_subgrid",
-    "horizontal_grid_cells": "https://emd.mipcvs.dev/horizontal_grid_cell",
-    "horizontal_grid_cell":  "https://emd.mipcvs.dev/horizontal_grid_cell",  # context spelling
+    "horizontal_subgrids":   "https://emd.wcrp-cmip.org/horizontal_subgrid",
+    "horizontal_grid_cells": "https://emd.wcrp-cmip.org/horizontal_grid_cell",
+    "horizontal_grid_cell":  "https://emd.wcrp-cmip.org/horizontal_grid_cell",  # context spelling
     "cell_variable_type":    "https://constants.mipcvs.dev/cell_variable_type",
 }
+
+# Hosts whose item URIs are extensionless and need '.json' appended to be
+# directly fetchable. emd.wcrp-cmip.org is the current host; mipcvs.dev is
+# retained because older graph data still carries those @ids.
+CV_HOSTS = ("wcrp-cmip.org", "mipcvs.dev")
+
+# Comparisons scoring below this percentage are omitted from the exhaustive
+# "All …" sections. Those sections previously embedded a full field diff for
+# every item in the folder, which pushed grid reports past 150k characters —
+# well over GitHub's 65536-char comment limit, so the PR comment was dropped
+# entirely. Low-scoring items carry no review signal, so they are counted
+# rather than rendered.
+REPORT_FLOOR: float = 60.0
 
 # Keep old name as alias so existing references don't break
 INREPO_LINK_FIELDS = SHORT_ID_LINK_FIELDS
@@ -119,7 +132,7 @@ def _safe_node(s: str) -> str:
 def _item_url(item_id: str) -> str:
     """
     Build a hyperlink URL for a folder item.
-    If the id contains 'mipcvs.dev', append '.json'.
+    If the id is hosted on a known CV host, append '.json'.
     Otherwise use the id as-is.
     """
     if not item_id:
@@ -127,7 +140,7 @@ def _item_url(item_id: str) -> str:
     # item_id may be a short stem like 'g100' or a full URL
     if item_id.startswith("http"):
         url = item_id
-        if "mipcvs.dev" in url and not url.endswith(".json"):
+        if any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
             url = url + ".json"
         return url
     return ""
@@ -350,7 +363,7 @@ def _infer_cv_graphs_from_folder(folder_items: List[dict]) -> Dict[str, str]:
         "https://.../WCRP-constants/grid_type/_graph.json"
 
     Keys are compressed to their short form (e.g. the full URI
-    https://emd.mipcvs.dev/docs/contents/HorizontalGridCell/grid_type
+    https://emd.wcrp-cmip.org/docs/contents/HorizontalGridCell/grid_type
     becomes just "grid_type") so they match the plain keys in submitted items.
     """
     field_graphs: Dict[str, str] = {}
@@ -638,6 +651,7 @@ class ReportBuilder:
         use_embeddings: bool = True,
         link_threshold: float = 85.0,
         val_result=None,
+        report_floor: float = REPORT_FLOOR,
     ):
         self.folder_url       = folder_url
         self.kind             = kind
@@ -646,6 +660,7 @@ class ReportBuilder:
         self._graph_data      = graph_data
         self.use_embeddings   = use_embeddings
         self.link_threshold   = link_threshold
+        self.report_floor     = report_floor
         self._pre_val_result  = val_result   # pre-computed ValidationResult from new_issue.py
         self._report: Optional[str] = None
 
@@ -1079,7 +1094,7 @@ class ReportBuilder:
                     # entry may be a 3-tuple (CV fields) or 4-tuple (in-repo, with data dict)
                     inline_data = entry[3] if len(entry) == 4 else {}
                     nid       = _safe_node(f"{cv_type}_{val_stem}")
-                    click_url = uri + ".json" if "mipcvs.dev" in uri and not uri.endswith(".json") else uri
+                    click_url = uri + ".json" if any(h in uri for h in CV_HOSTS) and not uri.endswith(".json") else uri
                     lines.append(f'        {nid}["{val_stem}"]')
                     lines.append(f'        click {nid} "{click_url}" _blank')
 
@@ -1131,7 +1146,7 @@ class ReportBuilder:
                 for oid, pct, n_shared, n_sub in high:
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     url  = folder_ids.get(oid, "")
-                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
                         url += ".json"
                     cscore = content_scores.get(oid)
                     cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
@@ -1144,11 +1159,18 @@ class ReportBuilder:
                 )
 
             if link_result.pairs:
+                shown   = [p for p in link_result.pairs if p[1] >= self.report_floor]
+                omitted = len(link_result.pairs) - len(shown)
                 lines.append("<details><summary>All CV link comparisons</summary>\n")
-                for oid, pct, n_shared, n_sub in link_result.pairs:
+                if omitted:
+                    lines.append(
+                        f"_{omitted} item(s) scoring below {self.report_floor:.0f}% "
+                        f"link overlap omitted._\n"
+                    )
+                for oid, pct, n_shared, n_sub in shown:
                     bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     url    = folder_ids.get(oid, "")
-                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
                         url += ".json"
                     cscore = content_scores.get(oid)
                     cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
@@ -1217,7 +1239,7 @@ class ReportBuilder:
                     pct  = score * 100
                     bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                     url  = folder_ids.get(oid, "")
-                    if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
                         url += ".json"
                     diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
                     is_identical = diff.startswith("_Compared text fields are identical")
@@ -1229,12 +1251,19 @@ class ReportBuilder:
                     f"_No existing items exceed {self.link_threshold:.0f}% content similarity._\n"
                 )
 
+            shown   = [p for p in sim_result.pairs if p[1] * 100 >= self.report_floor]
+            omitted = len(sim_result.pairs) - len(shown)
             lines.append("<details><summary>All content comparisons</summary>\n")
-            for oid, score in sim_result.pairs:
+            if omitted:
+                lines.append(
+                    f"_{omitted} item(s) scoring below {self.report_floor:.0f}% "
+                    f"content similarity omitted._\n"
+                )
+            for oid, score in shown:
                 pct  = score * 100
                 bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
                 url  = folder_ids.get(oid, "")
-                if url and "mipcvs.dev" in url and not url.endswith(".json"):
+                if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
                     url += ".json"
                 diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
                 is_identical = diff.startswith("_Compared text fields are identical")
@@ -1252,12 +1281,12 @@ class ReportBuilder:
     def _item_link(short_id: str, folder_ids: Dict[str, str]) -> str:
         """
         Return a Markdown link for a short item id.
-        If the full @id contains 'mipcvs.dev', append '.json'.
+        If the full @id is hosted on a known CV host, append '.json'.
         """
         full_id = folder_ids.get(short_id, "")
         if full_id:
             url = full_id
-            if "mipcvs.dev" in url and not url.endswith(".json"):
+            if any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
                 url = url + ".json"
             return f"[`{short_id}`]({url})"
         return f"`{short_id}`"

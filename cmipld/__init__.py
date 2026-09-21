@@ -16,6 +16,12 @@ for k,v in mapping.items():
 for k,v in mapping.items():
     _redirect_mapping[f'https://{k}.mipcvs.dev/*'] = v+'${rest}'
 
+# Add wcrp-cmip.org domain mappings (redirect to github.io). EMD moved off
+# the mipcvs.dev host onto emd.wcrp-cmip.org; both loops are kept so @ids
+# minted under either host still resolve.
+for k,v in mapping.items():
+    _redirect_mapping[f'https://{k}.wcrp-cmip.org/*'] = v+'${rest}'
+
 _client = None
 
 def _get_client():

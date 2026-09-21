@@ -37,7 +37,7 @@ embeddings = ["fastembed"]
 [project.urls]
 Homepage = "https://github.com/WCRP-CMIP/CMIP-LD"
 Issues = "https://github.com/WCRP-CMIP/CMIP-LD/issues"
-Documentation = "https://wiki.mipcvs.dev"
+Documentation = "https://guidance.wcrp-cmip.org"
 Notebooks = "https://colab.research.google.com/github/WCRP-CMIP/CMIP-LD/blob/main/notebooks/intro.ipynb"
 
 [project.scripts]
