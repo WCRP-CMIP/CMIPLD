@@ -1158,29 +1158,21 @@ class ReportBuilder:
                     f"_No existing items exceed {self.link_threshold:.0f}% link overlap._\n"
                 )
 
+            # The exhaustive "All CV link comparisons" block used to live here,
+            # rendering a full link diff for every item in the folder. It was
+            # the single largest contributor to report size, and because
+            # section 2 precedes section 3, an oversized report got truncated
+            # from the tail — losing the Content Similarity analysis, which is
+            # the part reviewers actually need. The >= link_threshold warnings
+            # above already surface every link overlap worth acting on, so the
+            # exhaustive listing is no longer emitted.
             if link_result.pairs:
-                shown   = [p for p in link_result.pairs if p[1] >= self.report_floor]
-                omitted = len(link_result.pairs) - len(shown)
-                lines.append("<details><summary>All CV link comparisons</summary>\n")
-                if omitted:
+                below = [p for p in link_result.pairs if p[1] < self.link_threshold]
+                if below:
                     lines.append(
-                        f"_{omitted} item(s) scoring below {self.report_floor:.0f}% "
-                        f"link overlap omitted._\n"
+                        f"_{len(below)} further item(s) compared below the "
+                        f"{self.link_threshold:.0f}% threshold — not listed._\n"
                     )
-                for oid, pct, n_shared, n_sub in shown:
-                    bar    = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    url    = folder_ids.get(oid, "")
-                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
-                        url += ".json"
-                    cscore = content_scores.get(oid)
-                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}% | {cscore_str})"
-                    # Auto-expand items above 50% link overlap so reviewers see
-                    # the diff immediately without an extra click — the wrapper
-                    # itself ("All CV link comparisons") stays collapsed.
-                    open_attr = " open" if pct > 50 else ""
-                    lines.append(f'<div style="padding-left:1.5em"><details{open_attr}><summary>{summary}</summary>\n\n{_link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))}\n\n</details></div>\n')
-                lines.append("\n</details>\n")
 
         return "\n".join(lines)
 
