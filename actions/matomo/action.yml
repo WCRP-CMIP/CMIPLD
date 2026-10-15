@@ -41,13 +41,25 @@ runs:
 
         PAGE_URL="${BASE_URL%/}/${MATOMO_PATH#/}"
 
-        curl --fail --silent --show-error --get \
+       
+        set -euo pipefail
+        
+        HTTP_STATUS=$(curl --verbose --silent --show-error --get \
+          --output /dev/null \
+          --write-out "%{http_code}" \
           "$MATOMO_URL" \
           --data-urlencode "idsite=$MATOMO_SITE_ID" \
           --data-urlencode "rec=1" \
           --data-urlencode "url=$PAGE_URL" \
           --data-urlencode "action_name=$MATOMO_TITLE" \
-          --data-urlencode "rand=$(date +%s)" \
-          --data-urlencode "send_image=0"
-
+          --data-urlencode "rand=$(date +%s%N)" \
+          --data-urlencode "bots=1" \
+          --data-urlencode "send_image=0")
+        
+        echo "Matomo HTTP status: $HTTP_STATUS"
+        
+        if [ "$HTTP_STATUS" != "204" ]; then
+          echo "::error::Unexpected Matomo HTTP status: $HTTP_STATUS"
+          exit 1
+        fi
         echo "Sent Matomo tracking request for: $PAGE_URL"
