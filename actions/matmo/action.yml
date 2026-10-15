@@ -1,0 +1,53 @@
+
+name: "Track Matomo Action"
+description: "Send a custom page-view request to Matomo"
+
+inputs:
+  site-id:
+    description: "Matomo website ID"
+    required: true
+
+  path:
+    description: "Custom path to record, e.g. /automation/nightly-check"
+    required: true
+
+  title:
+    description: "Page title shown in Matomo"
+    required: false
+    default: "GitHub Actions"
+
+  base-url:
+    description: "Base website URL used for the tracked page"
+    required: true
+
+  matomo-url:
+    description: "Matomo tracking endpoint"
+    required: false
+    default: "https://webstats.wcrp-cmip.org/matomo.php"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Send tracking request
+      shell: bash
+      env:
+        MATOMO_URL: ${{ inputs.matomo-url }}
+        MATOMO_SITE_ID: ${{ inputs.site-id }}
+        MATOMO_PATH: ${{ inputs.path }}
+        MATOMO_TITLE: ${{ inputs.title }}
+        BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+
+        PAGE_URL="${BASE_URL%/}/${MATOMO_PATH#/}"
+
+        curl --fail --silent --show-error --get \
+          "$MATOMO_URL" \
+          --data-urlencode "idsite=$MATOMO_SITE_ID" \
+          --data-urlencode "rec=1" \
+          --data-urlencode "url=$PAGE_URL" \
+          --data-urlencode "action_name=$MATOMO_TITLE" \
+          --data-urlencode "rand=$(date +%s)" \
+          --data-urlencode "send_image=0"
+
+        echo "Sent Matomo tracking request for: $PAGE_URL"
