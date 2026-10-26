@@ -48,6 +48,45 @@ except ImportError:
     ])
     _load_esgvoc_descriptors()
 
+def _patch_region_as_list():
+    """Local patch: let ``HorizontalGridCells.region`` be a list as well as one value.
+
+    Upstream esgvoc types ``region`` as ``Region | str`` (a single value), yet its
+    own description says "region, or regions", the EMD issue form is multi-select,
+    and every stored grid cell holds ``region`` as a list. So valid files fail
+    schema validation.
+
+    The annotation is widened to ``<single> | non-empty list of <single>``. A single
+    value still validates, so nothing that passed before stops passing, and a
+    missing or empty ``region`` still fails. It is applied in place on the class,
+    so every consumer that imports it from this module is covered. If upstream
+    ever accepts lists itself this does nothing, and a failure here is reported
+    but never breaks the import.
+    """
+    import typing
+    try:
+        from annotated_types import MinLen
+        from esgvoc.api.data_descriptors.EMD_models.horizontal_grid_cells import HorizontalGridCells
+
+        fld = HorizontalGridCells.model_fields.get('region')
+        if fld is None:
+            return
+
+        def _accepts_list(ann):
+            return typing.get_origin(ann) is list or any(_accepts_list(a) for a in typing.get_args(ann))
+
+        if _accepts_list(fld.annotation):
+            return  # upstream already handles lists
+        single = fld.annotation
+        fld.annotation = typing.Union[single, typing.Annotated[list[single], MinLen(1)]]
+        HorizontalGridCells.model_rebuild(force=True)
+    except Exception as e:  # never let a patch problem break validation entirely
+        print(f'  ⚠ cmipld: could not patch HorizontalGridCells.region to accept lists: {e}',
+              file=_sys.stderr, flush=True)
+
+
+_patch_region_as_list()
+
 T = TypeVar("T", bound=BaseModel)
 
 
