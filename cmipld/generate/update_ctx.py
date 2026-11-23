@@ -33,7 +33,7 @@ def data():
     repo = os.popen("git remote get-url origin").read().replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
     prefix = prefix() or 'no-prefix'
-    base2 = f'https://{prefix}.mipcvs.dev/'
+    base2 = f'https://{prefix}.wcrp-cmip.org/'
 
 
     # Process each context file
@@ -56,11 +56,11 @@ def data():
             ctx['@base'] = f"{base2}{folder}/"
             ctx['@vocab'] = f"{base2}docs/contents/{esg_name}/"
             ctx["@alt_base"] = f"{base}{folder}/"
-            # ctx['@esg_vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
-            ctx['@esgvoc'] = esg_name
+            # Drop the retired esgvoc class hint if an older run wrote one.
+            ctx.pop('@esgvoc', None)
             
             
-            # f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}."
+            # f"https://emd.wcrp-cmip.org/docs/contents/{esg_name}."
             
             # Write back
             
@@ -82,7 +82,7 @@ def project():
     repo = (os.popen("git remote get-url origin").read()).replace('.git','').strip().split('/')[-2:]
     base = f'https://{repo[0].lower()}.github.io/{repo[1]}/'
     prefix = reverse_mapping.get(base,'no-prefix')
-    base2 = f'https://{prefix}.mipcvs.dev/'
+    base2 = f'https://{prefix}.wcrp-cmip.org/'
 
 
 
@@ -106,12 +106,13 @@ def project():
 
             # Set base/vocab
             # ctx['@base'] = f"{base}project/"
-            # ctx['@vocab'] = f"https://esgf.github.io/esgf-vocab/api_documentation/data_descriptors.html#esgvoc.api.data_descriptors.{esg_name}"
             
             # Set base/vocab
             ctx['@base'] = f"{base2}{folder}/"
             ctx['@vocab'] = f"{base2}docs/contents/{esg_name}/"
             ctx["@alt_base"] = f"{base}{folder}/"
+            # Drop the retired esgvoc class hint if an older run wrote one.
+            ctx.pop('@esgvoc', None)
             
             data['@context'] = dict(sorted(ctx.items()))
             # Write back

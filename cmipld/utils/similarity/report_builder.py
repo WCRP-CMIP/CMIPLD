@@ -30,20 +30,19 @@ from .pydantic_validator import PydanticValidator, short, is_default_skip
 from .text_similarity    import TextSimilarityAnalyzer, strip_text_fields
 
 # Fields whose values are short IDs (not full HTTP URIs) that should be
-# resolved to canonical links in the report. Covers both in-repo folders
-# and external CVs where the base URL is known.
+# resolved to canonical links in the report. All EMD vocabularies now live in
+# the Essential-Model-Documentation repository, served from emd.wcrp-cmip.org.
 # Maps field_stem -> base URI; canonical URI = base + "/" + value
 SHORT_ID_LINK_FIELDS: Dict[str, str] = {
     "horizontal_subgrids":   "https://emd.wcrp-cmip.org/horizontal_subgrid",
     "horizontal_grid_cells": "https://emd.wcrp-cmip.org/horizontal_grid_cell",
     "horizontal_grid_cell":  "https://emd.wcrp-cmip.org/horizontal_grid_cell",  # context spelling
-    "cell_variable_type":    "https://constants.mipcvs.dev/cell_variable_type",
+    "cell_variable_type":    "https://emd.wcrp-cmip.org/cell_variable_type",
 }
 
 # Hosts whose item URIs are extensionless and need '.json' appended to be
-# directly fetchable. emd.wcrp-cmip.org is the current host; mipcvs.dev is
-# retained because older graph data still carries those @ids.
-CV_HOSTS = ("wcrp-cmip.org", "mipcvs.dev")
+# directly fetchable.
+CV_HOSTS = ("wcrp-cmip.org",)
 
 # Comparisons scoring below this percentage are omitted from the exhaustive
 # "All …" sections. Those sections previously embedded a full field diff for
