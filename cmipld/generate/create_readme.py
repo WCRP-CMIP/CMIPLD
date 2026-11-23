@@ -3,7 +3,8 @@
 Create README files for WCRP universe data directories.
 
 This module generates clean, structured markdown documentation for CMIP-LD
-vocabulary directories, integrating with cmipld and esgvoc libraries.
+vocabulary directories, integrating with cmipld and the pydantic models the
+repository keeps alongside its data (see Config.pydantic_models_dir).
 """
 
 import os
@@ -31,7 +32,11 @@ class Config:
     skip_keys: tuple = ('id', '@id', 'type', '@type', '@context', 'drs_name')
     skip_directories: tuple = ('project',)
     github_org: str = 'WCRP-CMIP'
-    esgvoc_repo_url: str = 'https://github.com/ESGF/esgf-vocab/blob/main/src/esgvoc/api/data_descriptors'
+    # Pydantic models live in the data repository itself, one module per
+    # vocabulary folder, each exposing a `model` attribute.
+    pydantic_models_dir: str = '.github/EMD_tests'
+    pydantic_repo_url: str = ('https://github.com/WCRP-CMIP/Essential-Model-Documentation'
+                              '/blob/main/.github/EMD_tests')
 
 
 CONFIG = Config()
@@ -50,14 +55,31 @@ except ImportError:
     CMIPLD_AVAILABLE = False
     cmipld = None
 
-try:
-    import esgvoc
-    from esgvoc.api.data_descriptors import DATA_DESCRIPTOR_CLASS_MAPPING
-    ESGVOC_AVAILABLE = True
-except ImportError:
-    print("Warning: esgvoc not available. Pydantic models will not be used.")
-    DATA_DESCRIPTOR_CLASS_MAPPING = {}
-    ESGVOC_AVAILABLE = False
+def _pydantic_models_path() -> Optional[Path]:
+    """Locate the repository's pydantic model folder, walking up from the cwd.
+
+    Resolved lazily: main() chdirs into the target repository after import, so
+    this must not be evaluated at module level.
+    """
+    global _PYDANTIC_PATH
+    if _PYDANTIC_PATH is not None:
+        return _PYDANTIC_PATH or None
+    for base in [Path.cwd(), *Path.cwd().parents]:
+        candidate = base / CONFIG.pydantic_models_dir
+        if candidate.is_dir():
+            _PYDANTIC_PATH = candidate
+            # The modules import each other by bare name (e.g.
+            # `from base import ...`), so the folder must be importable.
+            if str(candidate) not in sys.path:
+                sys.path.insert(0, str(candidate))
+            return candidate
+    _PYDANTIC_PATH = False   # searched, found nothing
+    print(f"Warning: no {CONFIG.pydantic_models_dir} folder found. "
+          "Pydantic models will not be used.")
+    return None
+
+
+_PYDANTIC_PATH: Any = None
 
 
 # =============================================================================
@@ -360,51 +382,46 @@ def extract_validators(cls: type) -> list:
 
 
 def find_pydantic_model(name: str) -> tuple:
-    """Find matching Pydantic model for a vocabulary name.
-    
+    """Find the matching pydantic model for a vocabulary name.
+
+    Models live one module per vocabulary folder in CONFIG.pydantic_models_dir
+    (model_family/ -> model_family.py), each assigning its class to `model`.
+
     Returns:
         tuple: (model_name, model_class, relative_file_path, model_docstring, module_docstring)
     """
-    if not DATA_DESCRIPTOR_CLASS_MAPPING:
+    models_path = _pydantic_models_path()
+    if models_path is None:
         return None, None, None, None, None
-    
+
     # Try different name variations
     variations = [
         name,
         name.replace('-', '_'),
         name.replace('_', '-'),
-        f"{name.replace('-', '_')}_new",
     ]
-    
+
+    import importlib
+
     for variant in variations:
-        if variant in DATA_DESCRIPTOR_CLASS_MAPPING:
-            cls = DATA_DESCRIPTOR_CLASS_MAPPING[variant]
-            
-            # Get the file path using inspect
-            file_path = None
-            module_doc = None
-            try:
-                full_path = inspect.getfile(cls)
-                # Extract relative path after data_descriptors/
-                if 'data_descriptors/' in full_path:
-                    idx = full_path.index('data_descriptors/') + len('data_descriptors/')
-                    file_path = full_path[idx:]
-                elif 'data_descriptors\\' in full_path:  # Windows
-                    idx = full_path.index('data_descriptors\\') + len('data_descriptors\\')
-                    file_path = full_path[idx:].replace('\\', '/')
-                
-                # Get module docstring
-                module = inspect.getmodule(cls)
-                if module and module.__doc__:
-                    module_doc = module.__doc__
-            except (TypeError, ValueError):
-                pass
-            
-            # Get class docstring
-            class_doc = cls.__doc__ if cls.__doc__ else None
-            
-            return variant, cls, file_path, class_doc, module_doc
-    
+        if not (models_path / f"{variant}.py").is_file():
+            continue
+        try:
+            module = importlib.import_module(variant)
+        except Exception as e:
+            print(f"  Warning: could not import model '{variant}': {e}")
+            continue
+
+        cls = getattr(module, 'model', None)
+        if cls is None:
+            continue
+
+        file_path = f"{variant}.py"
+        module_doc = module.__doc__ or None
+        class_doc = cls.__doc__ or None
+
+        return variant, cls, file_path, class_doc, module_doc
+
     return None, None, None, None, None
 
 
@@ -492,9 +509,9 @@ class MarkdownGenerator:
     def _get_pydantic_url(self) -> str:
         """Get the URL to the Pydantic model file."""
         if self.vocab.pydantic_file_path:
-            return f"{CONFIG.esgvoc_repo_url}/{self.vocab.pydantic_file_path}"
+            return f"{CONFIG.pydantic_repo_url}/{self.vocab.pydantic_file_path}"
         elif self.vocab.pydantic_model:
-            return f"{CONFIG.esgvoc_repo_url}/{self.vocab.pydantic_model}.py"
+            return f"{CONFIG.pydantic_repo_url}/{self.vocab.pydantic_model}.py"
         return "#"
 
     def generate_schema(self) -> str:
@@ -518,7 +535,7 @@ _No schema information available._
         if self.vocab.pydantic_class:
             class_name = self.vocab.pydantic_class.__name__
             pydantic_url = self._get_pydantic_url()
-            lines.append(f"The JSON structure and validation for this vocabulary is defined using the [`{class_name}`]({pydantic_url}) Pydantic model in [esgvoc](https://github.com/ESGF/esgf-vocab). This ensures data consistency and provides automatic validation of all entries. *Click field name for description.*\n")
+            lines.append(f"The JSON structure and validation for this vocabulary is defined using the [`{class_name}`]({pydantic_url}) pydantic model, kept alongside the data in [`{CONFIG.pydantic_models_dir}`]({CONFIG.pydantic_repo_url}). This ensures data consistency and provides automatic validation of all entries. *Click field name for description.*\n")
         else:
             lines.append("_No Pydantic model available for validation. Click field name for description._\n")
         
@@ -668,8 +685,8 @@ _No schema information available._
     
     def _shorten_type(self, type_str: str) -> str:
         """Shorten long type strings by removing module paths."""
-        # Remove full module paths like esgvoc.api.data_descriptors.EMD_models.arrangement.
-        shortened = re.sub(r'esgvoc\.api\.data_descriptors\.[A-Za-z_\.]+\.([A-Za-z_]+)', r'\1', type_str)
+        # Drop any dotted module path in front of a class name.
+        shortened = re.sub(r'\b(?:[A-Za-z_][A-Za-z0-9_]*\.)+([A-Za-z_][A-Za-z0-9_]*)', r'\1', type_str)
         return shortened
 
     def _schema_from_keys(self) -> str:
@@ -705,13 +722,6 @@ _No schema information available._
 ```python
 import cmipld
 data = cmipld.get("{short}/{example}")
-```
-
-**Python (esgvoc):**
-
-```python
-from esgvoc.api import search
-results = search.find("{self.vocab.name}", term="{example}")
 ```
 '''
 
@@ -855,8 +865,8 @@ def build_urls(vocab_dir: Path, prefix: str, name: str, base_urls: dict) -> dict
             repo_url = get_repo_url().replace('wolfiex', CONFIG.github_org.lower())
             rel_path = get_relative_path(str(vocab_dir))
             
-            # Build mipcvs.dev URL
-            io_url = f"https://{prefix}.mipcvs.dev/{name}"
+            # Build the published CV URL
+            io_url = f"https://{prefix}.wcrp-cmip.org/{name}"
             short = f"{prefix}:{name}"
             
             urls = {
@@ -934,7 +944,7 @@ def main():
 Examples:
   %(prog)s                          # Run in current directory
   %(prog)s /path/to/src-data        # Run in specified directory
-  %(prog)s --prefix universal       # Override prefix
+  %(prog)s --prefix emd             # Override prefix
   %(prog)s --dry-run                # Preview without writing
         '''
     )
@@ -966,7 +976,8 @@ Examples:
     
     print(f"Processing vocabularies in: {directory}")
     print(f"Using prefix: {prefix}")
-    print(f"Libraries: cmipld={'✓' if CMIPLD_AVAILABLE else '✗'}, esgvoc={'✓' if ESGVOC_AVAILABLE else '✗'}")
+    print(f"Libraries: cmipld={'✓' if CMIPLD_AVAILABLE else '✗'}, "
+          f"pydantic models={_pydantic_models_path() or '✗'}")
     print("-" * 50)
     
     # Process each subdirectory in the current level
