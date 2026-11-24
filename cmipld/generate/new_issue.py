@@ -918,7 +918,7 @@ def main():
             if collab_line:
                 people_section += f"\n{collab_line}"
             
-            progress_link = f"\n\nTo view your progress [see here](https://emd.wcrp-cmip.org/docs/Progress_Tracker?handle={author_login})"
+            progress_link = f"\n\nTo view your progress [see here](https://emd.wcrp-cmip.org/docs/Modelling_centres/Progress_tracker/?handle={author_login})"
             people_section += progress_link
 
             # For multi-file submissions, show each file as its own fenced block

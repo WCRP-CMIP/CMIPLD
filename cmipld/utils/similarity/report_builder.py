@@ -225,6 +225,31 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     return header + "\n".join(diff_rows)
 
 
+def _link_split(submitted: dict, existing: dict, link_field_names: Set[str]) -> tuple:
+    """Split the link fields of two items into those that agree and those that differ.
+
+    Values are compared by their final path segment, so a plain id, a full URI and an
+    {"@id": ...} wrapper naming the same entry all count as the same link. Fields blank in
+    both items are left out. Returns (same, different), each a sorted list of field names.
+    """
+    def stem(value):
+        if isinstance(value, list):
+            return sorted(stem(v) for v in value)
+        return str(value).rstrip("/").split("/")[-1].lower()
+
+    s = _normalise_for_diff(submitted)
+    e = _normalise_for_diff(existing)
+    blank = (None, "", [], {})
+    same, different = [], []
+    for k in sorted({short(f) for f in link_field_names}):
+        s_val, e_val = s.get(k), e.get(k)
+        if s_val in blank and e_val in blank:
+            continue
+        agree = s_val not in blank and e_val not in blank and stem(s_val) == stem(e_val)
+        (same if agree else different).append(k)
+    return same, different
+
+
 def _link_diff(submitted: dict, existing: dict, link_field_names: Set[str]) -> str:
     """
     Diff restricted to only the CV-linked fields — table format.
@@ -769,8 +794,10 @@ class ReportBuilder:
             # output (same content as fed to pydantic on the massaged copy).
             sections.append(self._validation_notes(val_result.errors_md))
 
-        sections.append(self._link_section(link_result, field_links, folder_ids, folder_by_id, field_graphs, sim_result))
-        sections.append(self._text_section(sim_result, folder_ids, folder_by_id, guidance, exclude_set))
+        sections.append(self._similarity_section(
+            link_result, field_links, folder_ids, folder_by_id, field_graphs,
+            sim_result, guidance, exclude_set,
+        ))
         sections.append(self._footer())
 
         self._report = "\n\n".join(s for s in sections if s.strip())
@@ -815,10 +842,9 @@ class ReportBuilder:
         return (
             f"`{self.item_id}`\n\n"
             f"> [!NOTE]\n"
-            f"> This report has three parts:\n"
+            f"> This report has two parts:\n"
             f">   **1. Field Status** — every schema field, with what was submitted.\n"
-            f">   **2. Controlled Vocabulary Links** — how submitted values match registered CV entries.\n"
-            f">   **3. Content Similarity** — overlap with existing items (potential duplicates).\n"
+            f">   **2. Similarity to existing entries** — shared and differing links, and content, for each close entry.\n"
             f">\n"
             f"> **Legend** — `[x]` validated by schema or explicitly missing required · `[ ]` needs manual check · `← failed` schema error · `← missing` required but absent · `← extra` not in schema.\n\n"
             f"| Property | Value |\n"
@@ -999,27 +1025,9 @@ class ReportBuilder:
             + "\n\n</details>\n"
         )
 
-    def _link_section(
-        self,
-        link_result,
-        field_links: Dict[str, str],
-        folder_ids: Dict[str, str],
-        folder_by_id: Dict[str, dict],
-        field_graphs: Dict[str, str],
-        sim_result=None,
-    ) -> str:
-        if not field_links and link_result is None and not any(
-            self.item.get(f) for f in INREPO_LINK_FIELDS
-        ):
-            return "---\n\n### 2. Controlled Vocabulary Links\n\n_Link analysis unavailable._\n"
-
-        # Build content score lookup from sim_result for use in compare-against
-        content_scores: Dict[str, float] = {}
-        if sim_result:
-            content_scores = {oid: round(s * 100, 1) for oid, s in sim_result.pairs}
-
-        lines = [f"---\n\n### 2. Controlled Vocabulary Links\n", "```\nWe are able to compare the controlled aspect of a submission by looking at the links to registered components of the CVs as provided by the dropdown fields. This is the quickest way to identify potential duplicates and overlaps between submissions.\n```\n"]
-
+    def _link_graph(self, field_links: Dict[str, str], field_graphs: Dict[str, str]) -> List[str]:
+        """How many links resolve, and the Mermaid graph of them (collapsed)."""
+        lines: List[str] = []
         # Count in-repo linked fields for the resolved fraction
         inrepo_present = sum(
             1 for f in INREPO_LINK_FIELDS
@@ -1124,78 +1132,11 @@ class ReportBuilder:
                     lines.append(f'    {node} --> {nid}')
 
             lines += ["```", "", "</details>", ""]
+        return lines
 
-        if link_result is not None:
-            high = [(oid, pct, n_shared, n_sub) for oid, pct, n_shared, n_sub in link_result.pairs
-                    if pct >= self.link_threshold]
-            if high:
-                lines += [
-                    "> [!WARNING]",
-                    f"> **{len(high)} existing item(s) share ≥{self.link_threshold:.0f}% link overlap.**"
-                    " Review field differences below before merging.\n",
-                ]
-                # Checkbox list with link% and content%
-                for oid, pct, n_shared, n_sub in high:
-                    link   = self._item_link(oid, folder_ids)
-                    cscore = content_scores.get(oid)
-                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
-                    lines.append(f"- [ ] {link} ({pct:.1f}% | {cscore_str})")
-                lines.append("")
-                # Sequential collapsibles — no checkboxes, no content score in summary
-                for oid, pct, n_shared, n_sub in high:
-                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    url  = folder_ids.get(oid, "")
-                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
-                        url += ".json"
-                    cscore = content_scores.get(oid)
-                    cscore_str = f"{cscore:.1f}%" if cscore is not None else "—"
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — Links: {n_shared}/{n_sub} ({pct:.1f}% | {cscore_str})"
-                    diff = _link_diff(self.item, folder_by_id.get(oid, {}), set(field_links.keys()))
-                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
-            else:
-                lines.append(
-                    f"_No existing items exceed {self.link_threshold:.0f}% link overlap._\n"
-                )
-
-            # The exhaustive "All CV link comparisons" block used to live here,
-            # rendering a full link diff for every item in the folder. It was
-            # the single largest contributor to report size, and because
-            # section 2 precedes section 3, an oversized report got truncated
-            # from the tail — losing the Content Similarity analysis, which is
-            # the part reviewers actually need. The >= link_threshold warnings
-            # above already surface every link overlap worth acting on, so the
-            # exhaustive listing is no longer emitted.
-            if link_result.pairs:
-                below = [p for p in link_result.pairs if p[1] < self.link_threshold]
-                if below:
-                    lines.append(
-                        f"_{len(below)} further item(s) compared below the "
-                        f"{self.link_threshold:.0f}% threshold — not listed._\n"
-                    )
-
-        return "\n".join(lines)
-
-    def _text_section(
-        self,
-        sim_result,
-        folder_ids: Dict[str, str],
-        folder_by_id: Dict[str, dict],
-        guidance: Dict[str, str] = {},
-        exclude_set: Optional[Set[str]] = None,
-    ) -> str:
-        if sim_result is None:
-            return "---\n\n### 3. Content Similarity\n\n_Content similarity analysis unavailable._\n"
-
-        lines = [f"---\n\n### 3. Content Similarity\n","```\nWhen it comes to free text and numerical entries, direct comparisons are more difficult. Instead we use a combination of text similarity and field exclusions to identify items that contain similar content. We exclude fields that carry links (they are covered by the previous section) and fields that have explicit pydantic validators (they have explicit checks) to focus on content that is not already being checked by other means.\n```\n"]
-
-        if not sim_result.text_fields:
-            lines.append("_No free-text fields remain after exclusions._\n")
-            return "\n".join(lines)
-
-        lines.append(
-            f"_{len(sim_result.text_fields)} field(s) compared using {sim_result.method}._\n"
-        )
-
+    def _fields_compared(self, sim_result, guidance: Dict[str, str]) -> List[str]:
+        """The content fields that the similarity score is built from, and their values."""
+        lines: List[str] = []
         # Fields used — compact table rather than per-field dropdowns
         lines += [
             "<details><summary>Fields included in comparison</summary>\n",
@@ -1209,63 +1150,105 @@ class ReportBuilder:
             label   = f"`{fname}`" if not tip else f"[`{fname}`](# \"{_table_cell(tip, 80)}\")"
             lines.append(f"| {label} | {display} |")
         lines += ["", "</details>", ""]
+        return lines
 
-        if sim_result.pairs:
-            text_field_keys = set(sim_result.text_fields.keys()) | {short(k) for k in sim_result.text_fields}
-            high_sim = [(oid, s) for oid, s in sim_result.pairs
-                        if s * 100 >= self.link_threshold]
-            if high_sim:
-                lines += [
-                    "> [!WARNING]",
-                    f"> **{len(high_sim)} existing item(s) exceed {self.link_threshold:.0f}% content similarity.**"
-                    " Confirm this submission is not a duplicate.\n",
-                ]
-                # Checkbox list with content%
-                for oid, score in high_sim:
-                    pct  = score * 100
-                    lines.append(f"- [ ] {self._item_link(oid, folder_ids)} ({pct:.1f}%)")
-                lines.append("")
-                # Sequential collapsibles
-                for oid, score in high_sim:
-                    pct  = score * 100
-                    bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                    url  = folder_ids.get(oid, "")
-                    if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
-                        url += ".json"
-                    diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                    is_identical = diff.startswith("_Compared text fields are identical")
-                    identical_flag = "  <span style='color:red'><b>identical</b></span>" if is_identical else ""
-                    summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%{identical_flag}"
-                    lines.append(f'<div style="padding-left:1.5em"><details><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
-            else:
-                lines.append(
-                    f"_No existing items exceed {self.link_threshold:.0f}% content similarity._\n"
-                )
+    def _similarity_section(
+        self,
+        link_result,
+        field_links: Dict[str, str],
+        folder_ids: Dict[str, str],
+        folder_by_id: Dict[str, dict],
+        field_graphs: Dict[str, str],
+        sim_result,
+        guidance: Dict[str, str],
+        exclude_set: Set[str],
+    ) -> str:
+        """Every existing entry close to the submission, once each.
 
-            shown   = [p for p in sim_result.pairs if p[1] * 100 >= self.report_floor]
-            omitted = len(sim_result.pairs) - len(shown)
-            lines.append("<details><summary>All content comparisons</summary>\n")
-            if omitted:
-                lines.append(
-                    f"_{omitted} item(s) scoring below {self.report_floor:.0f}% "
-                    f"content similarity omitted._\n"
-                )
-            for oid, score in shown:
-                pct  = score * 100
-                bar  = "█" * int(pct / 10) + "░" * (10 - int(pct / 10))
-                url  = folder_ids.get(oid, "")
-                if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
-                    url += ".json"
-                diff = _text_diff(sim_result.text_fields, folder_by_id.get(oid, {}), text_field_keys, exclude_set)
-                is_identical = diff.startswith("_Compared text fields are identical")
-                identical_flag = "  <span style='color:red'><b>identical</b></span>" if is_identical else ""
-                summary = f"<a href='{url}'>{oid}</a> `{bar}` — {pct:.1f}%{identical_flag}"
-                # Auto-expand comparisons above 50% similarity so reviewers can
-                # spot near-duplicates immediately. The wrapper stays collapsed.
-                open_attr = " open" if pct > 50 else ""
-                lines.append(f'<div style="padding-left:1.5em"><details{open_attr}><summary>{summary}</summary>\n\n{diff}\n\n</details></div>\n')
-            lines.append("\n</details>\n")
+        An entry is summarised by its file name; opened, it shows the links it shares with the
+        submission, the links that differ, and the content fields side by side. Links decide
+        whether an entry is a candidate duplicate; content ranks the candidates.
+        """
+        lines = [
+            "---\n\n### 2. Similarity to existing entries\n",
+            "_Existing entries are compared on their **links** (values chosen from controlled "
+            "vocabularies or other records) and their **content** (free text and numbers). "
+            "Open an entry to see which links it shares and how its content differs._\n",
+        ]
+        lines += self._link_graph(field_links, field_graphs)
+        if sim_result is not None and sim_result.text_fields:
+            lines += self._fields_compared(sim_result, guidance)
 
+        blank = (None, "", [], {})
+        link_fields = set(field_links) | {
+            f for f in INREPO_LINK_FIELDS if self.item.get(f) not in blank
+        }
+        by_links = {oid: (pct, n_shared, n_sub)
+                    for oid, pct, n_shared, n_sub in (link_result.pairs if link_result else [])}
+        by_content = {oid: score * 100 for oid, score in (sim_result.pairs if sim_result else [])}
+
+        def link_pct(oid):
+            return by_links.get(oid, (0, 0, 0))[0]
+
+        candidates = [
+            oid for oid in set(by_links) | set(by_content)
+            if by_content.get(oid, 0) >= self.report_floor or link_pct(oid) >= self.link_threshold
+        ]
+        candidates.sort(key=lambda oid: (by_content.get(oid, 0), link_pct(oid)), reverse=True)
+
+        likely = [oid for oid in candidates
+                  if link_pct(oid) >= 100 and by_content.get(oid, 0) >= self.link_threshold]
+        if likely:
+            lines += [
+                "> [!WARNING]",
+                f"> **{len(likely)} possible duplicate(s)** — every link matches and content is "
+                f"≥{self.link_threshold:.0f}% similar: "
+                + ", ".join(self._item_link(oid, folder_ids) for oid in likely) + "\n",
+            ]
+        elif candidates:
+            lines.append(
+                f"_No likely duplicate: no entry shares every link and "
+                f"≥{self.link_threshold:.0f}% of its content._\n"
+            )
+        else:
+            lines.append("_No existing entries are close to this submission._\n")
+
+        text_keys = set()
+        if sim_result is not None and sim_result.text_fields:
+            text_keys = set(sim_result.text_fields) | {short(k) for k in sim_result.text_fields}
+
+        for oid in candidates:
+            url = folder_ids.get(oid, "")
+            if url and any(h in url for h in CV_HOSTS) and not url.endswith(".json"):
+                url += ".json"
+            existing = folder_by_id.get(oid, {})
+
+            scores = []
+            _, n_shared, n_sub = by_links.get(oid, (0, 0, 0))
+            if n_sub:
+                scores.append(f"links {n_shared}/{n_sub}")
+            if oid in by_content:
+                scores.append(f"content {by_content[oid]:.0f}%")
+            summary = f"<a href='{url}'>{oid}</a> — " + " · ".join(scores)
+
+            same, different = _link_split(self.item, existing, link_fields)
+            body = [
+                "**Same links:** " + (" | ".join(f"`{f}`" for f in same) or "_none_"),
+                "**Different links:** " + (" | ".join(f"`{f}`" for f in different) or "_none_"),
+            ]
+            if text_keys:
+                body.append(_text_diff(sim_result.text_fields, existing, text_keys, exclude_set))
+            lines.append(
+                '<div style="padding-left:1.5em"><details><summary>' + summary + "</summary>\n\n"
+                + "\n\n".join(body) + "\n\n</details></div>\n"
+            )
+
+        compared = len(set(by_links) | set(by_content))
+        if compared > len(candidates):
+            lines.append(
+                f"_{compared - len(candidates)} further entr(y/ies) compared, below "
+                f"{self.report_floor:.0f}% content and {self.link_threshold:.0f}% links — not listed._\n"
+            )
         return "\n".join(lines)
 
     @staticmethod
