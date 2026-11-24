@@ -845,8 +845,7 @@ class ReportBuilder:
             f"> This report has two parts:\n"
             f">   **1. Field Status** — every schema field, with what was submitted.\n"
             f">   **2. Similarity to existing entries** — shared and differing links, and content, for each close entry.\n"
-            f">\n"
-            f"> **Legend** — `[x]` validated by schema or explicitly missing required · `[ ]` needs manual check · `← failed` schema error · `← missing` required but absent · `← extra` not in schema.\n\n"
+            f"\n"
             f"| Property | Value |\n"
             f"|----------|-------|\n"
             f"| **Type** | `{self.kind}` |\n"
@@ -1172,10 +1171,11 @@ class ReportBuilder:
         lines = [
             "---\n\n### 2. Similarity to existing entries\n",
             "_Existing entries are compared on their **links** (values chosen from controlled "
-            "vocabularies or other records) and their **content** (free text and numbers). "
-            "Open an entry to see which links it shares and how its content differs._\n",
+            "vocabularies or other records) and their **content** (free text and numbers)._\n",
         ]
-        lines += self._link_graph(field_links, field_graphs)
+        graph = self._link_graph(field_links, field_graphs)
+        if graph:
+            lines += graph + ["---", ""]
         if sim_result is not None and sim_result.text_fields:
             lines += self._fields_compared(sim_result, guidance)
 
@@ -1194,7 +1194,11 @@ class ReportBuilder:
             oid for oid in set(by_links) | set(by_content)
             if by_content.get(oid, 0) >= self.report_floor or link_pct(oid) >= self.link_threshold
         ]
-        candidates.sort(key=lambda oid: (by_content.get(oid, 0), link_pct(oid)), reverse=True)
+        def shared(oid):
+            return by_links.get(oid, (0, 0, 0))[1]
+
+        # Most links in common first; content similarity breaks the ties.
+        candidates.sort(key=lambda oid: (shared(oid), by_content.get(oid, 0)), reverse=True)
 
         likely = [oid for oid in candidates
                   if link_pct(oid) >= 100 and by_content.get(oid, 0) >= self.link_threshold]
@@ -1223,19 +1227,18 @@ class ReportBuilder:
                 url += ".json"
             existing = folder_by_id.get(oid, {})
 
-            scores = []
-            _, n_shared, n_sub = by_links.get(oid, (0, 0, 0))
-            if n_sub:
-                scores.append(f"links {n_shared}/{n_sub}")
-            if oid in by_content:
-                scores.append(f"content {by_content[oid]:.0f}%")
-            summary = f"<a href='{url}'>{oid}</a> — " + " · ".join(scores)
+            pct, n_shared, n_sub = by_links.get(oid, (0, 0, 0))
+            links_part = f"{n_shared}/{n_sub} " if n_sub else ""
+            links_pct = f"{pct:.0f}%" if n_sub else "—"
+            content_pct = f"{by_content[oid]:.0f}%" if oid in by_content else "—"
+            summary = f"<a href='{url}'>{oid}</a> — {links_part}({links_pct} | {content_pct} similarity)"
 
             same, different = _link_split(self.item, existing, link_fields)
-            body = [
-                "**Same links:** " + (" | ".join(f"`{f}`" for f in same) or "_none_"),
-                "**Different links:** " + (" | ".join(f"`{f}`" for f in different) or "_none_"),
-            ]
+            body = ["\n".join([
+                "| **Same links** | " + (" · ".join(f"`{f}`" for f in same) or "_none_") + " |",
+                "|---|---|",
+                "| **Different links** | " + (" · ".join(f"`{f}`" for f in different) or "_none_") + " |",
+            ])]
             if text_keys:
                 body.append(_text_diff(sim_result.text_fields, existing, text_keys, exclude_set))
             lines.append(
@@ -1246,7 +1249,7 @@ class ReportBuilder:
         compared = len(set(by_links) | set(by_content))
         if compared > len(candidates):
             lines.append(
-                f"_{compared - len(candidates)} further entr(y/ies) compared, below "
+                f"_{compared - len(candidates)} further entries compared, below "
                 f"{self.report_floor:.0f}% content and {self.link_threshold:.0f}% links — not listed._\n"
             )
         return "\n".join(lines)
