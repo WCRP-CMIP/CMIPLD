@@ -225,6 +225,12 @@ def _text_diff(submitted_text_fields: dict, existing: dict, text_field_keys: set
     return header + "\n".join(diff_rows)
 
 
+# An existing entry is listed in the similarity report when links% x content% is at least
+# SHOW_COMBINED, or either score on its own is over SHOW_SINGLE.
+SHOW_COMBINED = 30
+SHOW_SINGLE = 70
+
+
 def _link_split(submitted: dict, existing: dict, link_field_names: Set[str]) -> tuple:
     """Split the link fields of two items into those that agree and those that differ.
 
@@ -1190,10 +1196,13 @@ class ReportBuilder:
         def link_pct(oid):
             return by_links.get(oid, (0, 0, 0))[0]
 
-        candidates = [
-            oid for oid in set(by_links) | set(by_content)
-            if by_content.get(oid, 0) >= self.report_floor or link_pct(oid) >= self.link_threshold
-        ]
+        def worth_showing(oid):
+            """Close on both scores together, or very close on either one alone."""
+            links, content = link_pct(oid), by_content.get(oid, 0)
+            return (links * content / 100 >= SHOW_COMBINED
+                    or links > SHOW_SINGLE or content > SHOW_SINGLE)
+
+        candidates = [oid for oid in set(by_links) | set(by_content) if worth_showing(oid)]
         def shared(oid):
             return by_links.get(oid, (0, 0, 0))[1]
 
@@ -1249,8 +1258,8 @@ class ReportBuilder:
         compared = len(set(by_links) | set(by_content))
         if compared > len(candidates):
             lines.append(
-                f"_{compared - len(candidates)} further entries compared, below "
-                f"{self.report_floor:.0f}% content and {self.link_threshold:.0f}% links — not listed._\n"
+                f"_{compared - len(candidates)} further entries not listed: their links and content "
+                f"together score under {SHOW_COMBINED}%, and neither is over {SHOW_SINGLE}%._\n"
             )
         return "\n".join(lines)
 
